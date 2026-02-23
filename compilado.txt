@@ -1,0 +1,3676 @@
+COMPILADO DE ARCHIVOS 
+ 
+ 
+================================= 
+.env 
+================================= 
+ 
+# .env
+NUXT_PUBLIC_API_URL=http://localhost:3000/api 
+================================= 
+app.vue 
+================================= 
+ 
+<!-- app.vue -->
+<template>
+  <div>
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
+  </div>
+</template> 
+================================= 
+nuxt.config.ts 
+================================= 
+ 
+// nuxt.config.ts
+export default defineNuxtConfig({
+  // Habilita el modo Nuxt 4 si aún estás en la versión v3.x 
+  // o asegura la compatibilidad si ya estás en v4
+  future: {
+    compatibilityVersion: 4,
+  },
+
+  devtools: { enabled: true },
+  ssr: false,
+  
+  modules: [
+    '@pinia/nuxt',
+  ],
+  
+  // TypeScript en Nuxt 4 es casi automático
+  typescript: {
+    strict: false, // Cámbialo a true cuando puedas para mejor experiencia
+    typeCheck: false,
+  },
+  components: [
+    {
+      path: '~/components',
+      pathPrefix: false, // Permite imports anidados
+      extensions: ['.vue'],
+    }
+  ],
+  
+  // Importaciones: Nuxt ya escanea 'composables' y 'components' por defecto.
+  // Solo necesitas agregar 'stores' si no se detectan automáticamente.
+  imports: {
+    dirs: ['stores'],
+  },
+  
+  css: ['~/assets/css/tailwind.css'],
+  
+  postcss: {
+    plugins: {
+      tailwindcss: {},
+      autoprefixer: {},
+    },
+  },
+  
+  app: {
+    head: {
+      title: 'Senado Bolivia - Admin',
+      meta: [
+        { charset: 'utf-8' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      ],
+    },
+  },
+}) 
+================================= 
+package.json 
+================================= 
+ 
+{
+  "name": "senado-admin",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev --port 3002",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@pinia/nuxt": "^0.8.0",
+    "@vueuse/core": "^14.2.1",
+    "@vueuse/motion": "^3.0.3",
+    "nuxt": "^4.2.2",
+    "pinia": "^2.2.7",
+    "vue": "^3.5.27"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.6",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.41",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.9.3"
+  }
+}
+ 
+================================= 
+tailwind.config.js 
+================================= 
+ 
+// tailwind.config.js
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./components/**/*.{js,vue,ts}",
+    "./layouts/**/*.vue",
+    "./pages/**/*.vue",
+    "./app.vue",
+    "./error.vue"
+  ],
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+          950: '#172554',
+        }
+      }
+    },
+  },
+  plugins: [],
+} 
+================================= 
+tsconfig.json 
+================================= 
+ 
+{
+  "extends": "./.nuxt/tsconfig.json"
+} 
+================================= 
+assets\css\tailwind.css 
+================================= 
+ 
+/* assets/css/tailwind.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities; 
+================================= 
+components\tabs\CategoriesList.vue 
+================================= 
+ 
+<!-- components/tabs/CategoriesList.vue -->
+<template>
+  <div>
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-lg font-medium text-gray-900">Categorías de Tabs</h2>
+      <button
+        @click="$emit('create')"
+        class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+      >
+        <span class="mr-2">+</span>
+        Nueva Categoría
+      </button>
+    </div>
+
+    <div v-if="loading" class="text-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+      <p class="mt-4 text-gray-600">Cargando categorías...</p>
+    </div>
+
+    <div v-else-if="error" class="bg-red-50 p-4 rounded-md">
+      <p class="text-red-800">{{ error }}</p>
+    </div>
+
+    <div v-else class="space-y-4">
+      <div
+        v-for="category in categories"
+        :key="category.categoryId"
+        class="bg-white border rounded-lg overflow-hidden"
+        :class="{ 'opacity-50': !category.isActive }"
+      >
+        <div class="p-6">
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <div class="flex items-center space-x-3">
+                <div 
+                  class="w-10 h-10 rounded-lg flex items-center justify-center"
+                  :style="{ backgroundColor: category.color + '20' }"
+                >
+                  <div class="w-6 h-6" v-html="category.icon"></div>
+                </div>
+                <div>
+                  <h3 class="text-lg font-medium text-gray-900">{{ category.name }}</h3>
+                  <p class="text-sm text-gray-500">ID: {{ category.categoryId }}</p>
+                </div>
+              </div>
+              <p class="mt-2 text-gray-600">{{ category.description }}</p>
+              <div class="mt-4 flex items-center space-x-4 text-sm">
+                <span class="text-gray-500">Orden: {{ category.order }}</span>
+                <span class="text-gray-500">•</span>
+                <span class="text-gray-500">Links: {{ category.linksCount || 0 }}</span>
+                <span class="text-gray-500">•</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                  :class="category.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
+                >
+                  {{ category.isActive ? 'Activo' : 'Inactivo' }}
+                </span>
+              </div>
+            </div>
+            <div class="flex space-x-2">
+              <button
+                @click="$emit('manage-links', category)"
+                class="p-2 text-gray-400 hover:text-primary-600"
+                title="Gestionar Links"
+              >
+                🔗
+              </button>
+              <button
+                @click="$emit('edit', category)"
+                class="p-2 text-gray-400 hover:text-primary-600"
+                title="Editar"
+              >
+                ✏️
+              </button>
+              <button
+                @click="$emit('toggle', category)"
+                class="p-2 text-gray-400 hover:text-primary-600"
+                :title="category.isActive ? 'Desactivar' : 'Activar'"
+              >
+                {{ category.isActive ? '⏸️' : '▶️' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import type { TabCategory } from '~/composables/useTabsApi'
+
+defineProps<{
+  categories: TabCategory[]
+  loading?: boolean
+  error?: string | null
+}>()
+
+defineEmits<{
+  (e: 'create'): void
+  (e: 'edit', category: TabCategory): void
+  (e: 'toggle', category: TabCategory): void
+  (e: 'manage-links', category: TabCategory): void
+}>()
+</script> 
+================================= 
+components\tabs\CategoryForm.vue 
+================================= 
+ 
+<!-- components/tabs/CategoryForm.vue -->
+<template>
+  <form @submit.prevent="handleSubmit" class="space-y-5">
+    <!-- ID de Categoría -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        ID de Categoría <span class="text-red-500">*</span>
+      </label>
+      <input
+        v-model="form.categoryId"
+        type="text"
+        required
+        :disabled="!!category"
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg disabled:bg-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+        :class="{ 'bg-gray-50': !!category }"
+        placeholder="ej: legislacion"
+      />
+      <p class="text-xs text-gray-500 mt-1.5">
+        Solo letras minúsculas, números y guiones (ej: nueva-categoria)
+      </p>
+    </div>
+
+    <!-- Nombre -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Nombre <span class="text-red-500">*</span>
+      </label>
+      <input
+        v-model="form.name"
+        type="text"
+        required
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+        placeholder="Ej: Legislación"
+      />
+    </div>
+
+    <!-- Descripción -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Descripción
+      </label>
+      <textarea
+        v-model="form.description"
+        rows="3"
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors resize-none"
+        placeholder="Descripción de la categoría"
+      ></textarea>
+    </div>
+
+    <!-- Orden -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Orden
+      </label>
+      <input
+        v-model.number="form.order"
+        type="number"
+        min="0"
+        step="10"
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+      />
+      <p class="text-xs text-gray-500 mt-1.5">
+        Determina la posición (menor número = más arriba)
+      </p>
+    </div>
+
+    <!-- Icono -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Icono de Categoría
+      </label>
+      <button
+        type="button"
+        @click="showIconSelector = true"
+        class="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors"
+      >
+        <div v-if="form.icon" class="flex items-center justify-center space-x-4">
+          <div class="w-10 h-10" v-html="form.icon"></div>
+          <span class="text-gray-600">Cambiar icono</span>
+        </div>
+        <div v-else class="text-gray-500">
+          <span class="block text-lg mb-1">🖼️</span>
+          <span>Seleccionar icono</span>
+        </div>
+      </button>
+    </div>
+
+    <!-- Botones -->
+    <div class="flex justify-end space-x-3 pt-5 border-t border-gray-200">
+      <button
+        type="button"
+        @click="$emit('cancel')"
+        class="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+      >
+        Cancelar
+      </button>
+      <button
+        type="submit"
+        :disabled="loading"
+        class="px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+      >
+        <span v-if="loading" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+        <span>{{ loading ? 'Guardando...' : 'Guardar' }}</span>
+      </button>
+    </div>
+
+    <!-- Modal de selector de iconos -->
+    <Modal v-model="showIconSelector" title="Seleccionar Icono" size="2xl">
+      <IconSelector
+        :selected-icon="form.icon"
+        @select="(svg) => { form.icon = svg; showIconSelector = false }"
+      />
+    </Modal>
+  </form>
+</template>
+
+<script setup lang="ts">
+import { ref, watch } from 'vue'
+import type { TabCategory } from '~/composables/useTabsApi'
+
+const props = defineProps<{
+  category?: TabCategory | null
+  loading?: boolean
+}>()
+
+const emit = defineEmits<{
+  (e: 'submit', data: any): void
+  (e: 'cancel'): void
+}>()
+
+const showIconSelector = ref(false)
+
+const form = ref({
+  categoryId: '',
+  name: '',
+  description: '',
+  order: 0,
+  icon: ''
+})
+
+watch(() => props.category, (category) => {
+  if (category) {
+    form.value = {
+      categoryId: category.categoryId,
+      name: category.name,
+      description: category.description || '',
+      order: category.order || 0,
+      icon: category.icon || ''
+    }
+  } else {
+    form.value = {
+      categoryId: '',
+      name: '',
+      description: '',
+      order: 0,
+      icon: ''
+    }
+  }
+}, { immediate: true })
+
+const handleSubmit = () => {
+  if (!props.category) {
+    emit('submit', form.value)
+  } else {
+    const { categoryId, ...dataToSend } = form.value
+    emit('submit', dataToSend)
+  }
+}
+</script> 
+================================= 
+components\tabs\IconSelector.vue 
+================================= 
+ 
+<!-- components/tabs/IconSelector.vue -->
+<template>
+  <div>
+    <!-- Búsqueda -->
+    <div class="mb-4">
+      <input
+        type="text"
+        v-model="search"
+        placeholder="🔍 Buscar iconos por nombre o categoría..."
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+      />
+    </div>
+
+    <!-- Carga -->
+    <div v-if="loading" class="text-center py-8">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+      <p class="mt-2 text-sm text-gray-500">Cargando iconos...</p>
+    </div>
+
+    <!-- Grid de iconos -->
+    <div v-else class="grid grid-cols-4 md:grid-cols-6 gap-3 max-h-96 overflow-y-auto p-1">
+      <button
+        v-for="icon in filteredIcons"
+        :key="icon.id"
+        @click="$emit('select', icon.icono)"
+        class="p-3 border rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all transform hover:scale-105"
+        :class="{ 'border-primary-500 bg-primary-50 ring-2 ring-primary-200': selectedIcon === icon.icono }"
+      >
+        <div class="w-10 h-10 mx-auto mb-2" v-html="icon.icono"></div>
+        <p class="text-xs text-gray-600 text-center truncate" :title="icon.ejemplo">
+          {{ icon.ejemplo }}
+        </p>
+        <p class="text-xs text-gray-400 text-center">{{ icon.categoryName }}</p>
+      </button>
+    </div>
+
+    <!-- Sin resultados -->
+    <div v-if="!loading && filteredIcons.length === 0" class="text-center py-8 text-gray-500">
+      <span class="text-4xl block mb-2">🔍</span>
+      No se encontraron iconos para "{{ search }}"
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useTabsApi, type IconGalleryItem } from '~/composables/useTabsApi'
+
+const props = defineProps<{
+  selectedIcon?: string
+}>()
+
+const emit = defineEmits<{
+  (e: 'select', iconSvg: string): void
+}>()
+
+const tabsApi = useTabsApi()
+const loading = ref(false)
+const icons = ref<IconGalleryItem[]>([])
+const search = ref('')
+
+const filteredIcons = computed(() => {
+  if (!search.value) return icons.value
+  const term = search.value.toLowerCase()
+  return icons.value.filter(icon => 
+    icon.ejemplo.toLowerCase().includes(term) ||
+    icon.categoryName.toLowerCase().includes(term)
+  )
+})
+
+onMounted(async () => {
+  try {
+    loading.value = true
+    const response = await tabsApi.getIconsGallery()
+    icons.value = response.all || []
+  } catch (error) {
+    console.error('Error cargando iconos:', error)
+  } finally {
+    loading.value = false
+  }
+})
+</script> 
+================================= 
+components\tabs\LinkForm.vue 
+================================= 
+ 
+<!-- components/tabs/LinkForm.vue -->
+<template>
+  <form @submit.prevent="handleSubmit" class="space-y-5">
+    <!-- ID del Link -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        ID del Link <span class="text-red-500">*</span>
+      </label>
+      <input
+        v-model="form.linkId"
+        type="text"
+        required
+        :disabled="!!link"
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg disabled:bg-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        :class="{ 'bg-gray-50': !!link }"
+        placeholder="ej: leyes-tratamiento"
+      />
+      <p class="text-xs text-gray-500 mt-1.5">
+        Solo letras minúsculas, números y guiones
+      </p>
+    </div>
+
+    <!-- Título -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Título <span class="text-red-500">*</span>
+      </label>
+      <input
+        v-model="form.titulo"
+        type="text"
+        required
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        placeholder="Ej: Proyectos de Ley en Tratamiento"
+      />
+    </div>
+
+    <!-- Descripción -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Descripción <span class="text-red-500">*</span>
+      </label>
+      <textarea
+        v-model="form.descripcion"
+        rows="2"
+        required
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+        placeholder="Descripción del link"
+      ></textarea>
+    </div>
+
+    <!-- Ruta -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Ruta (path) <span class="text-red-500">*</span>
+      </label>
+      <input
+        v-model="form.path"
+        type="text"
+        required
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        placeholder="/legislacion/proyectos-en-tratamiento"
+      />
+    </div>
+
+    <!-- Orden -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Orden
+      </label>
+      <input
+        v-model.number="form.orden"
+        type="number"
+        min="0"
+        step="10"
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+      />
+      <p class="text-xs text-gray-500 mt-1.5">
+        Posición dentro de la categoría (menor número = más arriba)
+      </p>
+    </div>
+
+    <!-- Icono -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Icono <span class="text-red-500">*</span>
+      </label>
+      <button
+        type="button"
+        @click="showIconSelector = true"
+        class="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors"
+      >
+        <div v-if="form.icono" class="flex items-center justify-center space-x-4">
+          <div class="w-10 h-10" v-html="form.icono"></div>
+          <span class="text-gray-600">Cambiar icono</span>
+        </div>
+        <div v-else class="text-gray-500">
+          <span class="block text-lg mb-1">🖼️</span>
+          <span>Seleccionar icono</span>
+        </div>
+      </button>
+    </div>
+
+    <!-- Botones -->
+    <div class="flex justify-end space-x-3 pt-5 border-t border-gray-200">
+      <button
+        type="button"
+        @click="$emit('cancel')"
+        class="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+      >
+        Cancelar
+      </button>
+      <button
+        type="submit"
+        :disabled="loading"
+        class="px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+      >
+        <span v-if="loading" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+        <span>{{ loading ? 'Guardando...' : 'Guardar' }}</span>
+      </button>
+    </div>
+
+    <!-- Modal de selector de iconos -->
+    <Modal v-model="showIconSelector" title="Seleccionar Icono" size="2xl">
+      <IconSelector
+        :selected-icon="form.icono"
+        @select="(svg) => { form.icono = svg; showIconSelector = false }"
+      />
+    </Modal>
+  </form>
+</template>
+
+<script setup lang="ts">
+import { ref, watch } from 'vue'
+import type { TabLink } from '~/composables/useTabsApi'
+
+const props = defineProps<{
+  link?: TabLink | null
+  categoryId: string
+  loading?: boolean
+}>()
+
+const emit = defineEmits<{
+  (e: 'submit', data: any): void
+  (e: 'cancel'): void
+}>()
+
+const showIconSelector = ref(false)
+
+const form = ref({
+  linkId: '',
+  titulo: '',
+  descripcion: '',
+  path: '',
+  orden: 0,
+  icono: ''
+})
+
+watch(() => props.link, (link) => {
+  if (link) {
+    form.value = {
+      linkId: link.linkId,
+      titulo: link.titulo,
+      descripcion: link.descripcion,
+      path: link.path,
+      orden: link.orden || 0,
+      icono: link.icono || ''
+    }
+  } else {
+    form.value = {
+      linkId: '',
+      titulo: '',
+      descripcion: '',
+      path: '',
+      orden: 0,
+      icono: ''
+    }
+  }
+}, { immediate: true })
+
+const handleSubmit = () => {
+  emit('submit', form.value)
+}
+</script> 
+================================= 
+components\tabs\LinksList.vue 
+================================= 
+ 
+<!-- components/tabs/LinksList.vue -->
+<template>
+  <div>
+    <div class="flex justify-between items-center mb-6">
+      <div>
+        <h2 class="text-lg font-medium text-gray-900">Links de {{ categoryName }}</h2>
+        <p class="text-sm text-gray-500">Arrastra usando el ícono ⋮⋮ para reordenar</p>
+      </div>
+      <button
+        @click="$emit('create')"
+        class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+      >
+        <span class="mr-2">+</span>
+        Nuevo Link
+      </button>
+    </div>
+
+    <div v-if="loading" class="text-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+      <p class="mt-4 text-gray-600">Cargando links...</p>
+    </div>
+
+    <div v-else-if="error" class="bg-red-50 p-4 rounded-md">
+      <p class="text-red-800">{{ error }}</p>
+    </div>
+
+    <div v-else-if="localLinks.length === 0" class="text-center py-12 bg-gray-50 rounded-lg">
+      <p class="text-gray-500">No hay links en esta categoría</p>
+    </div>
+
+    <div v-else class="space-y-2">
+      <transition-group name="list" tag="div" class="space-y-2">
+        <div
+          v-for="(link, index) in localLinks"
+          :key="link.linkId"
+          class="bg-white border rounded-lg p-4"
+          :class="{ 
+            'opacity-50': !link.isActive,
+            'dragging border-2 border-primary-500 shadow-lg': dragIndex === index
+          }"
+          :draggable="true"
+          @dragstart="handleDragStart($event, index, link)"
+          @dragover.prevent="handleDragOver($event, index)"
+          @dragend="handleDragEnd($event)"
+          @dragenter.prevent
+          @dragleave.prevent
+          @drop.prevent="handleDrop($event, index)"
+        >
+          <div class="flex items-center space-x-4">
+            <!-- Drag Handle -->
+            <div class="drag-handle cursor-grab text-gray-400 hover:text-gray-600 select-none text-2xl">
+              ⋮⋮
+            </div>
+            
+            <!-- Icono -->
+            <div class="w-10 h-10 flex items-center justify-center">
+              <div class="w-8 h-8" v-html="link.icono"></div>
+            </div>
+
+            <!-- Contenido -->
+            <div class="flex-1">
+              <div class="flex items-center space-x-3">
+                <h3 class="font-medium text-gray-900">{{ link.titulo }}</h3>
+                <span class="text-xs text-gray-500">#{{ index + 1 }}</span>
+              </div>
+              <p class="text-sm text-gray-600">{{ link.descripcion }}</p>
+              <p class="text-xs text-gray-400 mt-1">{{ link.path }}</p>
+            </div>
+
+            <!-- Acciones -->
+            <div class="flex space-x-2">
+              <button
+                @click="$emit('edit', link)"
+                class="p-2 text-gray-400 hover:text-primary-600"
+                title="Editar"
+              >
+                ✏️
+              </button>
+              <button
+                @click="$emit('toggle', link)"
+                class="p-2 text-gray-400 hover:text-primary-600"
+                :title="link.isActive ? 'Desactivar' : 'Activar'"
+              >
+                {{ link.isActive ? '⏸️' : '▶️' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition-group>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, watch } from 'vue'
+import type { TabLink } from '~/composables/useTabsApi'
+
+const props = defineProps<{
+  categoryId: string
+  categoryName: string
+  links: TabLink[]
+  loading?: boolean
+  error?: string | null
+}>()
+
+const emit = defineEmits<{
+  (e: 'create'): void
+  (e: 'edit', link: TabLink): void
+  (e: 'toggle', link: TabLink): void
+  (e: 'reorder', order: { linkId: string; position: number }[]): void
+}>()
+
+// Estado para drag and drop
+const localLinks = ref<TabLink[]>([])
+const dragIndex = ref<number | null>(null)
+
+// Sincronizar con props
+watch(() => props.links, (newLinks) => {
+  if (newLinks) {
+    localLinks.value = [...newLinks].sort((a, b) => a.orden - b.orden)
+  }
+}, { immediate: true, deep: true })
+
+// Funciones de drag and drop
+const handleDragStart = (event: DragEvent, index: number, link: TabLink) => {
+  dragIndex.value = index
+  event.dataTransfer?.setData('text/plain', JSON.stringify({
+    index,
+    linkId: link.linkId
+  }))
+  event.dataTransfer!.effectAllowed = 'move'
+}
+
+const handleDragOver = (event: DragEvent, index: number) => {
+  event.preventDefault()
+  if (dragIndex.value === null || dragIndex.value === index) return
+  event.dataTransfer!.dropEffect = 'move'
+}
+
+const handleDrop = (event: DragEvent, dropIndex: number) => {
+  event.preventDefault()
+  
+  if (dragIndex.value === null) return
+  
+  const data = event.dataTransfer?.getData('text/plain')
+  if (!data) return
+  
+  try {
+    const draggedData = JSON.parse(data)
+    
+    if (draggedData.index === dropIndex) {
+      dragIndex.value = null
+      return
+    }
+    
+    // Reordenar array
+    const newLinks = [...localLinks.value]
+    const [draggedItem] = newLinks.splice(draggedData.index, 1)
+    newLinks.splice(dropIndex, 0, draggedItem)
+    localLinks.value = newLinks
+    
+  } catch (error) {
+    console.error('Error parsing drag data:', error)
+  }
+}
+
+const handleDragEnd = (event: DragEvent) => {
+  const order = localLinks.value.map((link, index) => ({
+    linkId: link.linkId,
+    position: index
+  }))
+  
+  emit('reorder', order)
+  dragIndex.value = null
+}
+</script>
+
+<style scoped>
+.list-move {
+  transition: transform 0.3s ease;
+}
+
+.dragging {
+  opacity: 0.7;
+  transform: scale(1.02);
+  transition: all 0.2s ease;
+}
+
+[draggable=true] {
+  user-select: none;
+  -webkit-user-drag: element;
+}
+
+.drag-handle {
+  user-select: none;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.drag-handle * {
+  pointer-events: none;
+}
+</style> 
+================================= 
+components\tabs\TabsPreview.vue 
+================================= 
+ 
+<!-- components/tabs/TabsPreview.vue - Versión mejorada -->
+<template>
+  <div>
+    <!-- Tabs -->
+    <div class="border-b border-gray-200 mb-6">
+      <nav class="flex space-x-8" aria-label="Tabs">
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          @click="activeTab = tab.id"
+          class="group relative py-4 px-1 font-medium text-sm focus:outline-none"
+          :class="activeTab === tab.id
+            ? 'text-primary-600'
+            : 'text-gray-500 hover:text-gray-700'"
+        >
+          <div class="flex items-center space-x-2">
+            <div class="w-5 h-5" v-html="tab.icono"></div>
+            <span>{{ tab.label }}</span>
+          </div>
+          <!-- Indicador de pestaña activa -->
+          <span
+            class="absolute bottom-0 left-0 right-0 h-0.5 transform transition-transform"
+            :class="activeTab === tab.id ? 'bg-primary-600' : 'bg-transparent'"
+          />
+        </button>
+      </nav>
+    </div>
+
+    <!-- Contenido de la pestaña activa -->
+    <div v-if="currentTabData" class="space-y-6">
+      <!-- Animación de entrada -->
+      <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0 translate-y-2"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 translate-y-2"
+        mode="out-in"
+      >
+        <div :key="activeTab">
+          <!-- Encabezado del área -->
+          <div class="mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-2 flex items-center">
+              <span 
+                class="inline-block w-1 h-6 rounded-full mr-3"
+                :style="{ backgroundColor: currentTabData.color }"
+              />
+              {{ currentTabData.titulo }}
+            </h2>
+            <p class="text-gray-600">{{ currentTabData.descripcion }}</p>
+          </div>
+
+          <!-- Estadísticas rápidas -->
+          <div class="grid grid-cols-3 gap-4 mb-6">
+            <div class="bg-gray-50 rounded-lg p-3 text-center">
+              <div class="text-2xl font-semibold text-primary-600">
+                {{ currentTabLinks.length }}
+              </div>
+              <div class="text-xs text-gray-500">Links disponibles</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-3 text-center">
+              <div class="text-2xl font-semibold text-green-600">
+                {{ activeLinksCount }}
+              </div>
+              <div class="text-xs text-gray-500">Links activos</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-3 text-center">
+              <div class="text-2xl font-semibold text-blue-600">
+                {{ new Date().toLocaleDateString() }}
+              </div>
+              <div class="text-xs text-gray-500">Actualizado</div>
+            </div>
+          </div>
+
+          <!-- Grid de links -->
+          <div 
+            class="grid gap-4"
+            :class="gridColsClass"
+          >
+            <div
+              v-for="link in currentTabLinks"
+              :key="link.id"
+              class="group bg-white border rounded-lg p-4 hover:shadow-md transition-all duration-200 hover:border-primary-300 cursor-pointer"
+              :class="{ 'opacity-60': !isLinkActive(link) }"
+              @click="previewLink(link)"
+            >
+              <div class="flex items-start space-x-4">
+                <!-- Icono con efecto hover -->
+                <div class="flex-shrink-0">
+                  <div 
+                    class="w-12 h-12 transition-transform group-hover:scale-110"
+                    v-html="link.icono"
+                  ></div>
+                </div>
+                
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between">
+                    <h3 class="font-medium text-gray-900 truncate group-hover:text-primary-600">
+                      {{ link.titulo }}
+                    </h3>
+                    <!-- Badge de estado -->
+                    <span 
+                      v-if="!isLinkActive(link)"
+                      class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600"
+                    >
+                      Inactivo
+                    </span>
+                  </div>
+                  <p class="text-sm text-gray-600 mt-1 line-clamp-2">
+                    {{ link.descripcion }}
+                  </p>
+                  <p class="text-xs text-gray-400 mt-2 font-mono">
+                    {{ link.path }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mensaje si no hay links -->
+          <div v-if="currentTabLinks.length === 0" class="text-center py-12 bg-gray-50 rounded-lg">
+            <div class="text-4xl mb-3">📭</div>
+            <p class="text-gray-500">No hay links en esta categoría</p>
+            <p class="text-sm text-gray-400 mt-1">Agrega links desde el panel de administración</p>
+          </div>
+        </div>
+      </Transition>
+    </div>
+
+    <!-- Mensaje si no hay datos -->
+    <div v-else class="text-center py-12 text-gray-500">
+      <div class="text-4xl mb-3">🔍</div>
+      <p>No hay datos para mostrar</p>
+      <p class="text-sm text-gray-400 mt-1">Configura las categorías para ver la vista previa</p>
+    </div>
+
+    <!-- Mini modal de preview de link -->
+    <Modal v-model="showLinkPreview" :title="selectedLink?.titulo || 'Vista previa del link'">
+      <div class="p-4">
+        <div class="flex items-center space-x-4 mb-4">
+          <div class="w-16 h-16" v-html="selectedLink?.icono"></div>
+          <div>
+            <h3 class="font-medium text-gray-900">{{ selectedLink?.titulo }}</h3>
+            <p class="text-sm text-gray-600">{{ selectedLink?.descripcion }}</p>
+          </div>
+        </div>
+        
+        <div class="bg-gray-50 rounded-lg p-4">
+          <p class="text-sm text-gray-700">
+            <span class="font-medium">Ruta:</span> 
+            <span class="font-mono text-primary-600">{{ selectedLink?.path }}</span>
+          </p>
+          <p class="text-sm text-gray-700 mt-2">
+            <span class="font-medium">ID:</span> 
+            <span class="font-mono">{{ selectedLink?.id }}</span>
+          </p>
+        </div>
+
+        <div class="mt-4 flex justify-end">
+          <button
+            @click="showLinkPreview = false"
+            class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </Modal>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import Modal from '~/components/ui/Modal.vue'
+
+const props = defineProps<{
+  data: any
+}>()
+
+const activeTab = ref('legislacion')
+const showLinkPreview = ref(false)
+const selectedLink = ref<any>(null)
+
+// Computed properties
+const tabs = computed(() => props.data?.tabs || [])
+
+const currentTabData = computed(() => {
+  if (!props.data?.areas) return null
+  return props.data.areas[activeTab.value]
+})
+
+const currentTabLinks = computed(() => {
+  if (!props.data?.links) return []
+  return props.data.links[activeTab.value] || []
+})
+
+const activeLinksCount = computed(() => {
+  return currentTabLinks.value.filter((link: any) => isLinkActive(link)).length
+})
+
+const gridColsClass = computed(() => {
+  const count = currentTabLinks.value.length
+  if (count === 1) return 'grid-cols-1'
+  if (count === 2) return 'grid-cols-1 md:grid-cols-2'
+  return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+})
+
+// Funciones helper
+const isLinkActive = (link: any) => {
+  // Por ahora todos los links están activos en la preview
+  // Puedes modificar esto según tu lógica de negocio
+  return true
+}
+
+const previewLink = (link: any) => {
+  selectedLink.value = link
+  showLinkPreview.value = true
+}
+
+// Watch for tab changes
+watch(() => props.data, (newData) => {
+  if (newData?.tabs?.length > 0 && !newData.tabs.find((t: any) => t.id === activeTab.value)) {
+    activeTab.value = newData.tabs[0].id
+  }
+}, { deep: true })
+</script>
+
+<style scoped>
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+</style> 
+================================= 
+components\tabs\preview\PreviewModal.vue 
+================================= 
+ 
+<!-- components/tabs/preview/PreviewModal.vue -->
+<template>
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div v-if="modelValue" class="fixed inset-0 z-50 overflow-y-auto" @click.self="$emit('update:modelValue', false)">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+          <!-- Fondo oscuro -->
+          <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+            <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+          </div>
+
+          <!-- Contenedor del modal -->
+          <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+          
+          <Transition
+            enter-active-class="transition duration-200 ease-out"
+            enter-from-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            enter-to-class="opacity-100 translate-y-0 sm:scale-100"
+            leave-active-class="transition duration-150 ease-in"
+            leave-from-class="opacity-100 translate-y-0 sm:scale-100"
+            leave-to-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+          >
+            <div
+              v-if="modelValue"
+              class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl w-full"
+            >
+              <!-- Header -->
+              <div class="bg-gray-50 px-6 py-4 border-b flex justify-between items-center">
+                <div>
+                  <h3 class="text-lg font-medium text-gray-900">Vista Previa en Tiempo Real</h3>
+                  <p class="text-sm text-gray-500">Así se verán los cambios en el portal</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                  <!-- Indicador de auto-actualización -->
+                  <div class="flex items-center space-x-2">
+                    <span class="text-sm text-gray-500">Auto-actualizar</span>
+                    <button
+                      @click="autoRefresh = !autoRefresh"
+                      class="relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none"
+                      :class="autoRefresh ? 'bg-primary-600' : 'bg-gray-200'"
+                    >
+                      <span
+                        class="inline-block w-4 h-4 transform transition-transform bg-white rounded-full"
+                        :class="autoRefresh ? 'translate-x-6' : 'translate-x-1'"
+                      />
+                    </button>
+                  </div>
+                  <button
+                    @click="$emit('update:modelValue', false)"
+                    class="text-gray-400 hover:text-gray-600"
+                  >
+                    <span class="text-2xl">&times;</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Content - Vista previa -->
+              <div class="bg-white p-6 max-h-[70vh] overflow-y-auto">
+                <!-- Toolbar de dispositivos -->
+                <div class="flex justify-center space-x-2 mb-6 pb-4 border-b">
+                  <button
+                    v-for="device in devices"
+                    :key="device.id"
+                    @click="selectedDevice = device.id"
+                    class="px-4 py-2 rounded-md text-sm flex items-center space-x-2"
+                    :class="selectedDevice === device.id 
+                      ? 'bg-primary-100 text-primary-700 border border-primary-300' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                  >
+                    <span>{{ device.icon }}</span>
+                    <span>{{ device.name }}</span>
+                  </button>
+                </div>
+
+                <!-- Contenedor con tamaño simulado -->
+                <div
+                  class="mx-auto transition-all duration-300"
+                  :style="containerStyle"
+                >
+                  <!-- Loading state -->
+                  <div v-if="loading" class="text-center py-12">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+                    <p class="mt-4 text-gray-600">Cargando vista previa...</p>
+                  </div>
+
+                  <!-- Error state -->
+                  <div v-else-if="error" class="bg-red-50 p-4 rounded-md">
+                    <p class="text-red-800">{{ error }}</p>
+                  </div>
+
+                  <!-- Vista previa real -->
+                  <div v-else class="border rounded-lg overflow-hidden shadow-lg">
+                    <!-- Header simulado del portal -->
+                    <div class="bg-gray-900 text-white px-6 py-3 flex items-center">
+                      <div class="flex space-x-2 mr-4">
+                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                      </div>
+                      <div class="text-sm font-mono">portal.senado.bo</div>
+                    </div>
+
+                    <!-- Tabs simuladas -->
+                    <div class="border-b border-gray-200 bg-white">
+                      <nav class="flex px-6" aria-label="Tabs">
+                        <button
+                          v-for="tab in previewData?.tabs || []"
+                          :key="tab.id"
+                          @click="selectedTab = tab.id"
+                          class="px-6 py-3 text-sm font-medium border-b-2 transition-colors"
+                          :class="selectedTab === tab.id
+                            ? 'border-primary-600 text-primary-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                        >
+                          <div class="flex items-center space-x-2">
+                            <div class="w-5 h-5" v-html="tab.icono"></div>
+                            <span>{{ tab.label }}</span>
+                          </div>
+                        </button>
+                      </nav>
+                    </div>
+
+                    <!-- Contenido de la pestaña seleccionada -->
+                    <div class="p-6 bg-gray-50">
+                      <div v-if="selectedTabData" class="space-y-6">
+                        <!-- Título del área -->
+                        <div>
+                          <h2 class="text-xl font-semibold text-gray-900 mb-2">
+                            {{ selectedTabData.titulo }}
+                          </h2>
+                          <p class="text-gray-600">{{ selectedTabData.descripcion }}</p>
+                        </div>
+
+                        <!-- Grid de links -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div
+                            v-for="link in selectedTabLinks"
+                            :key="link.id"
+                            class="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                          >
+                            <div class="flex items-start space-x-4">
+                              <div class="flex-shrink-0">
+                                <div class="w-10 h-10" v-html="link.icono"></div>
+                              </div>
+                              <div class="flex-1">
+                                <h3 class="font-medium text-gray-900">{{ link.titulo }}</h3>
+                                <p class="text-sm text-gray-600 mt-1">{{ link.descripcion }}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Mensaje si no hay datos -->
+                      <div v-else class="text-center py-12 text-gray-500">
+                        No hay contenido para mostrar en esta pestaña
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Footer -->
+              <div class="bg-gray-50 px-6 py-4 border-t flex justify-between items-center">
+                <div class="text-sm text-gray-500">
+                  <span>🔄 Última actualización: {{ lastUpdate || 'Nunca' }}</span>
+                </div>
+                <div class="flex space-x-3">
+                  <button
+                    @click="refreshPreview"
+                    class="px-4 py-2 border rounded-md hover:bg-gray-100 flex items-center space-x-2"
+                    :disabled="refreshing"
+                  >
+                    <span :class="{ 'animate-spin': refreshing }">🔄</span>
+                    <span>Actualizar ahora</span>
+                  </button>
+                  <button
+                    @click="$emit('update:modelValue', false)"
+                    class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </Transition>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useTabsApi } from '~/composables/useTabsApi'
+
+const props = defineProps<{
+  modelValue: boolean
+}>()
+
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: boolean): void
+}>()
+
+const tabsApi = useTabsApi()
+
+// Estado
+const previewData = ref<any>(null)
+const loading = ref(false)
+const refreshing = ref(false)
+const error = ref<string | null>(null)
+const selectedTab = ref('legislacion')
+const lastUpdate = ref<string | null>(null)
+const autoRefresh = ref(true)
+let refreshInterval: NodeJS.Timeout | null = null
+
+// Dispositivos para vista previa responsive
+const devices = [
+  { id: 'desktop', name: 'Escritorio', icon: '🖥️', width: '100%' },
+  { id: 'tablet', name: 'Tablet', icon: '📱', width: '768px' },
+  { id: 'mobile', name: 'Móvil', icon: '📱', width: '375px' }
+]
+const selectedDevice = ref('desktop')
+
+const containerStyle = computed(() => ({
+  maxWidth: devices.find(d => d.id === selectedDevice.value)?.width || '100%'
+}))
+
+// Datos de la pestaña seleccionada
+const selectedTabData = computed(() => {
+  if (!previewData.value?.areas) return null
+  return previewData.value.areas[selectedTab.value]
+})
+
+const selectedTabLinks = computed(() => {
+  if (!previewData.value?.links) return []
+  return previewData.value.links[selectedTab.value] || []
+})
+
+// Cargar datos
+const loadPreviewData = async (showLoading = true) => {
+  if (showLoading) loading.value = true
+  else refreshing.value = true
+  
+  error.value = null
+  
+  try {
+    const data = await tabsApi.getTabsData()
+    previewData.value = data
+    lastUpdate.value = new Date().toLocaleTimeString()
+    
+    // Seleccionar primera pestaña si existe
+    if (data?.tabs?.length > 0 && !data.tabs.find((t: any) => t.id === selectedTab.value)) {
+      selectedTab.value = data.tabs[0].id
+    }
+    
+    console.log('✅ Vista previa actualizada:', lastUpdate.value)
+  } catch (err: any) {
+    error.value = err.message
+    console.error('Error cargando vista previa:', err)
+  } finally {
+    loading.value = false
+    refreshing.value = false
+  }
+}
+
+// Refresh manual
+const refreshPreview = () => {
+  loadPreviewData(false)
+}
+
+// Auto-refresh
+watch(autoRefresh, (newValue) => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
+    refreshInterval = null
+  }
+  
+  if (newValue && props.modelValue) {
+    refreshInterval = setInterval(() => {
+      loadPreviewData(false)
+    }, 5000) // Actualizar cada 5 segundos
+  }
+})
+
+// Reset cuando se cierra el modal
+watch(() => props.modelValue, (newValue) => {
+  if (newValue) {
+    loadPreviewData(true)
+    
+    if (autoRefresh.value) {
+      refreshInterval = setInterval(() => {
+        loadPreviewData(false)
+      }, 5000)
+    }
+  } else {
+    if (refreshInterval) {
+      clearInterval(refreshInterval)
+      refreshInterval = null
+    }
+  }
+})
+
+// Limpiar al desmontar
+onUnmounted(() => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
+  }
+})
+</script> 
+================================= 
+components\tabs\preview\TabsPublicPreview.vue 
+================================= 
+ 
+<!-- components/tabs/preview/TabsPublicPreview.vue -->
+<template>
+  <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+    <!-- Header simulado del portal -->
+    <div class="bg-primary-900 text-white px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <!-- Escudo simulado -->
+          <div class="w-10 h-10 bg-primary-700 rounded-full flex items-center justify-center">
+            <span class="text-xl">⚖️</span>
+          </div>
+          <div>
+            <div class="text-xs text-primary-200">ESTADO PLURINACIONAL DE</div>
+            <div class="text-xl font-bold">BOLIVIA</div>
+          </div>
+        </div>
+        <div class="text-sm text-primary-200">{{ currentDate }}</div>
+      </div>
+    </div>
+
+    <!-- Tabs principales -->
+    <div class="border-b border-gray-200 bg-white">
+      <div class="px-6">
+        <nav class="flex space-x-8" aria-label="Tabs">
+          <button
+            v-for="tab in tabs"
+            :key="tab.id"
+            @click="activeTab = tab.id"
+            class="py-4 px-1 font-medium text-sm border-b-2 transition-colors whitespace-nowrap"
+            :class="activeTab === tab.id
+              ? 'border-primary-600 text-primary-700'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+          >
+            <div class="flex items-center space-x-2">
+              <div class="w-5 h-5" v-html="tab.icono"></div>
+              <span>{{ tab.label }}</span>
+            </div>
+          </button>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Contenido de la pestaña activa -->
+    <div class="p-6">
+      <!-- Loading state -->
+      <div v-if="loading" class="text-center py-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+        <p class="mt-2 text-sm text-gray-500">Cargando vista previa...</p>
+      </div>
+
+      <!-- Error state -->
+      <div v-else-if="error" class="bg-red-50 p-4 rounded-md">
+        <p class="text-sm text-red-800">{{ error }}</p>
+      </div>
+
+      <!-- Vista previa real -->
+      <template v-else-if="currentTabData">
+        <!-- Título del área -->
+        <div class="mb-6">
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">
+            {{ currentTabData.titulo }}
+          </h2>
+          <p class="text-gray-600">
+            {{ currentTabData.descripcion }}
+          </p>
+        </div>
+
+        <!-- Grid de links -->
+        <div v-if="currentTabLinks.length > 0" 
+             class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div
+            v-for="link in currentTabLinks"
+            :key="link.id"
+            class="group border border-gray-200 rounded-lg p-5 hover:shadow-md hover:border-primary-200 transition-all duration-200 cursor-pointer"
+            @click="previewLink(link)"
+          >
+            <div class="flex items-start space-x-4">
+              <!-- Icono -->
+              <div class="flex-shrink-0">
+                <div class="w-12 h-12 transform group-hover:scale-110 transition-transform duration-200"
+                     v-html="link.icono">
+                </div>
+              </div>
+              
+              <!-- Contenido -->
+              <div class="flex-1 min-w-0">
+                <h3 class="font-semibold text-gray-900 mb-1 group-hover:text-primary-700">
+                  {{ link.titulo }}
+                </h3>
+                <p class="text-sm text-gray-600 line-clamp-2">
+                  {{ link.descripcion }}
+                </p>
+                <!-- Badge de estado (solo en CMS) -->
+                <div v-if="!isLinkActive(link)" class="mt-2">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                    ⏸️ Inactivo
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mensaje sin links -->
+        <div v-else class="text-center py-12 bg-gray-50 rounded-lg">
+          <div class="text-4xl mb-3 text-gray-400">📭</div>
+          <p class="text-gray-500">No hay links en esta categoría</p>
+          <p class="text-sm text-gray-400 mt-1">
+            Agrega links desde el panel de administración
+          </p>
+        </div>
+      </template>
+
+      <!-- Sin datos -->
+      <div v-else class="text-center py-12 text-gray-500">
+        <div class="text-4xl mb-3">🔍</div>
+        <p>No hay datos para mostrar</p>
+      </div>
+    </div>
+
+    <!-- Mini modal de preview de link -->
+    <Modal v-model="showLinkPreview" :title="selectedLink?.titulo || 'Vista previa del link'">
+      <div class="p-4">
+        <div class="flex items-center space-x-4 mb-4">
+          <div class="w-16 h-16" v-html="selectedLink?.icono"></div>
+          <div>
+            <h3 class="font-medium text-gray-900">{{ selectedLink?.titulo }}</h3>
+            <p class="text-sm text-gray-600">{{ selectedLink?.descripcion }}</p>
+          </div>
+        </div>
+        
+        <div class="bg-gray-50 rounded-lg p-4">
+          <p class="text-sm text-gray-700">
+            <span class="font-medium">Ruta:</span> 
+            <span class="font-mono text-primary-600">{{ selectedLink?.path }}</span>
+          </p>
+          <p class="text-sm text-gray-700 mt-2">
+            <span class="font-medium">ID:</span> 
+            <span class="font-mono">{{ selectedLink?.id }}</span>
+          </p>
+        </div>
+
+        <div class="mt-4 flex justify-end">
+          <button
+            @click="showLinkPreview = false"
+            class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </Modal>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue'
+import Modal from '~/components/ui/Modal.vue'
+
+const props = defineProps<{
+  data: any
+  loading?: boolean
+  error?: string | null
+}>()
+
+const activeTab = ref('legislacion')
+const showLinkPreview = ref(false)
+const selectedLink = ref<any>(null)
+
+// Fecha actual formateada
+const currentDate = computed(() => {
+  return new Date().toLocaleDateString('es-ES', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  })
+})
+
+// Computed properties
+const tabs = computed(() => props.data?.tabs || [])
+
+const currentTabData = computed(() => {
+  if (!props.data?.areas) return null
+  return props.data.areas[activeTab.value]
+})
+
+const currentTabLinks = computed(() => {
+  if (!props.data?.links) return []
+  return props.data.links[activeTab.value] || []
+})
+
+// Función para determinar si un link está activo (para mostrar badge)
+const isLinkActive = (link: any) => {
+  // En el frontend público todos los links se muestran
+  // Este badge es solo informativo para el CMS
+  return true // O puedes poner tu lógica: link.isActive !== false
+}
+
+// Preview de link individual
+const previewLink = (link: any) => {
+  selectedLink.value = link
+  showLinkPreview.value = true
+}
+
+// Watch para cambiar pestaña si la actual no existe
+watch(() => props.data, (newData) => {
+  if (newData?.tabs?.length > 0) {
+    const tabExists = newData.tabs.some((t: any) => t.id === activeTab.value)
+    if (!tabExists) {
+      activeTab.value = newData.tabs[0].id
+    }
+  }
+}, { deep: true })
+</script>
+
+<style scoped>
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+</style> 
+================================= 
+components\ui\Modal.vue 
+================================= 
+ 
+<!-- components/ui/Modal.vue -->
+<template>
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div v-if="modelValue" class="fixed inset-0 z-50 overflow-y-auto" @click.self="$emit('update:modelValue', false)">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+          <!-- Fondo oscuro -->
+          <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+            <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+          </div>
+
+          <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+          
+          <Transition
+            enter-active-class="transition duration-200 ease-out"
+            enter-from-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            enter-to-class="opacity-100 translate-y-0 sm:scale-100"
+            leave-active-class="transition duration-150 ease-in"
+            leave-from-class="opacity-100 translate-y-0 sm:scale-100"
+            leave-to-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+          >
+            <div
+              v-if="modelValue"
+              class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle w-full"
+              :class="{
+                'sm:max-w-lg': size === 'lg',
+                'sm:max-w-xl': size === 'xl',
+                'sm:max-w-2xl': size === '2xl',
+                'sm:max-w-4xl': size === '4xl'
+              }"
+            >
+              <!-- Header -->
+              <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-lg font-semibold text-gray-900">
+                    {{ title }}
+                  </h3>
+                  <button
+                    @click="$emit('update:modelValue', false)"
+                    class="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <span class="text-2xl leading-none">&times;</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Content -->
+              <div class="px-6 py-4">
+                <slot />
+              </div>
+            </div>
+          </Transition>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+</template>
+
+<script setup lang="ts">
+defineProps<{
+  modelValue: boolean
+  title?: string
+  size?: 'lg' | 'xl' | '2xl' | '4xl'
+}>()
+
+defineEmits<{
+  (e: 'update:modelValue', value: boolean): void
+}>()
+</script> 
+================================= 
+composables\useApi.ts 
+================================= 
+ 
+// composables/useApi.ts
+import { useAuthStore } from '~/stores/auth'
+
+export const useApi = () => {
+  const authStore = useAuthStore()
+
+  const getHeaders = () => {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+    
+    if (authStore.token) {
+      headers['Authorization'] = `Bearer ${authStore.token}`
+    }
+    
+    return headers
+  }
+
+  const handleResponse = async <T>(response: Response): Promise<T> => {
+    if (!response.ok) {
+      if (response.status === 401) {
+        authStore.clearAuth()
+        if (typeof window !== 'undefined') {
+          window.location.href = '/auth/login'
+        }
+      }
+      const data = await response.json()
+      throw new Error(data.message || 'Error en la petición')
+    }
+    
+    const data = await response.json()
+    return data.data || data
+  }
+
+  return {
+    get: async <T>(url: string): Promise<T> => {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: getHeaders(),
+      })
+      return handleResponse<T>(response)
+    },
+
+    post: async <T>(url: string, body: any): Promise<T> => {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(body),
+      })
+      return handleResponse<T>(response)
+    },
+
+    put: async <T>(url: string, body: any): Promise<T> => {
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(body),
+      })
+      return handleResponse<T>(response)
+    },
+
+    del: async <T>(url: string): Promise<T> => {
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: getHeaders(),
+      })
+      return handleResponse<T>(response)
+    },
+  }
+} 
+================================= 
+composables\useTabsApi.ts 
+================================= 
+ 
+// composables/useTabsApi.ts
+import { useApi } from './useApi'
+
+export interface TabCategory {
+  categoryId: string
+  name: string
+  description: string
+  order: number
+  icon: string
+  isActive: boolean
+  linksCount?: number
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface TabLink {
+  categoryId: string
+  linkId: string
+  titulo: string
+  descripcion: string
+  icono: string
+  path: string
+  orden: number
+  isActive: boolean
+  categoryName?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface IconGalleryItem {
+  id: string
+  categoryId: string
+  categoryName: string
+  icono: string
+  ejemplo: string
+  preview: string
+}
+
+export const useTabsApi = () => {
+  const { get, post, put, del } = useApi()
+  const config = useRuntimeConfig()
+  const baseUrl = config.public.apiUrl || 'http://localhost:3000/api'
+
+  return {
+    // CATEGORÍAS
+    getCategories: (includeInactive = false) => 
+      get<TabCategory[]>(`${baseUrl}/tabs/categories?includeInactive=${includeInactive}`),
+
+    getCategory: (categoryId: string) => 
+      get<TabCategory>(`${baseUrl}/tabs/categories/${categoryId}`),
+
+    createCategory: (data: Partial<TabCategory>) => 
+      post<TabCategory>(`${baseUrl}/tabs/categories`, data),
+
+    updateCategory: (categoryId: string, data: Partial<TabCategory>) => 
+      put<TabCategory>(`${baseUrl}/tabs/categories/${categoryId}`, data),
+
+    deleteCategory: (categoryId: string) => 
+      del(`${baseUrl}/tabs/categories/${categoryId}`),
+
+    // LINKS
+    getLinks: (params?: { categoryId?: string, includeInactive?: boolean, page?: number, limit?: number }) => {
+      const query = new URLSearchParams()
+      if (params?.categoryId) query.append('categoryId', params.categoryId)
+      if (params?.includeInactive) query.append('includeInactive', 'true')
+      if (params?.page) query.append('page', params.page.toString())
+      if (params?.limit) query.append('limit', params.limit.toString())
+      
+      return get<any>(`${baseUrl}/tabs/links?${query.toString()}`)
+    },
+
+    getLink: (linkId: string) => 
+      get<TabLink>(`${baseUrl}/tabs/links/${linkId}`),
+
+    createLink: (data: Partial<TabLink>) => 
+      post<TabLink>(`${baseUrl}/tabs/links`, data),
+
+    updateLink: (linkId: string, data: Partial<TabLink>) => 
+      put<TabLink>(`${baseUrl}/tabs/links/${linkId}`, data),
+
+    deleteLink: (linkId: string) => 
+      del(`${baseUrl}/tabs/links/${linkId}`),
+
+    reorderLinks: (categoryId: string, order: { linkId: string; position: number }[]) => 
+      post(`${baseUrl}/tabs/links/reorder`, { categoryId, order }),
+
+    // ICONOS
+    getIconsGallery: () => 
+      get<{ byCategory: any[], all: IconGalleryItem[], total: number }>(`${baseUrl}/tabs/icons/gallery`),
+
+    // DATOS PÚBLICOS
+    getTabsData: () => 
+      get<any>(`${baseUrl}/tabs`),
+
+    getTabLinks: (tabId: string) => 
+      get<any>(`${baseUrl}/tabs/${tabId}`),
+  }
+} 
+================================= 
+layouts\auth.vue 
+================================= 
+ 
+<!-- layouts/auth.vue -->
+<template>
+  <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <!-- Logo -->
+    <div class="sm:mx-auto sm:w-full sm:max-w-md">
+      <div class="flex justify-center">
+        <div class="h-12 w-12 bg-primary-600 rounded-lg flex items-center justify-center">
+          <span class="text-white font-bold text-lg">SB</span>
+        </div>
+      </div>
+      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        Senado de Bolivia
+      </h2>
+      <p class="mt-2 text-center text-sm text-gray-600">
+        Panel de Administración
+      </p>
+    </div>
+
+    <!-- Contenido de autenticación -->
+    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+      <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <slot />
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="mt-8 text-center">
+      <p class="text-sm text-gray-500">
+        © {{ new Date().getFullYear() }} Senado de Bolivia
+      </p>
+      <p class="text-xs text-gray-400 mt-1">
+        Sistema de gestión de contenido
+      </p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+// Layout específico para páginas de autenticación
+</script> 
+================================= 
+layouts\default.vue 
+================================= 
+ 
+<!-- layouts/default.vue - Versión simplificada -->
+<template>
+  <div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+          <!-- Logo -->
+          <div class="flex items-center">
+            <div class="flex-shrink-0 flex items-center">
+              <div class="h-8 w-8 bg-primary-600 rounded-lg flex items-center justify-center">
+                <span class="text-white font-bold text-sm">SB</span>
+              </div>
+              <span class="ml-3 text-xl font-semibold text-gray-800">
+                Senado Bolivia
+              </span>
+              <span class="ml-2 text-sm text-gray-500 hidden md:inline">
+                | Panel de Administración
+              </span>
+            </div>
+          </div>
+
+          <!-- Navegación -->
+          <nav class="hidden md:flex space-x-8">
+            <a 
+              href="/dashboard" 
+              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium"
+              :class="{ 'text-primary-600 border-b-2 border-primary-600': currentPath === '/dashboard' }"
+            >
+              Dashboard
+            </a>
+            <a 
+              href="#" 
+              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium"
+              @click.prevent="showComingSoon('Contenido')"
+            >
+              Contenido
+            </a>
+            <a 
+              href="#" 
+              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium"
+              @click.prevent="showComingSoon('Legisladores')"
+            >
+              Legisladores
+            </a>
+            <a 
+              href="#" 
+              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium"
+              @click.prevent="showComingSoon('Usuarios')"
+            >
+              Usuarios
+            </a>
+          </nav>
+
+          <!-- Perfil de usuario -->
+          <div class="flex items-center space-x-4">
+            <button class="p-2 text-gray-600 hover:text-gray-900">
+              <span class="sr-only">Notificaciones</span>
+              🔔
+            </button>
+            <div class="relative">
+              <button 
+                @click="toggleUserMenu"
+                class="flex items-center space-x-2 text-sm focus:outline-none"
+              >
+                <div class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                  <span class="text-gray-600">{{ avatarInitials }}</span>
+                </div>
+                <span class="hidden md:inline text-gray-700">{{ userName }}</span>
+                <span>▼</span>
+              </button>
+              
+              <!-- Dropdown menu -->
+              <div 
+                v-if="userMenuOpen"
+                class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10"
+              >
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" @click.prevent="showComingSoon('Perfil')">
+                  Mi perfil
+                </a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" @click.prevent="showComingSoon('Configuración')">
+                  Configuración
+                </a>
+                <div class="border-t border-gray-100"></div>
+                <button 
+                  @click="logout"
+                  class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                >
+                  Cerrar sesión
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Contenido principal -->
+    <div class="flex">
+      <!-- Contenido principal -->
+      <main class="flex-1">
+        <div class="py-6">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Breadcrumbs -->
+            <nav class="flex mb-6" aria-label="Breadcrumb">
+              <ol class="flex items-center space-x-2">
+                <li>
+                  <div class="flex items-center">
+                    <a href="/dashboard" class="text-gray-400 hover:text-gray-500">
+                      Dashboard
+                    </a>
+                  </div>
+                </li>
+                <template v-if="currentPath !== '/dashboard'">
+                  <li>
+                    <div class="flex items-center">
+                      <svg class="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="ml-2 text-sm font-medium text-gray-500">
+                        {{ currentPage }}
+                      </span>
+                    </div>
+                  </li>
+                </template>
+              </ol>
+            </nav>
+
+            <!-- Título de página -->
+            <h1 class="text-2xl font-semibold text-gray-900 mb-6">
+              {{ pageTitle }}
+            </h1>
+
+            <!-- Slot para contenido -->
+            <div class="bg-white shadow rounded-lg">
+              <div class="px-4 py-5 sm:p-6">
+                <slot />
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200">
+      <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center">
+          <p class="text-sm text-gray-500">
+            © {{ new Date().getFullYear() }} Senado de Bolivia. Todos los derechos reservados.
+          </p>
+          <p class="text-sm text-gray-500">
+            v1.0.0
+          </p>
+        </div>
+      </div>
+    </footer>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useAuthStore } from '~/stores/auth'
+
+// Inicializar store
+const authStore = useAuthStore()
+
+// Estado local
+const userMenuOpen = ref(false)
+const currentPath = ref(window.location.pathname)
+
+// Computadas
+const userName = computed(() => authStore.user?.name || 'Usuario')
+const avatarInitials = computed(() => authStore.avatarInitials)
+
+// Título de página dinámico
+const pageTitle = computed(() => {
+  const path = currentPath.value
+  if (path === '/dashboard') return 'Dashboard'
+  if (path.includes('/content')) return 'Gestión de Contenido'
+  if (path.includes('/legislators')) return 'Legisladores'
+  if (path.includes('/users')) return 'Usuarios'
+  return 'Panel de Administración'
+})
+
+// Breadcrumb actual
+const currentPage = computed(() => {
+  const path = currentPath.value.split('/').pop()
+  return path ? path.charAt(0).toUpperCase() + path.slice(1) : ''
+})
+
+const toggleUserMenu = () => {
+  userMenuOpen.value = !userMenuOpen.value
+}
+
+const logout = () => {
+  authStore.logout()
+}
+
+const showComingSoon = (feature: string) => {
+  alert(`🚧 ${feature} - Próximamente\n\nEsta funcionalidad estará disponible en la siguiente versión.`)
+  userMenuOpen.value = false
+}
+
+// Cerrar menú al hacer clic fuera
+const handleClickOutside = (event: MouseEvent) => {
+  const target = event.target as HTMLElement
+  if (!target.closest('.relative')) {
+    userMenuOpen.value = false
+  }
+}
+
+// Inicializar store al montar
+onMounted(() => {
+  authStore.initialize()
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+</script> 
+================================= 
+layouts\index.ts 
+================================= 
+ 
+// layouts/index.ts
+// Este archivo ayuda a TypeScript a encontrar los layouts
+
+// Exportar layouts (esto ayuda al auto-import)
+export { default as defaultLayout } from './default.vue'
+export { default as authLayout } from './auth.vue' 
+================================= 
+middleware\auth.ts 
+================================= 
+ 
+// middleware/auth.ts
+export default defineNuxtRouteMiddleware((to) => {
+  // Solo en cliente
+  if (process.client) {
+    // Verificar token manualmente
+    const token = localStorage.getItem('auth_token')
+    
+    // Si no está autenticado y no va a login, redirigir
+    if (!token && !to.path.startsWith('/auth/')) {
+      return navigateTo('/auth/login')
+    }
+    
+    // Si está autenticado y va a login, redirigir al dashboard
+    if (token && to.path.startsWith('/auth/')) {
+      return navigateTo('/dashboard')
+    }
+  }
+}) 
+================================= 
+pages\dashboard.vue 
+================================= 
+ 
+<!-- pages/dashboard.vue - Corregido -->
+<template>
+  <div>
+    <!-- Estadísticas principales -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
+              <span class="text-blue-600 text-xl">📊</span>
+            </div>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-500">Visitas Hoy</p>
+            <p class="text-2xl font-semibold text-gray-900">1,248</p>
+            <p class="text-sm text-green-600">+12.5%</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <span class="text-green-600 text-xl">📝</span>
+            </div>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-500">Contenido Activo</p>
+            <p class="text-2xl font-semibold text-gray-900">342</p>
+            <p class="text-sm text-green-600">+8.2%</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
+              <span class="text-purple-600 text-xl">👥</span>
+            </div>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-500">Legisladores</p>
+            <p class="text-2xl font-semibold text-gray-900">36</p>
+            <p class="text-sm text-gray-500">Completo</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="h-12 w-12 bg-orange-100 rounded-lg flex items-center justify-center">
+              <span class="text-orange-600 text-xl">👤</span>
+            </div>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-500">Usuarios Activos</p>
+            <p class="text-2xl font-semibold text-gray-900">24</p>
+            <p class="text-sm text-green-600">+3.4%</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gráficos y contenido reciente -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+      <!-- Actividad reciente -->
+      <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-5 border-b border-gray-200">
+          <h3 class="text-lg font-medium text-gray-900">Actividad Reciente</h3>
+        </div>
+        <div class="px-6 py-4">
+          <div class="space-y-4">
+            <div v-for="activity in recentActivities" :key="activity.id" class="flex items-start">
+              <div class="flex-shrink-0 mt-1">
+                <div class="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
+                  <span :class="activity.iconColor">{{ activity.icon }}</span>
+                </div>
+              </div>
+              <div class="ml-3 flex-1">
+                <p class="text-sm font-medium text-gray-900">{{ activity.user }}</p>
+                <p class="text-sm text-gray-600">{{ activity.action }}</p>
+                <p class="text-xs text-gray-500">{{ activity.time }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contenido pendiente -->
+      <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-5 border-b border-gray-200">
+          <h3 class="text-lg font-medium text-gray-900">Contenido Pendiente</h3>
+        </div>
+        <div class="px-6 py-4">
+          <div class="space-y-4">
+            <div v-for="item in pendingContent" :key="item.id" class="flex justify-between items-center">
+              <div>
+                <p class="text-sm font-medium text-gray-900">{{ item.title }}</p>
+                <p class="text-xs text-gray-500">{{ item.type }} • {{ item.author }}</p>
+              </div>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" :class="item.statusClass">
+                {{ item.status }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Acciones rápidas -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="px-6 py-5 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">Acciones Rápidas</h3>
+      </div>
+      <div class="p-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <button 
+            v-for="action in quickActions" 
+            :key="action.id"
+            @click="handleQuickAction(action)"
+            class="flex flex-col items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <span class="text-2xl mb-2">{{ action.icon }}</span>
+            <span class="text-sm font-medium text-gray-700">{{ action.label }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+
+const recentActivities = ref([
+  {
+    id: 1,
+    user: 'María González',
+    action: 'Actualizó la página "Historia del Senado"',
+    time: 'Hace 15 minutos',
+    icon: '📝',
+    iconColor: 'text-blue-500'
+  },
+  {
+    id: 2,
+    user: 'Carlos Rodríguez',
+    action: 'Creó nueva noticia: "Sesión Plenaria"',
+    time: 'Hace 2 horas',
+    icon: '📰',
+    iconColor: 'text-green-500'
+  },
+  {
+    id: 3,
+    user: 'Ana Martínez',
+    action: 'Agregó nuevo legislador: Juan Pérez',
+    time: 'Hace 3 horas',
+    icon: '👥',
+    iconColor: 'text-purple-500'
+  },
+  {
+    id: 4,
+    user: 'Admin',
+    action: 'Actualizó configuración del sistema',
+    time: 'Ayer',
+    icon: '⚙️',
+    iconColor: 'text-orange-500'
+  }
+])
+
+const pendingContent = ref([
+  {
+    id: 1,
+    title: 'Reforma a la Ley de Transparencia',
+    type: 'Proyecto de Ley',
+    author: 'Comisión de Justicia',
+    status: 'Revisión',
+    statusClass: 'bg-yellow-100 text-yellow-800'
+  },
+  {
+    id: 2,
+    title: 'Informe Anual de Gestión',
+    type: 'Documento',
+    author: 'Presidencia',
+    status: 'Aprobación',
+    statusClass: 'bg-blue-100 text-blue-800'
+  },
+  {
+    id: 3,
+    title: 'Convocatoria a Sesión Extraordinaria',
+    type: 'Comunicado',
+    author: 'Secretaría General',
+    status: 'Publicar',
+    statusClass: 'bg-green-100 text-green-800'
+  }
+])
+
+const quickActions = ref([
+  { id: 1, label: 'Nueva Noticia', icon: '📰', route: '/content/news/create' },
+  { id: 2, label: 'Agregar Legislador', icon: '👥', route: '/legislators/create' },
+  { id: 3, label: 'Crear Usuario', icon: '👤', route: '/users/create' },
+  { id: 4, label: 'Generar Reporte', icon: '📊', route: '/reports' }
+])
+
+const handleQuickAction = (action: any) => {
+  // TODO: Navegar a la ruta correspondiente
+  console.log('Acción rápida:', action.label)
+  // navigateTo(action.route)
+}
+</script> 
+================================= 
+pages\diagnostico.vue 
+================================= 
+ 
+<!-- pages/diagnostico.vue -->
+<template>
+  <div>
+    <div style="padding: 20px; font-family: Arial;">
+      <h1 style="color: red; font-size: 24px;">🔍 DIAGNÓSTICO TAILWIND CSS</h1>
+      
+      <div style="margin: 20px 0; padding: 15px; background: #f0f0f0; border-radius: 8px;">
+        <h2 style="color: #333;">1. Verificación de archivos:</h2>
+        <ul style="list-style: none; padding: 0;">
+          <li>✅ app.vue: {{ archivos.appvue ? 'EXISTE' : 'NO EXISTE' }}</li>
+          <li>✅ tailwind.config.js: {{ archivos.tailwindConfig ? 'EXISTE' : 'NO EXISTE' }}</li>
+          <li>✅ assets/css/tailwind.css: {{ archivos.tailwindCss ? 'EXISTE' : 'NO EXISTE' }}</li>
+          <li>✅ nuxt.config.ts: {{ archivos.nuxtConfig ? 'EXISTE' : 'NO EXISTE' }}</li>
+        </ul>
+      </div>
+      
+      <div style="margin: 20px 0; padding: 15px; background: #e0f7fa; border-radius: 8px;">
+        <h2 style="color: #00796b;">2. Prueba de clases Tailwind:</h2>
+        
+        <!-- Clases que DEBEN funcionar -->
+        <div class="mb-4">
+          <h3>bg-red-500 + text-white:</h3>
+          <div class="bg-red-500 text-white p-4 rounded">
+            Este div debe tener fondo ROJO y texto BLANCO
+          </div>
+        </div>
+        
+        <div class="mb-4">
+          <h3>bg-blue-500 + text-white:</h3>
+          <div class="bg-blue-500 text-white p-4 rounded">
+            Este div debe tener fondo AZUL y texto BLANCO
+          </div>
+        </div>
+        
+        <div class="mb-4">
+          <h3>flex + space-x-4:</h3>
+          <div class="flex space-x-4">
+            <div class="bg-green-500 text-white p-3 rounded">Item 1</div>
+            <div class="bg-yellow-500 text-white p-3 rounded">Item 2</div>
+            <div class="bg-purple-500 text-white p-3 rounded">Item 3</div>
+          </div>
+        </div>
+        
+        <div>
+          <h3>Controles:</h3>
+          <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            Botón Hover
+          </button>
+          <button class="ml-4 bg-gray-600 text-white px-4 py-2 rounded">
+            Botón Gris
+          </button>
+        </div>
+      </div>
+      
+      <div style="margin: 20px 0; padding: 15px; background: #fff3cd; border-radius: 8px;">
+        <h2 style="color: #856404;">3. CSS Computado (Inspeccionar elemento):</h2>
+        <p>Presiona F12 y verifica si las clases Tailwind aparecen en el panel de estilos.</p>
+        <p>Si NO aparecen, Tailwind no está procesando.</p>
+      </div>
+      
+      <div style="margin: 20px 0; padding: 15px; background: #d4edda; border-radius: 8px;">
+        <h2 style="color: #155724;">4. Posibles soluciones:</h2>
+        <ol>
+          <li>Verificar que tailwind.css tenga @tailwind base, components, utilities</li>
+          <li>Verificar rutas en nuxt.config.ts</li>
+          <li>Limpiar caché: rm -rf .nuxt .output node_modules/.vite</li>
+          <li>Reiniciar servidor de desarrollo</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+
+const archivos = ref({
+  appvue: false,
+  tailwindConfig: false,
+  tailwindCss: false,
+  nuxtConfig: false
+})
+
+onMounted(() => {
+  // Simular verificación de archivos
+  archivos.value = {
+    appvue: true,
+    tailwindConfig: true,
+    tailwindCss: true,
+    nuxtConfig: true
+  }
+})
+</script> 
+================================= 
+pages\index.vue 
+================================= 
+ 
+<!-- pages/index.vue -->
+<template>
+  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div class="text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+      <p class="mt-4 text-gray-600">Redirigiendo al sistema...</p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { onMounted } from 'vue'
+import { useAuthStore } from '~/stores/auth'
+
+const authStore = useAuthStore()
+
+onMounted(() => {
+  authStore.initialize()
+  
+  if (authStore.isAuthenticated) {
+    window.location.href = '/dashboard'
+  } else {
+    window.location.href = '/auth/login'
+  }
+})
+</script> 
+================================= 
+pages\auth\login.vue 
+================================= 
+ 
+<!-- pages/auth/login.vue -->
+<template>
+  <div>
+    <form @submit.prevent="handleLogin" class="space-y-6">
+      <div>
+        <label for="email" class="block text-sm font-medium text-gray-700">
+          Correo electrónico
+        </label>
+        <div class="mt-1">
+          <input
+            id="email"
+            v-model="form.email"
+            type="email"
+            required
+            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+            placeholder="admin@senado.bo"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label for="password" class="block text-sm font-medium text-gray-700">
+          Contraseña
+        </label>
+        <div class="mt-1">
+          <input
+            id="password"
+            v-model="form.password"
+            type="password"
+            required
+            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+            placeholder="••••••••"
+          />
+        </div>
+      </div>
+
+      <div>
+        <button
+          type="submit"
+          :disabled="isSubmitting"
+          class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <span v-if="isSubmitting" class="flex items-center">
+            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+            Iniciando sesión...
+          </span>
+          <span v-else>
+            Iniciar sesión
+          </span>
+        </button>
+      </div>
+
+      <div v-if="error" class="rounded-md bg-red-50 p-4">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <span class="text-red-400">⚠️</span>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-red-800">
+              Error de autenticación
+            </h3>
+            <div class="mt-2 text-sm text-red-700">
+              {{ error }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <div class="mt-6">
+      <div class="relative">
+        <div class="absolute inset-0 flex items-center">
+          <div class="w-full border-t border-gray-300" />
+        </div>
+        <div class="relative flex justify-center text-sm">
+          <span class="px-2 bg-white text-gray-500">
+            Credenciales de prueba
+          </span>
+        </div>
+      </div>
+      <div class="mt-4 text-sm text-center text-gray-600 space-y-1">
+        <p>Email: <span class="font-mono">admin@senado.bo</span></p>
+        <p>Contraseña: <span class="font-mono">Admin123!</span></p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+// Usando ruta relativa para evitar problemas de path
+import { useAuthStore } from '@/stores/auth'
+import { ref, reactive, onMounted } from 'vue'
+
+// Para definePageMeta, podemos usar un enfoque diferente
+// En lugar de definePageMeta, podemos usar un middleware simple
+// o configurar el layout en el componente
+
+const authStore = useAuthStore()
+const isSubmitting = ref(false)
+const error = ref('')
+
+const form = reactive({
+  email: 'admin@senado.bo',
+  password: 'Admin123!',
+  remember: false
+})
+
+const handleLogin = async () => {
+  isSubmitting.value = true
+  error.value = ''
+
+  try {
+    await authStore.login(form.email, form.password)
+  } catch (err: any) {
+    error.value = err.message || 'Error de autenticación'
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+onMounted(() => {
+  if (authStore.isAuthenticated) {
+    window.location.href = '/dashboard'
+  }
+})
+</script> 
+================================= 
+pages\dashboard\index.vue 
+================================= 
+ 
+<!-- pages/dashboard/index.vue -->
+<template>
+  <div>
+    <!-- Estadísticas principales -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
+              <span class="text-blue-600 text-xl">📊</span>
+            </div>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-500">Visitas Hoy</p>
+            <p class="text-2xl font-semibold text-gray-900">1,248</p>
+            <p class="text-sm text-green-600">+12.5%</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <span class="text-green-600 text-xl">📝</span>
+            </div>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-500">Contenido Activo</p>
+            <p class="text-2xl font-semibold text-gray-900">342</p>
+            <p class="text-sm text-green-600">+8.2%</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
+              <span class="text-purple-600 text-xl">👥</span>
+            </div>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-500">Legisladores</p>
+            <p class="text-2xl font-semibold text-gray-900">36</p>
+            <p class="text-sm text-gray-500">Completo</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="h-12 w-12 bg-orange-100 rounded-lg flex items-center justify-center">
+              <span class="text-orange-600 text-xl">👤</span>
+            </div>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-500">Usuarios Activos</p>
+            <p class="text-2xl font-semibold text-gray-900">24</p>
+            <p class="text-sm text-green-600">+3.4%</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bienvenida -->
+    <div class="bg-white rounded-lg shadow p-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">¡Bienvenido al Panel de Administración!</h2>
+      <p class="text-gray-600 mb-4">
+        Sistema de gestión de contenido para el portal web del Senado de Bolivia.
+      </p>
+      
+      <div class="mt-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-3">Próximos pasos:</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="border border-gray-200 rounded-lg p-4">
+            <h4 class="font-medium text-gray-800 mb-2">✅ Configuración completada</h4>
+            <ul class="text-sm text-gray-600 space-y-1">
+              <li>• Nuxt 4 instalado</li>
+              <li>• Tailwind CSS funcionando</li>
+              <li>• Sistema de autenticación básico</li>
+              <li>• Layouts configurados</li>
+            </ul>
+          </div>
+          
+          <div class="border border-gray-200 rounded-lg p-4">
+            <h4 class="font-medium text-gray-800 mb-2">🚀 Próximo: Paso 3</h4>
+            <ul class="text-sm text-gray-600 space-y-1">
+              <li>• Store de Pinia para estado</li>
+              <li>• Servicios API para backend</li>
+              <li>• Componentes reutilizables</li>
+              <li>• CRUD de contenido</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { onMounted } from 'vue'
+import { useAuthStore } from '~/stores/auth'
+
+// Especificar layout
+definePageMeta({
+  layout: 'default'
+})
+
+const authStore = useAuthStore()
+
+// Verificar autenticación
+onMounted(() => {
+  authStore.initialize()
+  
+  if (!authStore.isAuthenticated) {
+    window.location.href = '/auth/login'
+  }
+})
+</script> 
+================================= 
+pages\tabs\index.vue 
+================================= 
+ 
+<!-- pages/tabs/index.vue -->
+<template>
+  <div>
+    <div class="flex justify-between items-center mb-6">
+      <div>
+        <h1 class="text-2xl font-semibold text-gray-900">Gestión de Tabs</h1>
+        <p class="text-gray-600">Administra y reordena las pestañas del portal</p>
+      </div>
+      
+      <button
+        @click="openCategoryModal()"
+        class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+      >
+        <span class="mr-2">+</span>
+        Nueva Categoría
+      </button>
+    </div>
+
+    <!-- Instrucciones -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-sm text-blue-700">
+      <div class="flex items-center space-x-2">
+        <span class="text-lg">🖱️</span>
+        <span><strong>Arrastra</strong> las categorías usando el ícono ⋮⋮ para reordenarlas. El cambio se guarda automáticamente.</span>
+      </div>
+    </div>
+
+    <!-- Lista de categorías -->
+    <div v-if="categoriesLoading" class="text-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+      <p class="mt-4 text-gray-600">Cargando categorías...</p>
+    </div>
+
+    <div v-else-if="categoriesError" class="bg-red-50 p-4 rounded-md">
+      <p class="text-red-800">{{ categoriesError }}</p>
+    </div>
+
+    <div v-else class="space-y-2">
+      <transition-group name="list" tag="div" class="space-y-2">
+        <div
+          v-for="(category, index) in orderedCategories"
+          :key="category.categoryId"
+          class="bg-white border rounded-lg overflow-hidden"
+          :class="{ 
+            'opacity-50': !category.isActive,
+            'dragging border-2 border-primary-500 shadow-lg': dragIndex === index
+          }"
+          :draggable="true"
+          @dragstart="handleDragStart($event, index, category)"
+          @dragover.prevent="handleDragOver($event, index)"
+          @dragend="handleDragEnd($event)"
+          @dragenter.prevent
+          @dragleave.prevent
+          @drop.prevent="handleDrop($event, index)"
+        >
+          <div class="p-6">
+            <div class="flex items-start">
+              <!-- Drag Handle -->
+              <div class="drag-handle cursor-grab text-gray-400 hover:text-gray-600 mr-4 mt-1 select-none text-2xl">
+                ⋮⋮
+              </div>
+
+              <!-- Contenido -->
+              <div class="flex-1">
+                <div class="flex items-center space-x-3">
+                  <div class="w-10 h-10 rounded-lg flex items-center justify-center ">
+                    <div class="w-6 h-6" v-html="category.icon"></div>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                      {{ category.name }}
+                      <span class="ml-3 text-xs text-gray-500">#{{ index + 1 }}</span>
+                    </h3>
+                    <p class="text-sm text-gray-500">ID: {{ category.categoryId }}</p>
+                  </div>
+                </div>
+                
+                <p class="mt-2 text-gray-600">{{ category.description }}</p>
+                
+                <div class="mt-4 flex items-center space-x-4 text-sm">
+                  <span class="text-gray-500">Orden: {{ category.order }}</span>
+                  <span class="text-gray-500">•</span>
+                  <span class="text-gray-500">Links: {{ category.linksCount || 0 }}</span>
+                  <span class="text-gray-500">•</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                    :class="category.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
+                  >
+                    {{ category.isActive ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Acciones -->
+              <div class="flex space-x-2">
+                <NuxtLink :to="`/tabs/categorias/${category.categoryId}/links`">
+                  <button
+                    class="p-2 text-gray-400 hover:text-primary-600"
+                    title="Gestionar Links"
+                  >
+                    🔗
+                  </button>
+                </NuxtLink>
+                <button
+                  @click="openCategoryModal(category)"
+                  class="p-2 text-gray-400 hover:text-primary-600"
+                  title="Editar"
+                >
+                  ✏️
+                </button>
+                <button
+                  @click="toggleCategory(category)"
+                  class="p-2 text-gray-400 hover:text-primary-600"
+                  :title="category.isActive ? 'Desactivar' : 'Activar'"
+                >
+                  {{ category.isActive ? '⏸️' : '▶️' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition-group>
+    </div>
+
+    <!-- Modal de Categoría -->
+    <Modal v-model="showCategoryModal" :title="modalTitle" size="lg">
+      <CategoryForm
+        :category="selectedCategory"
+        :loading="saving"
+        @submit="saveCategory"
+        @cancel="showCategoryModal = false"
+      />
+    </Modal>
+
+    <!-- Toast de notificación -->
+    <div v-if="toast.show" 
+         class="fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 z-50"
+         :class="{
+           'bg-green-500 text-white': toast.type === 'success',
+           'bg-red-500 text-white': toast.type === 'error',
+           'bg-blue-500 text-white': toast.type === 'info'
+         }"
+    >
+      {{ toast.message }}
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useTabsApi, type TabCategory } from '~/composables/useTabsApi'
+
+definePageMeta({
+  layout: 'default',
+  middleware: 'auth'
+})
+
+const tabsApi = useTabsApi()
+
+// Estado para categorías
+const categories = ref<TabCategory[]>([])
+const orderedCategories = ref<TabCategory[]>([])
+const categoriesLoading = ref(false)
+const categoriesError = ref<string | null>(null)
+
+// Estado para drag and drop
+const dragIndex = ref<number | null>(null)
+const isReordering = ref(false)
+
+// Estado para modal
+const showCategoryModal = ref(false)
+const selectedCategory = ref<TabCategory | null>(null)
+const saving = ref(false)
+
+// Estado para toast
+const toast = ref({
+  show: false,
+  message: '',
+  type: 'info' as 'success' | 'error' | 'info'
+})
+
+const modalTitle = computed(() => 
+  selectedCategory.value ? 'Editar Categoría' : 'Nueva Categoría'
+)
+
+// Mostrar toast
+const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+  toast.value = { show: true, message, type }
+  setTimeout(() => {
+    toast.value.show = false
+  }, 3000)
+}
+
+// Cargar categorías
+const loadCategories = async () => {
+  try {
+    categoriesLoading.value = true
+    categoriesError.value = null
+    const data = await tabsApi.getCategories(true)
+    categories.value = data
+    orderedCategories.value = [...data].sort((a, b) => a.order - b.order)
+  } catch (error: any) {
+    categoriesError.value = error.message
+    showToast(error.message, 'error')
+  } finally {
+    categoriesLoading.value = false
+  }
+}
+
+// Drag and drop
+const handleDragStart = (event: DragEvent, index: number, category: TabCategory) => {
+  dragIndex.value = index
+  event.dataTransfer?.setData('text/plain', JSON.stringify({
+    index,
+    categoryId: category.categoryId
+  }))
+  event.dataTransfer!.effectAllowed = 'move'
+}
+
+const handleDragOver = (event: DragEvent, index: number) => {
+  event.preventDefault()
+  if (dragIndex.value === null || dragIndex.value === index) return
+  event.dataTransfer!.dropEffect = 'move'
+}
+
+const handleDrop = (event: DragEvent, dropIndex: number) => {
+  event.preventDefault()
+  
+  if (dragIndex.value === null) return
+  
+  const data = event.dataTransfer?.getData('text/plain')
+  if (!data) return
+  
+  try {
+    const draggedData = JSON.parse(data)
+    
+    if (draggedData.index === dropIndex) {
+      dragIndex.value = null
+      return
+    }
+    
+    const newOrder = [...orderedCategories.value]
+    const [draggedItem] = newOrder.splice(draggedData.index, 1)
+    newOrder.splice(dropIndex, 0, draggedItem)
+    orderedCategories.value = newOrder
+    
+  } catch (error) {
+    console.error('Error parsing drag data:', error)
+  }
+}
+
+const handleDragEnd = async (event: DragEvent) => {
+  if (dragIndex.value === null || isReordering.value) {
+    dragIndex.value = null
+    return
+  }
+  
+  const orderToSend = orderedCategories.value.map((category, index) => ({
+    categoryId: category.categoryId,
+    order: (index + 1) * 10
+  }))
+  
+  try {
+    isReordering.value = true
+    
+    for (const item of orderToSend) {
+      await tabsApi.updateCategory(item.categoryId, { order: item.order })
+    }
+    
+    await loadCategories()
+    showToast('Orden actualizado correctamente', 'success')
+    
+  } catch (error: any) {
+    showToast('Error al actualizar el orden', 'error')
+    await loadCategories()
+  } finally {
+    isReordering.value = false
+    dragIndex.value = null
+  }
+}
+
+// Acciones de categoría
+const openCategoryModal = (category?: TabCategory) => {
+  selectedCategory.value = category || null
+  showCategoryModal.value = true
+}
+
+const saveCategory = async (formData: any) => {
+  try {
+    saving.value = true
+    if (selectedCategory.value) {
+      await tabsApi.updateCategory(selectedCategory.value.categoryId, formData)
+      showToast('Categoría actualizada', 'success')
+    } else {
+      await tabsApi.createCategory(formData)
+      showToast('Categoría creada', 'success')
+    }
+    showCategoryModal.value = false
+    await loadCategories()
+  } catch (error: any) {
+    showToast(error.message, 'error')
+  } finally {
+    saving.value = false
+  }
+}
+
+const toggleCategory = async (category: TabCategory) => {
+  try {
+    await tabsApi.updateCategory(category.categoryId, {
+      isActive: !category.isActive
+    })
+    await loadCategories()
+    showToast(
+      category.isActive ? 'Categoría desactivada' : 'Categoría activada',
+      'success'
+    )
+  } catch (error: any) {
+    showToast(error.message, 'error')
+  }
+}
+
+onMounted(() => {
+  loadCategories()
+})
+</script>
+
+<style scoped>
+.list-move {
+  transition: transform 0.3s ease;
+}
+
+.dragging {
+  opacity: 0.7;
+  transform: scale(1.02);
+  transition: all 0.2s ease;
+}
+
+[draggable=true] {
+  user-select: none;
+  -webkit-user-drag: element;
+}
+
+.drag-handle {
+  user-select: none;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.drag-handle * {
+  pointer-events: none;
+}
+</style> 
+================================= 
+pages\tabs\categorias\[categoryId]\links.vue 
+================================= 
+ 
+<!-- pages/tabs/categorias/[categoryId]/links.vue -->
+<template>
+  <div>
+    <div class="mb-6 flex items-center space-x-2">
+      <NuxtLink to="/tabs" class="text-gray-400 hover:text-gray-600 text-xl">
+        ←
+      </NuxtLink>
+      <h1 class="text-2xl font-semibold text-gray-900">Links: {{ categoryName }}</h1>
+    </div>
+
+    <!-- Instrucciones -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-sm text-blue-700">
+      <div class="flex items-center space-x-2">
+        <span class="text-lg">🖱️</span>
+        <span><strong>Arrastra</strong> los links usando el ícono ⋮⋮ para reordenarlos. El cambio se guarda automáticamente.</span>
+      </div>
+    </div>
+
+    <LinksList
+      :category-id="categoryId"
+      :category-name="categoryName"
+      :links="links"
+      :loading="loading"
+      :error="error"
+      @create="openLinkModal()"
+      @edit="openLinkModal($event)"
+      @toggle="toggleLink"
+      @reorder="reorderLinks"
+    />
+
+    <!-- Modal de Link -->
+    <Modal v-model="showLinkModal" :title="modalTitle" size="lg">
+      <LinkForm
+        :link="selectedLink"
+        :category-id="categoryId"
+        :loading="saving"
+        @submit="saveLink"
+        @cancel="showLinkModal = false"
+      />
+    </Modal>
+
+    <!-- Toast -->
+    <div v-if="toast.show" 
+         class="fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 z-50"
+         :class="{
+           'bg-green-500 text-white': toast.type === 'success',
+           'bg-red-500 text-white': toast.type === 'error',
+           'bg-blue-500 text-white': toast.type === 'info'
+         }"
+    >
+      {{ toast.message }}
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useTabsApi, type TabLink } from '~/composables/useTabsApi'
+
+definePageMeta({
+  layout: 'default',
+  middleware: 'auth'
+})
+
+const route = useRoute()
+const tabsApi = useTabsApi()
+const categoryId = route.params.categoryId as string
+
+// Estado
+const categoryName = ref('')
+const links = ref<TabLink[]>([])
+const loading = ref(false)
+const error = ref<string | null>(null)
+
+// Modal
+const showLinkModal = ref(false)
+const selectedLink = ref<TabLink | null>(null)
+const saving = ref(false)
+
+// Toast
+const toast = ref({
+  show: false,
+  message: '',
+  type: 'info' as 'success' | 'error' | 'info'
+})
+
+const modalTitle = computed(() => 
+  selectedLink.value ? 'Editar Link' : 'Nuevo Link'
+)
+
+const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+  toast.value = { show: true, message, type }
+  setTimeout(() => {
+    toast.value.show = false
+  }, 3000)
+}
+
+// Cargar datos
+const loadData = async () => {
+  try {
+    loading.value = true
+    error.value = null
+
+    // Cargar categoría
+    const category = await tabsApi.getCategory(categoryId)
+    categoryName.value = category.name
+
+    // Cargar links
+    const response = await tabsApi.getLinks({ 
+      categoryId, 
+      includeInactive: true 
+    })
+    links.value = response.links || []
+  } catch (error: any) {
+    error.value = error.message
+    showToast(error.message, 'error')
+  } finally {
+    loading.value = false
+  }
+}
+
+// Abrir modal de link
+const openLinkModal = (link?: TabLink) => {
+  selectedLink.value = link || null
+  showLinkModal.value = true
+}
+
+// Guardar link
+const saveLink = async (formData: any) => {
+  try {
+    saving.value = true
+    if (selectedLink.value) {
+      await tabsApi.updateLink(selectedLink.value.linkId, formData)
+      showToast('Link actualizado', 'success')
+    } else {
+      await tabsApi.createLink({
+        ...formData,
+        categoryId
+      })
+      showToast('Link creado', 'success')
+    }
+    showLinkModal.value = false
+    await loadData()
+  } catch (error: any) {
+    showToast(error.message, 'error')
+  } finally {
+    saving.value = false
+  }
+}
+
+// Activar/Desactivar link
+const toggleLink = async (link: TabLink) => {
+  try {
+    await tabsApi.updateLink(link.linkId, {
+      isActive: !link.isActive
+    })
+    await loadData()
+    showToast(
+      link.isActive ? 'Link desactivado' : 'Link activado',
+      'success'
+    )
+  } catch (error: any) {
+    showToast(error.message, 'error')
+  }
+}
+
+// Reordenar links
+const reorderLinks = async (order: { linkId: string; position: number }[]) => {
+  try {
+    await tabsApi.reorderLinks(categoryId, order)
+    await loadData()
+    showToast('Orden actualizado', 'success')
+  } catch (error: any) {
+    showToast(error.message, 'error')
+  }
+}
+
+onMounted(() => {
+  loadData()
+})
+</script> 
+================================= 
+stores\auth.ts 
+================================= 
+ 
+// stores/auth.ts
+import { defineStore } from 'pinia'
+
+interface User {
+  id: number
+  email: string
+  name: string
+  role: string
+  profile?: {
+    firstName?: string
+    lastName?: string
+    position?: string
+    avatar?: string
+  }
+}
+
+interface LoginResponse {
+  success: boolean
+  data: {
+    user: User
+    tokens: {
+      accessToken: string
+      refreshToken: string
+      expiresIn: number
+    }
+  }
+}
+
+export const useAuthStore = defineStore('auth', {
+  state: () => ({
+    user: null as User | null,
+    token: null as string | null,
+  }),
+
+  actions: {
+    // Inicializar desde localStorage
+    initialize() {
+      console.log('🔍 Inicializando AuthStore...')
+      
+      if (typeof window === 'undefined') {
+        console.log('⚠️ Window no disponible (SSR)')
+        return
+      }
+      
+      const token = localStorage.getItem('auth_token')
+      const userStr = localStorage.getItem('user')
+      
+      console.log('📦 Token en localStorage:', token ? token.substring(0, 20) + '...' : 'null')
+      console.log('📦 User en localStorage:', userStr ? 'presente' : 'null')
+      
+      if (token && userStr) {
+        try {
+          const user = JSON.parse(userStr)
+          this.token = token
+          this.user = user
+          console.log('✅ Sesión restaurada para:', user.email)
+          console.log('🔑 Token:', token.substring(0, 30) + '...')
+        } catch (error) {
+          console.error('❌ Error parsing user:', error)
+          this.clearAuth()
+        }
+      } else {
+        console.log('ℹ️ No hay sesión previa')
+      }
+    },
+    
+    // Login REAL con el backend
+    async login(email: string, password: string) {
+      console.log('🔐 Iniciando login con:', email)
+      
+      try {
+        console.log('📡 Enviando petición a http://localhost:3000/api/auth/login')
+        
+        const response = await fetch('http://localhost:3000/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password })
+        })
+
+        console.log('📥 Status de respuesta:', response.status)
+        
+        const data = await response.json()
+        console.log('📦 Datos recibidos:', data)
+
+        if (!response.ok) {
+          throw new Error(data.message || `Error ${response.status}`)
+        }
+
+        if (!data.success) {
+          throw new Error(data.message || 'Error de autenticación')
+        }
+
+        // Extraer datos de la respuesta
+        const { user, tokens } = data.data
+        const token = tokens.accessToken
+        
+        console.log('✅ Login exitoso!')
+        console.log('👤 Usuario:', user.email)
+        console.log('🔑 Token recibido:', token.substring(0, 50) + '...')
+        
+        // Guardar en localStorage
+        localStorage.setItem('auth_token', token)
+        localStorage.setItem('user', JSON.stringify(user))
+        
+        console.log('💾 Token guardado en localStorage')
+        
+        // Verificar que se guardó
+        const savedToken = localStorage.getItem('auth_token')
+        console.log('🔍 Verificación - Token guardado:', savedToken ? savedToken.substring(0, 30) + '...' : 'ERROR NO SE GUARDÓ')
+        
+        // Actualizar estado
+        this.token = token
+        this.user = user
+        
+        console.log('✅ Estado actualizado')
+        
+        return { user, token }
+        
+      } catch (error: any) {
+        console.error('❌ Error en login:', error)
+        this.clearAuth()
+        throw error
+      }
+    },
+    
+    // Logout
+    logout() {
+      console.log('👋 Cerrando sesión')
+      this.clearAuth()
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/login'
+      }
+    },
+    
+    // Limpiar autenticación
+    clearAuth() {
+      console.log('🧹 Limpiando autenticación')
+      this.user = null
+      this.token = null
+      
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token')
+        localStorage.removeItem('user')
+        console.log('✅ localStorage limpiado')
+      }
+    },
+  },
+  
+  getters: {
+    // Verificar si está autenticado
+    isAuthenticated(): boolean {
+      return !!this.token
+    },
+    
+    // Iniciales para avatar
+    avatarInitials(): string {
+      if (!this.user?.profile) return this.user?.name?.charAt(0) || 'U'
+      const { firstName, lastName } = this.user.profile
+      return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}` || 'U'
+    },
+  },
+})
+
+export type { User } 
+================================= 
+types\auth.ts 
+================================= 
+ 
+// types/auth.ts
+export interface User {
+  id: number
+  email: string
+  name: string
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'EDITOR' | 'VIEWER' | 'CITIZEN'
+  profile?: {
+    firstName?: string
+    lastName?: string
+    position?: string
+    avatar?: string
+  }
+}
+
+export interface LoginCredentials {
+  email: string
+  password: string
+  remember?: boolean
+}
+
+export interface AuthState {
+  user: User | null
+  token: string | null
+  isAuthenticated: boolean
+} 
+================================= 
+types\auto-imports.d.ts 
+================================= 
+ 
+// types/auto-imports.d.ts
+// Esto ayuda a TypeScript a entender los auto-imports de Nuxt
+
+// Auto-imports de Vue
+declare global {
+  // Vue Composition API
+  const ref: typeof import('vue')['ref']
+  const reactive: typeof import('vue')['reactive']
+  const computed: typeof import('vue')['computed']
+  const watch: typeof import('vue')['watch']
+  const onMounted: typeof import('vue')['onMounted']
+  const onUnmounted: typeof import('vue')['onUnmounted']
+  const nextTick: typeof import('vue')['nextTick']
+  
+  // Nuxt
+  const useRoute: typeof import('#app')['useRoute']
+  const useRouter: typeof import('#app')['useRouter']
+  const navigateTo: typeof import('#app')['navigateTo']
+  const definePageMeta: typeof import('#app')['definePageMeta']
+  const defineNuxtRouteMiddleware: typeof import('#app')['defineNuxtRouteMiddleware']
+  const useRuntimeConfig: typeof import('#app')['useRuntimeConfig']
+  
+  // Nuxt composables
+  const useState: typeof import('#app')['useState']
+  const useFetch: typeof import('#app')['useFetch']
+  const useAsyncData: typeof import('#app')['useAsyncData']
+  
+  // Componentes de Nuxt
+  const NuxtLink: typeof import('#app')['NuxtLink']
+  const NuxtPage: typeof import('#app')['NuxtPage']
+}
+
+export {} 
+================================= 
+types\stores.d.ts 
+================================= 
+ 
+// types/stores.d.ts
+declare module '~/stores/auth' {
+  export interface User {
+    id: number
+    email: string
+    name: string
+    role: string
+    profile?: {
+      firstName?: string
+      lastName?: string
+      position?: string
+      avatar?: string
+    }
+  }
+
+  export const useAuthStore: () => {
+    // State
+    user: User | null
+    token: string | null
+    
+    // Actions
+    initialize: () => void
+    login: (email: string, password: string) => Promise<{ user: User, token: string }>
+    logout: () => void
+    clearAuth: () => void
+    
+    // Getters
+    isAuthenticated: boolean
+    avatarInitials: string
+  }
+} 
+Total archivos: 33 
