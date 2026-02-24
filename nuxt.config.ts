@@ -7,6 +7,10 @@ export default defineNuxtConfig({
   },
 
   devtools: { enabled: true },
+  devServer: {
+    host: '0.0.0.0',  // Escucha en todas las interfaces
+    port: 3002
+  },
   ssr: false,
   
   modules: [
