@@ -69,9 +69,9 @@ export const useAuthStore = defineStore('auth', {
       console.log('🔐 Iniciando login con:', email)
       
       try {
-        console.log('📡 Enviando petición a http://10.0.0.20/api/auth/login')
+        console.log('📡 Enviando petición a http://demoback.senado.gob.bo/api/auth/login')
         
-        const response = await fetch('http://10.0.0.20/api/auth/login', {
+        const response = await fetch('http://demoback.senado.gob.bo/api/auth/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

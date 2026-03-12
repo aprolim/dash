@@ -39,7 +39,7 @@ export interface IconGalleryItem {
 export const useTabsApi = () => {
   const { get, post, put, del } = useApi()
   const config = useRuntimeConfig()
-  const baseUrl = config.public.apiUrl || 'http://10.0.0.20/api'
+  const baseUrl = config.public.apiUrl || 'http://demoback.senado.gob.bo/api'
 
   return {
     // CATEGORÍAS

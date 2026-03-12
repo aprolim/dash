@@ -27,7 +27,7 @@ export interface TabsData {
 export const useTabs = () => {
   const config = useRuntimeConfig()
   // Usar la misma variable de entorno que el admin
-  const baseUrl = config.public.apiUrl || 'http://10.0.0.20/api'
+  const baseUrl = config.public.apiUrl || 'http://demoback.senado.gob.bo/api'
 
   const getTabsData = async (): Promise<TabsData> => {
     try {
