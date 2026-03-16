@@ -11,13 +11,9 @@
         type="text"
         required
         :disabled="!!link"
-        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg disabled:bg-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-        :class="{ 'bg-gray-50': !!link }"
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg disabled:bg-gray-100"
         placeholder="ej: leyes-tratamiento"
       />
-      <p class="text-xs text-gray-500 mt-1.5">
-        Solo letras minúsculas, números y guiones
-      </p>
     </div>
 
     <!-- Título -->
@@ -29,7 +25,7 @@
         v-model="form.titulo"
         type="text"
         required
-        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg"
         placeholder="Ej: Proyectos de Ley en Tratamiento"
       />
     </div>
@@ -43,7 +39,7 @@
         v-model="form.descripcion"
         rows="2"
         required
-        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg resize-none"
         placeholder="Descripción del link"
       ></textarea>
     </div>
@@ -57,7 +53,7 @@
         v-model="form.path"
         type="text"
         required
-        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg"
         placeholder="/legislacion/proyectos-en-tratamiento"
       />
     </div>
@@ -72,11 +68,8 @@
         type="number"
         min="0"
         step="10"
-        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg"
       />
-      <p class="text-xs text-gray-500 mt-1.5">
-        Posición dentro de la categoría (menor número = más arriba)
-      </p>
     </div>
 
     <!-- Icono -->
@@ -100,32 +93,32 @@
       </button>
     </div>
 
+    <!-- Modal de selector de iconos -->
+    <Modal v-model="showIconSelector" title="Seleccionar Icono" size="2xl">
+      <IconSelector
+        :selected-icon="form.icono"
+        @select="handleIconSelect"
+      />
+    </Modal>
+
     <!-- Botones -->
     <div class="flex justify-end space-x-3 pt-5 border-t border-gray-200">
       <button
         type="button"
         @click="$emit('cancel')"
-        class="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+        class="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
       >
         Cancelar
       </button>
       <button
         type="submit"
         :disabled="loading"
-        class="px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+        class="px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
       >
-        <span v-if="loading" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-        <span>{{ loading ? 'Guardando...' : 'Guardar' }}</span>
+        <span v-if="loading" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
+        {{ loading ? 'Guardando...' : 'Guardar' }}
       </button>
     </div>
-
-    <!-- Modal de selector de iconos -->
-    <Modal v-model="showIconSelector" title="Seleccionar Icono" size="2xl">
-      <IconSelector
-        :selected-icon="form.icono"
-        @select="(svg) => { form.icono = svg; showIconSelector = false }"
-      />
-    </Modal>
   </form>
 </template>
 
@@ -155,6 +148,7 @@ const form = ref({
   icono: ''
 })
 
+// Cargar datos del link cuando se edita
 watch(() => props.link, (link) => {
   if (link) {
     form.value = {
@@ -177,7 +171,21 @@ watch(() => props.link, (link) => {
   }
 }, { immediate: true })
 
+// ✅ ESTA ES LA FUNCIÓN QUE PREGUNTAS - SOLO ESTO
+const handleIconSelect = (svg: string) => {
+  console.log('📝 Icono recibido en LinkForm')
+  form.value.icono = svg
+  showIconSelector.value = false
+}
+
 const handleSubmit = () => {
-  emit('submit', form.value)
+  if (!props.link) {
+    // Crear nuevo link
+    emit('submit', form.value)
+  } else {
+    // Actualizar link existente (sin el linkId)
+    const { linkId, ...dataToSend } = form.value
+    emit('submit', dataToSend)
+  }
 }
 </script>

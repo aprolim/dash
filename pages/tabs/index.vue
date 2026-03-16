@@ -6,14 +6,14 @@
         <h1 class="text-2xl font-semibold text-gray-900">Gestión de Tabs</h1>
         <p class="text-gray-600">Administra y reordena las pestañas del portal</p>
       </div>
-      
-      <button
+      <!-- se deshabilito porque no deberian crearse mas secciones -->
+      <!-- <button
         @click="openCategoryModal()"
         class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
       >
         <span class="mr-2">+</span>
         Nueva Categoría
-      </button>
+      </button> -->
     </div>
 
     <!-- Instrucciones -->

@@ -8,6 +8,35 @@ COMPILADO DE ARCHIVOS
 # .env
 NUXT_PUBLIC_API_URL=http://localhost:3000/api 
 ================================= 
+.gitignore 
+================================= 
+ 
+# Nuxt dev/build outputs
+.output
+.data
+.nuxt
+.nitro
+.cache
+dist
+
+# Node dependencies
+node_modules
+
+# Logs
+logs
+*.log
+
+# Misc
+.DS_Store
+.fleet
+.idea
+
+# Local env files
+.env
+.env.*
+!.env.example
+ 
+================================= 
 app.vue 
 ================================= 
  
@@ -32,6 +61,10 @@ export default defineNuxtConfig({
   },
 
   devtools: { enabled: true },
+  devServer: {
+    host: '0.0.0.0',  // Escucha en todas las interfaces
+    port: 3002
+  },
   ssr: false,
   
   modules: [
@@ -158,6 +191,165 @@ assets\css\tailwind.css
 @tailwind base;
 @tailwind components;
 @tailwind utilities; 
+================================= 
+components\TabsSection.vue 
+================================= 
+ 
+<!-- components/TabsSection.vue -->
+<template>
+  <div class="bg-white">
+    <!-- Loading state -->
+    <div v-if="loading" class="container mx-auto px-4 py-12">
+      <div class="flex justify-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    </div>
+
+    <!-- Error state -->
+    <div v-else-if="error" class="container mx-auto px-4 py-12">
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+        <p class="text-red-600">{{ error }}</p>
+      </div>
+    </div>
+
+    <!-- Tabs content -->
+    <template v-else-if="tabsData.tabs.length > 0">
+      <!-- Tabs navigation -->
+      <div class="border-b border-gray-200">
+        <div class="container mx-auto px-4">
+          <nav class="flex space-x-8 overflow-x-auto" aria-label="Tabs">
+            <button
+              v-for="tab in tabsData.tabs"
+              :key="tab.id"
+              @click="activeTab = tab.id"
+              class="py-4 px-1 font-medium text-sm border-b-2 transition-colors whitespace-nowrap"
+              :class="activeTab === tab.id
+                ? 'border-primary-600 text-primary-700'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+            >
+              <div class="flex items-center space-x-2">
+                <div class="w-5 h-5" v-html="tab.icono"></div>
+                <span>{{ tab.label }}</span>
+              </div>
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      <!-- Active tab content -->
+      <div class="container mx-auto px-4 py-12">
+        <Transition
+          enter-active-class="transition duration-200 ease-out"
+          enter-from-class="opacity-0 translate-y-2"
+          enter-to-class="opacity-100 translate-y-0"
+          leave-active-class="transition duration-150 ease-in"
+          leave-from-class="opacity-100 translate-y-0"
+          leave-to-class="opacity-0 translate-y-2"
+          mode="out-in"
+        >
+          <div :key="activeTab">
+            <!-- Area title -->
+            <div v-if="currentArea" class="mb-8">
+              <h2 class="text-2xl font-bold text-gray-900 mb-2">
+                {{ currentArea.titulo }}
+              </h2>
+              <p class="text-gray-600">{{ currentArea.descripcion }}</p>
+            </div>
+
+            <!-- Links grid -->
+            <div v-if="currentLinks.length > 0" 
+                 class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <NuxtLink
+                v-for="link in currentLinks"
+                :key="link.id"
+                :to="link.path"
+                class="group bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md hover:border-primary-200 transition-all duration-200"
+              >
+                <div class="flex items-start space-x-4">
+                  <!-- Icon -->
+                  <div class="flex-shrink-0">
+                    <div class="w-12 h-12 transform group-hover:scale-110 transition-transform duration-200"
+                         v-html="link.icono">
+                    </div>
+                  </div>
+                  
+                  <!-- Content -->
+                  <div class="flex-1">
+                    <h3 class="font-semibold text-gray-900 mb-1 group-hover:text-primary-700">
+                      {{ link.titulo }}
+                    </h3>
+                    <p class="text-sm text-gray-600">
+                      {{ link.descripcion }}
+                    </p>
+                  </div>
+                </div>
+              </NuxtLink>
+            </div>
+
+            <!-- No links message -->
+            <div v-else class="text-center py-12 bg-gray-50 rounded-lg">
+              <div class="text-4xl mb-3 text-gray-400">📭</div>
+              <p class="text-gray-500">No hay contenido disponible en esta sección</p>
+            </div>
+          </div>
+        </Transition>
+      </div>
+    </template>
+
+    <!-- No tabs message -->
+    <div v-else class="container mx-auto px-4 py-12 text-center text-gray-500">
+      <p>No hay contenido configurado</p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useTabs, type TabsData } from '~/composables/useTabs'
+
+const props = defineProps<{
+  initialTab?: string
+}>()
+
+const tabsApi = useTabs()
+const loading = ref(true)
+const error = ref<string | null>(null)
+const tabsData = ref<TabsData>({
+  tabs: [],
+  areas: {},
+  links: {}
+})
+const activeTab = ref(props.initialTab || '')
+
+// Computed properties
+const currentArea = computed(() => 
+  activeTab.value ? tabsData.value.areas[activeTab.value] : null
+)
+
+const currentLinks = computed(() => 
+  activeTab.value ? tabsData.value.links[activeTab.value] || [] : []
+)
+
+// Load tabs data
+onMounted(async () => {
+  try {
+    loading.value = true
+    error.value = null
+    tabsData.value = await tabsApi.getTabsData()
+    
+    // Set initial active tab
+    if (tabsData.value.tabs.length > 0) {
+      if (!activeTab.value || !tabsData.value.tabs.some(t => t.id === activeTab.value)) {
+        activeTab.value = tabsData.value.tabs[0].id
+      }
+    }
+  } catch (err: any) {
+    error.value = err.message
+  } finally {
+    loading.value = false
+  }
+})
+</script> 
 ================================= 
 components\tabs\CategoriesList.vue 
 ================================= 
@@ -449,10 +641,10 @@ components\tabs\IconSelector.vue
     <!-- Búsqueda -->
     <div class="mb-4">
       <input
-        type="text"
         v-model="search"
-        placeholder="🔍 Buscar iconos por nombre o categoría..."
-        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        type="text"
+        placeholder="🔍 Buscar iconos..."
+        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
       />
     </div>
 
@@ -462,20 +654,18 @@ components\tabs\IconSelector.vue
       <p class="mt-2 text-sm text-gray-500">Cargando iconos...</p>
     </div>
 
-    <!-- Grid de iconos -->
+    <!-- Grid de iconos maestros -->
     <div v-else class="grid grid-cols-4 md:grid-cols-6 gap-3 max-h-96 overflow-y-auto p-1">
       <button
         v-for="icon in filteredIcons"
         :key="icon.id"
-        @click="$emit('select', icon.icono)"
+        @click="$emit('select', icon.svg)"
         class="p-3 border rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all transform hover:scale-105"
-        :class="{ 'border-primary-500 bg-primary-50 ring-2 ring-primary-200': selectedIcon === icon.icono }"
+        :class="{ 'border-primary-500 bg-primary-50 ring-2 ring-primary-200': selectedIcon === icon.svg }"
       >
-        <div class="w-10 h-10 mx-auto mb-2" v-html="icon.icono"></div>
-        <p class="text-xs text-gray-600 text-center truncate" :title="icon.ejemplo">
-          {{ icon.ejemplo }}
-        </p>
-        <p class="text-xs text-gray-400 text-center">{{ icon.categoryName }}</p>
+        <div class="w-10 h-10 mx-auto mb-2" v-html="icon.svg"></div>
+        <p class="text-xs text-gray-600 text-center truncate">{{ icon.nombre }}</p>
+        <p class="text-xs text-gray-400 text-center">{{ icon.categoria }}</p>
       </button>
     </div>
 
@@ -489,7 +679,7 @@ components\tabs\IconSelector.vue
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useTabsApi, type IconGalleryItem } from '~/composables/useTabsApi'
+import { useTabsApi, type MasterIcon } from '~/composables/useTabsApi'
 
 const props = defineProps<{
   selectedIcon?: string
@@ -501,23 +691,28 @@ const emit = defineEmits<{
 
 const tabsApi = useTabsApi()
 const loading = ref(false)
-const icons = ref<IconGalleryItem[]>([])
+const masterIcons = ref<MasterIcon[]>([])
 const search = ref('')
 
 const filteredIcons = computed(() => {
-  if (!search.value) return icons.value
+  if (!search.value) return masterIcons.value
   const term = search.value.toLowerCase()
-  return icons.value.filter(icon => 
-    icon.ejemplo.toLowerCase().includes(term) ||
-    icon.categoryName.toLowerCase().includes(term)
+  return masterIcons.value.filter(icon => 
+    icon.nombre.toLowerCase().includes(term) ||
+    icon.categoria.toLowerCase().includes(term)
   )
 })
+
+const selectIcon = (svg: string) => {
+  console.log('🎨 Icono seleccionado:', svg ? svg.substring(0, 50) + '...' : 'VACÍO')
+  emit('select', svg)
+}
 
 onMounted(async () => {
   try {
     loading.value = true
-    const response = await tabsApi.getIconsGallery()
-    icons.value = response.all || []
+    masterIcons.value = await tabsApi.getMasterIcons()
+    console.log('📦 Iconos maestros cargados:', masterIcons.value.length)
   } catch (error) {
     console.error('Error cargando iconos:', error)
   } finally {
@@ -542,13 +737,9 @@ components\tabs\LinkForm.vue
         type="text"
         required
         :disabled="!!link"
-        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg disabled:bg-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-        :class="{ 'bg-gray-50': !!link }"
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg disabled:bg-gray-100"
         placeholder="ej: leyes-tratamiento"
       />
-      <p class="text-xs text-gray-500 mt-1.5">
-        Solo letras minúsculas, números y guiones
-      </p>
     </div>
 
     <!-- Título -->
@@ -560,7 +751,7 @@ components\tabs\LinkForm.vue
         v-model="form.titulo"
         type="text"
         required
-        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg"
         placeholder="Ej: Proyectos de Ley en Tratamiento"
       />
     </div>
@@ -574,7 +765,7 @@ components\tabs\LinkForm.vue
         v-model="form.descripcion"
         rows="2"
         required
-        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg resize-none"
         placeholder="Descripción del link"
       ></textarea>
     </div>
@@ -588,7 +779,7 @@ components\tabs\LinkForm.vue
         v-model="form.path"
         type="text"
         required
-        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg"
         placeholder="/legislacion/proyectos-en-tratamiento"
       />
     </div>
@@ -603,11 +794,8 @@ components\tabs\LinkForm.vue
         type="number"
         min="0"
         step="10"
-        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg"
       />
-      <p class="text-xs text-gray-500 mt-1.5">
-        Posición dentro de la categoría (menor número = más arriba)
-      </p>
     </div>
 
     <!-- Icono -->
@@ -631,32 +819,32 @@ components\tabs\LinkForm.vue
       </button>
     </div>
 
+    <!-- Modal de selector de iconos -->
+    <Modal v-model="showIconSelector" title="Seleccionar Icono" size="2xl">
+      <IconSelector
+        :selected-icon="form.icono"
+        @select="handleIconSelect"
+      />
+    </Modal>
+
     <!-- Botones -->
     <div class="flex justify-end space-x-3 pt-5 border-t border-gray-200">
       <button
         type="button"
         @click="$emit('cancel')"
-        class="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+        class="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
       >
         Cancelar
       </button>
       <button
         type="submit"
         :disabled="loading"
-        class="px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+        class="px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
       >
-        <span v-if="loading" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-        <span>{{ loading ? 'Guardando...' : 'Guardar' }}</span>
+        <span v-if="loading" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
+        {{ loading ? 'Guardando...' : 'Guardar' }}
       </button>
     </div>
-
-    <!-- Modal de selector de iconos -->
-    <Modal v-model="showIconSelector" title="Seleccionar Icono" size="2xl">
-      <IconSelector
-        :selected-icon="form.icono"
-        @select="(svg) => { form.icono = svg; showIconSelector = false }"
-      />
-    </Modal>
   </form>
 </template>
 
@@ -686,6 +874,7 @@ const form = ref({
   icono: ''
 })
 
+// Cargar datos del link cuando se edita
 watch(() => props.link, (link) => {
   if (link) {
     form.value = {
@@ -708,8 +897,22 @@ watch(() => props.link, (link) => {
   }
 }, { immediate: true })
 
+// ✅ ESTA ES LA FUNCIÓN QUE PREGUNTAS - SOLO ESTO
+const handleIconSelect = (svg: string) => {
+  console.log('📝 Icono recibido en LinkForm')
+  form.value.icono = svg
+  showIconSelector.value = false
+}
+
 const handleSubmit = () => {
-  emit('submit', form.value)
+  if (!props.link) {
+    // Crear nuevo link
+    emit('submit', form.value)
+  } else {
+    // Actualizar link existente (sin el linkId)
+    const { linkId, ...dataToSend } = form.value
+    emit('submit', dataToSend)
+  }
 }
 </script> 
 ================================= 
@@ -1862,11 +2065,72 @@ export const useApi = () => {
   }
 } 
 ================================= 
+composables\useTabs.ts 
+================================= 
+ 
+// composables/useTabs.ts
+export interface Tab {
+  id: string
+  label: string
+  icono: string
+}
+
+export interface Area {
+  titulo: string
+  descripcion: string
+}
+
+export interface Link {
+  id: string
+  titulo: string
+  descripcion: string
+  icono: string
+  path: string
+}
+
+export interface TabsData {
+  tabs: Tab[]
+  areas: Record<string, Area>
+  links: Record<string, Link[]>
+}
+
+export const useTabs = () => {
+  const config = useRuntimeConfig()
+  // Usar la misma variable de entorno que el admin
+  const baseUrl = config.public.apiUrl || 'http://demoback.senado.gob.bo/api'
+
+  const getTabsData = async (): Promise<TabsData> => {
+    try {
+      const response = await fetch(`${baseUrl}/tabs`)
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar los tabs')
+      }
+      
+      const result = await response.json()
+      return result.data
+    } catch (error) {
+      console.error('Error fetching tabs:', error)
+      return {
+        tabs: [],
+        areas: {},
+        links: {}
+      }
+    }
+  }
+
+  return {
+    getTabsData
+  }
+} 
+================================= 
 composables\useTabsApi.ts 
 ================================= 
  
 // composables/useTabsApi.ts
 import { useApi } from './useApi'
+
+console.log('🟢 useTabsApi.ts cargado')
 
 export interface TabCategory {
   categoryId: string
@@ -1874,10 +2138,13 @@ export interface TabCategory {
   description: string
   order: number
   icon: string
+  color: string
   isActive: boolean
   linksCount?: number
   createdAt?: string
   updatedAt?: string
+  createdBy?: any
+  lastUpdatedBy?: any
 }
 
 export interface TabLink {
@@ -1890,77 +2157,119 @@ export interface TabLink {
   orden: number
   isActive: boolean
   categoryName?: string
+  categoryColor?: string
   createdAt?: string
   updatedAt?: string
+  createdBy?: any
+  lastUpdatedBy?: any
 }
 
-export interface IconGalleryItem {
+export interface MasterIcon {
   id: string
-  categoryId: string
-  categoryName: string
-  icono: string
-  ejemplo: string
-  preview: string
+  nombre: string
+  categoria: string
+  svg: string
 }
 
 export const useTabsApi = () => {
+  console.log('🟢 useTabsApi() ejecutado')
+  
   const { get, post, put, del } = useApi()
   const config = useRuntimeConfig()
-  const baseUrl = config.public.apiUrl || 'http://localhost:3000/api'
+  const baseUrl = config.public.apiUrl || 'http://demoback.senado.gob.bo/api'
+  
+  console.log('🟢 baseUrl:', baseUrl)
 
   return {
     // CATEGORÍAS
-    getCategories: (includeInactive = false) => 
-      get<TabCategory[]>(`${baseUrl}/tabs/categories?includeInactive=${includeInactive}`),
+    getCategories: async (includeInactive = false) => {
+      const result = await get<TabCategory[]>(`${baseUrl}/tabs/categories?includeInactive=${includeInactive}`)
+      return result
+    },
 
-    getCategory: (categoryId: string) => 
-      get<TabCategory>(`${baseUrl}/tabs/categories/${categoryId}`),
+    getCategory: async (categoryId: string) => {
+      const result = await get<TabCategory>(`${baseUrl}/tabs/categories/${categoryId}`)
+      return result
+    },
 
-    createCategory: (data: Partial<TabCategory>) => 
-      post<TabCategory>(`${baseUrl}/tabs/categories`, data),
+    createCategory: async (data: Partial<TabCategory>) => {
+      const result = await post<TabCategory>(`${baseUrl}/tabs/categories`, data)
+      return result
+    },
 
-    updateCategory: (categoryId: string, data: Partial<TabCategory>) => 
-      put<TabCategory>(`${baseUrl}/tabs/categories/${categoryId}`, data),
+    updateCategory: async (categoryId: string, data: Partial<TabCategory>) => {
+      const result = await put<TabCategory>(`${baseUrl}/tabs/categories/${categoryId}`, data)
+      return result
+    },
 
-    deleteCategory: (categoryId: string) => 
-      del(`${baseUrl}/tabs/categories/${categoryId}`),
+    deleteCategory: async (categoryId: string) => {
+      const result = await del(`${baseUrl}/tabs/categories/${categoryId}`)
+      return result
+    },
 
     // LINKS
-    getLinks: (params?: { categoryId?: string, includeInactive?: boolean, page?: number, limit?: number }) => {
+    getLinks: async (params?: { categoryId?: string, includeInactive?: boolean, page?: number, limit?: number }) => {
       const query = new URLSearchParams()
       if (params?.categoryId) query.append('categoryId', params.categoryId)
       if (params?.includeInactive) query.append('includeInactive', 'true')
       if (params?.page) query.append('page', params.page.toString())
       if (params?.limit) query.append('limit', params.limit.toString())
       
-      return get<any>(`${baseUrl}/tabs/links?${query.toString()}`)
+      const url = `${baseUrl}/tabs/links?${query.toString()}`
+      const result = await get<any>(url)
+      return result.data
     },
 
-    getLink: (linkId: string) => 
-      get<TabLink>(`${baseUrl}/tabs/links/${linkId}`),
+    getLink: async (linkId: string) => {
+      const result = await get<TabLink>(`${baseUrl}/tabs/links/${linkId}`)
+      return result
+    },
 
-    createLink: (data: Partial<TabLink>) => 
-      post<TabLink>(`${baseUrl}/tabs/links`, data),
+    createLink: async (data: Partial<TabLink>) => {
+      const result = await post<TabLink>(`${baseUrl}/tabs/links`, data)
+      return result
+    },
 
-    updateLink: (linkId: string, data: Partial<TabLink>) => 
-      put<TabLink>(`${baseUrl}/tabs/links/${linkId}`, data),
+    updateLink: async (linkId: string, data: Partial<TabLink>) => {
+      console.log('🟡 updateLink enviando:', {
+        linkId,
+        data: {
+          ...data,
+          iconoPreview: data.icono ? data.icono.substring(0, 30) + '...' : 'VACÍO'
+        }
+      })
+      
+      const result = await put<any>(`${baseUrl}/tabs/links/${linkId}`, data)
+      return result.data
+    },
 
-    deleteLink: (linkId: string) => 
-      del(`${baseUrl}/tabs/links/${linkId}`),
+    deleteLink: async (linkId: string) => {
+      const result = await del(`${baseUrl}/tabs/links/${linkId}`)
+      return result
+    },
 
-    reorderLinks: (categoryId: string, order: { linkId: string; position: number }[]) => 
-      post(`${baseUrl}/tabs/links/reorder`, { categoryId, order }),
+    reorderLinks: async (categoryId: string, order: { linkId: string; position: number }[]) => {
+      const result = await post(`${baseUrl}/tabs/links/reorder`, { categoryId, order })
+      return result
+    },
 
-    // ICONOS
-    getIconsGallery: () => 
-      get<{ byCategory: any[], all: IconGalleryItem[], total: number }>(`${baseUrl}/tabs/icons/gallery`),
+    // ✅ NUEVO: ICONOS MAESTROS (NUNCA CAMBIAN)
+    getMasterIcons: async () => {
+      console.log('🟡 Obteniendo iconos maestros...')
+      const response = await get<{ icons: MasterIcon[], total: number }>(`${baseUrl}/icons/master`)
+      return response.icons
+    },
 
     // DATOS PÚBLICOS
-    getTabsData: () => 
-      get<any>(`${baseUrl}/tabs`),
+    getTabsData: async () => {
+      const result = await get<any>(`${baseUrl}/tabs`)
+      return result
+    },
 
-    getTabLinks: (tabId: string) => 
-      get<any>(`${baseUrl}/tabs/${tabId}`),
+    getTabLinks: async (tabId: string) => {
+      const result = await get<any>(`${baseUrl}/tabs/${tabId}`)
+      return result
+    },
   }
 } 
 ================================= 
@@ -2011,7 +2320,7 @@ layouts\auth.vue
 layouts\default.vue 
 ================================= 
  
-<!-- layouts/default.vue - Versión simplificada -->
+<!-- layouts/default.vue - CORREGIDO con detección de rutas -->
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Header -->
@@ -2033,36 +2342,42 @@ layouts\default.vue
             </div>
           </div>
 
-          <!-- Navegación -->
+          <!-- Navegación - AHORA USA EL ROUTER -->
           <nav class="hidden md:flex space-x-8">
-            <a 
-              href="/dashboard" 
-              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium"
-              :class="{ 'text-primary-600 border-b-2 border-primary-600': currentPath === '/dashboard' }"
+            <NuxtLink 
+              to="/dashboard" 
+              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
+              :class="{ 'text-primary-600 border-b-2 border-primary-600': isActiveRoute('/dashboard') }"
             >
               Dashboard
-            </a>
-            <a 
-              href="#" 
-              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium"
+            </NuxtLink>
+            
+            <NuxtLink 
+              to="/tabs" 
+              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
+              :class="{ 'text-primary-600 border-b-2 border-primary-600': isActiveRoute('/tabs') }"
+            >
+              Tabs
+            </NuxtLink>
+            
+            <button 
               @click.prevent="showComingSoon('Contenido')"
+              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium"
             >
               Contenido
-            </a>
-            <a 
-              href="#" 
-              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium"
+            </button>
+            <button 
               @click.prevent="showComingSoon('Legisladores')"
+              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium"
             >
               Legisladores
-            </a>
-            <a 
-              href="#" 
-              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium"
+            </button>
+            <button 
               @click.prevent="showComingSoon('Usuarios')"
+              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium"
             >
               Usuarios
-            </a>
+            </button>
           </nav>
 
           <!-- Perfil de usuario -->
@@ -2110,7 +2425,6 @@ layouts\default.vue
 
     <!-- Contenido principal -->
     <div class="flex">
-      <!-- Contenido principal -->
       <main class="flex-1">
         <div class="py-6">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -2119,12 +2433,12 @@ layouts\default.vue
               <ol class="flex items-center space-x-2">
                 <li>
                   <div class="flex items-center">
-                    <a href="/dashboard" class="text-gray-400 hover:text-gray-500">
+                    <NuxtLink to="/dashboard" class="text-gray-400 hover:text-gray-500">
                       Dashboard
-                    </a>
+                    </NuxtLink>
                   </div>
                 </li>
-                <template v-if="currentPath !== '/dashboard'">
+                <template v-if="currentRoute !== '/dashboard'">
                   <li>
                     <div class="flex items-center">
                       <svg class="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -2172,33 +2486,40 @@ layouts\default.vue
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAuthStore } from '~/stores/auth'
+import { useRoute } from 'vue-router'
 
-// Inicializar store
 const authStore = useAuthStore()
-
-// Estado local
 const userMenuOpen = ref(false)
-const currentPath = ref(window.location.pathname)
 
-// Computadas
+// Usar el router de Vue para la ruta actual
+const route = useRoute()
+const currentRoute = computed(() => route.path)
+
+// Función para verificar si una ruta está activa
+const isActiveRoute = (path: string) => {
+  if (path === '/dashboard') {
+    return currentRoute.value === '/dashboard'
+  }
+  return currentRoute.value.startsWith(path)
+}
+
 const userName = computed(() => authStore.user?.name || 'Usuario')
 const avatarInitials = computed(() => authStore.avatarInitials)
 
-// Título de página dinámico
 const pageTitle = computed(() => {
-  const path = currentPath.value
+  const path = currentRoute.value
   if (path === '/dashboard') return 'Dashboard'
+  if (path.startsWith('/tabs')) return 'Gestión de Tabs'
   if (path.includes('/content')) return 'Gestión de Contenido'
   if (path.includes('/legislators')) return 'Legisladores'
   if (path.includes('/users')) return 'Usuarios'
   return 'Panel de Administración'
 })
 
-// Breadcrumb actual
 const currentPage = computed(() => {
-  const path = currentPath.value.split('/').pop()
+  const path = currentRoute.value.split('/').pop()
   return path ? path.charAt(0).toUpperCase() + path.slice(1) : ''
 })
 
@@ -2215,7 +2536,6 @@ const showComingSoon = (feature: string) => {
   userMenuOpen.value = false
 }
 
-// Cerrar menú al hacer clic fuera
 const handleClickOutside = (event: MouseEvent) => {
   const target = event.target as HTMLElement
   if (!target.closest('.relative')) {
@@ -2223,7 +2543,6 @@ const handleClickOutside = (event: MouseEvent) => {
   }
 }
 
-// Inicializar store al montar
 onMounted(() => {
   authStore.initialize()
   document.addEventListener('click', handleClickOutside)
@@ -2231,6 +2550,11 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+})
+
+// Opcional: watch para debug
+watch(currentRoute, (newPath) => {
+  console.log('Ruta actual:', newPath)
 })
 </script> 
 ================================= 
@@ -2875,14 +3199,14 @@ pages\tabs\index.vue
         <h1 class="text-2xl font-semibold text-gray-900">Gestión de Tabs</h1>
         <p class="text-gray-600">Administra y reordena las pestañas del portal</p>
       </div>
-      
-      <button
+      <!-- se deshabilito porque no deberian crearse mas secciones -->
+      <!-- <button
         @click="openCategoryModal()"
         class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
       >
         <span class="mr-2">+</span>
         Nueva Categoría
-      </button>
+      </button> -->
     </div>
 
     <!-- Instrucciones -->
@@ -3352,25 +3676,45 @@ const openLinkModal = (link?: TabLink) => {
 const saveLink = async (formData: any) => {
   try {
     saving.value = true
+    
     if (selectedLink.value) {
-      await tabsApi.updateLink(selectedLink.value.linkId, formData)
+      // Actualizar link existente
+      const updatedLinkFromServer = await tabsApi.updateLink(
+        selectedLink.value.linkId, 
+        formData
+      )
+      
+      // ✅ Actualizar SOLO el link modificado
+      const index = links.value.findIndex(l => l.linkId === selectedLink.value!.linkId)
+      if (index !== -1) {
+        const newLinks = [...links.value]
+        newLinks[index] = {
+          ...newLinks[index],
+          ...updatedLinkFromServer
+        }
+        links.value = newLinks
+      }
+      
       showToast('Link actualizado', 'success')
     } else {
-      await tabsApi.createLink({
+      // Crear nuevo link
+      const newLink = await tabsApi.createLink({
         ...formData,
         categoryId
       })
+      links.value = [...links.value, newLink].sort((a, b) => a.orden - b.orden)
       showToast('Link creado', 'success')
     }
+    
     showLinkModal.value = false
-    await loadData()
+    
   } catch (error: any) {
     showToast(error.message, 'error')
+    await loadData() // Solo recargar si hay error
   } finally {
     saving.value = false
   }
 }
-
 // Activar/Desactivar link
 const toggleLink = async (link: TabLink) => {
   try {
@@ -3401,6 +3745,7 @@ const reorderLinks = async (order: { linkId: string; position: number }[]) => {
 onMounted(() => {
   loadData()
 })
+
 </script> 
 ================================= 
 stores\auth.ts 
@@ -3477,9 +3822,9 @@ export const useAuthStore = defineStore('auth', {
       console.log('🔐 Iniciando login con:', email)
       
       try {
-        console.log('📡 Enviando petición a http://localhost:3000/api/auth/login')
+        console.log('📡 Enviando petición a http://demoback.senado.gob.bo/api/auth/login')
         
-        const response = await fetch('http://localhost:3000/api/auth/login', {
+        const response = await fetch('http://demoback.senado.gob.bo/api/auth/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -3673,4 +4018,4 @@ declare module '~/stores/auth' {
     avatarInitials: string
   }
 } 
-Total archivos: 33 
+Total archivos: 36 

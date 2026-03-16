@@ -4,10 +4,10 @@
     <!-- Búsqueda -->
     <div class="mb-4">
       <input
-        type="text"
         v-model="search"
-        placeholder="🔍 Buscar iconos por nombre o categoría..."
-        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        type="text"
+        placeholder="🔍 Buscar iconos..."
+        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
       />
     </div>
 
@@ -17,20 +17,18 @@
       <p class="mt-2 text-sm text-gray-500">Cargando iconos...</p>
     </div>
 
-    <!-- Grid de iconos -->
+    <!-- Grid de iconos maestros -->
     <div v-else class="grid grid-cols-4 md:grid-cols-6 gap-3 max-h-96 overflow-y-auto p-1">
       <button
         v-for="icon in filteredIcons"
         :key="icon.id"
-        @click="$emit('select', icon.icono)"
+        @click="$emit('select', icon.svg)"
         class="p-3 border rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all transform hover:scale-105"
-        :class="{ 'border-primary-500 bg-primary-50 ring-2 ring-primary-200': selectedIcon === icon.icono }"
+        :class="{ 'border-primary-500 bg-primary-50 ring-2 ring-primary-200': selectedIcon === icon.svg }"
       >
-        <div class="w-10 h-10 mx-auto mb-2" v-html="icon.icono"></div>
-        <p class="text-xs text-gray-600 text-center truncate" :title="icon.ejemplo">
-          {{ icon.ejemplo }}
-        </p>
-        <p class="text-xs text-gray-400 text-center">{{ icon.categoryName }}</p>
+        <div class="w-10 h-10 mx-auto mb-2" v-html="icon.svg"></div>
+        <p class="text-xs text-gray-600 text-center truncate">{{ icon.nombre }}</p>
+        <p class="text-xs text-gray-400 text-center">{{ icon.categoria }}</p>
       </button>
     </div>
 
@@ -44,7 +42,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useTabsApi, type IconGalleryItem } from '~/composables/useTabsApi'
+import { useTabsApi, type MasterIcon } from '~/composables/useTabsApi'
 
 const props = defineProps<{
   selectedIcon?: string
@@ -56,23 +54,28 @@ const emit = defineEmits<{
 
 const tabsApi = useTabsApi()
 const loading = ref(false)
-const icons = ref<IconGalleryItem[]>([])
+const masterIcons = ref<MasterIcon[]>([])
 const search = ref('')
 
 const filteredIcons = computed(() => {
-  if (!search.value) return icons.value
+  if (!search.value) return masterIcons.value
   const term = search.value.toLowerCase()
-  return icons.value.filter(icon => 
-    icon.ejemplo.toLowerCase().includes(term) ||
-    icon.categoryName.toLowerCase().includes(term)
+  return masterIcons.value.filter(icon => 
+    icon.nombre.toLowerCase().includes(term) ||
+    icon.categoria.toLowerCase().includes(term)
   )
 })
+
+const selectIcon = (svg: string) => {
+  console.log('🎨 Icono seleccionado:', svg ? svg.substring(0, 50) + '...' : 'VACÍO')
+  emit('select', svg)
+}
 
 onMounted(async () => {
   try {
     loading.value = true
-    const response = await tabsApi.getIconsGallery()
-    icons.value = response.all || []
+    masterIcons.value = await tabsApi.getMasterIcons()
+    console.log('📦 Iconos maestros cargados:', masterIcons.value.length)
   } catch (error) {
     console.error('Error cargando iconos:', error)
   } finally {
