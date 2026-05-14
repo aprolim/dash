@@ -37,6 +37,14 @@
             >
               Tabs
             </NuxtLink>
+
+            <NuxtLink 
+              to="/admin/noticias" 
+              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
+              :class="{ 'text-primary-600 border-b-2 border-primary-600': isActiveRoute('/admin/noticias') }"
+            >
+              Noticias
+            </NuxtLink>
             
             <button 
               @click.prevent="showComingSoon('Contenido')"
