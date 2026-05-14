@@ -49,6 +49,7 @@
           class="w-full px-4 py-2 border border-gray-300 rounded-lg resize-none"
           placeholder="Breve descripción de la noticia (aparece en listados)"
         ></textarea>
+        <p class="text-xs text-gray-500 mt-1">Máximo 300 caracteres</p>
       </div>
 
       <!-- Contenido con editor -->
@@ -56,10 +57,10 @@
         <label class="block text-sm font-medium text-gray-700 mb-2">
           Contenido <span class="text-red-500">*</span>
         </label>
-        <TiptapEditor v-model="form.content" placeholder="Escribe el contenido aquí..." />
+        <TiptapEditor v-model="form.content" placeholder="Escribe el contenido de la noticia aquí..." />
       </div>
 
-      <!-- Imagen destacada CON SUBIDA -->
+      <!-- Imagen destacada -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">
           Imagen destacada
@@ -111,7 +112,7 @@
           <p class="text-xs text-gray-500 mt-1">O usa una URL externa de Unsplash, Imgur, etc.</p>
         </div>
         
-        <!-- Vista previa de la imagen -->
+        <!-- Vista previa -->
         <div v-if="imagePreviewUrl" class="mt-3">
           <div class="relative inline-block">
             <img :src="imagePreviewUrl" class="h-40 w-auto object-cover rounded-lg shadow" />
@@ -198,8 +199,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '~/stores/auth'
 import { useNews } from '~/composables/useNews'
 import TiptapEditor from '~/components/admin/TiptapEditor.vue'
 import RichContent from '~/components/ui/RichContent.vue'
@@ -210,6 +212,7 @@ definePageMeta({
 })
 
 const router = useRouter()
+const authStore = useAuthStore()
 const { createNews, uploadImage: uploadImageApi } = useNews()
 
 const saving = ref(false)
@@ -236,20 +239,33 @@ watch(tagsInput, (newVal) => {
   form.tags = newVal.split(',').map(t => t.trim()).filter(t => t)
 })
 
+// Verificar autenticación al montar
+onMounted(() => {
+  if (!authStore.isAuthenticated) {
+    console.log('❌ No autenticado, redirigiendo a login')
+    router.push('/auth/login')
+  }
+})
+
 // Manejar selección de archivo
 const handleFileSelect = async (event: Event) => {
+  // Verificar autenticación antes de subir
+  if (!authStore.isAuthenticated) {
+    alert('Tu sesión expiró. Por favor, inicia sesión nuevamente.')
+    router.push('/auth/login')
+    return
+  }
+
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (!file) return
 
-  // Validar tipo de archivo
   const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
   if (!validTypes.includes(file.type)) {
     alert('Formato no válido. Use JPG, PNG, WEBP o GIF.')
     return
   }
 
-  // Validar tamaño (10MB)
   if (file.size > 10 * 1024 * 1024) {
     alert('La imagen no puede superar los 10MB')
     return
@@ -275,7 +291,6 @@ const handleFileSelect = async (event: Event) => {
   }
 }
 
-// Previsualizar URL externa
 const previewImageUrl = () => {
   if (form.featuredImage.url) {
     imagePreviewUrl.value = form.featuredImage.url
@@ -283,15 +298,20 @@ const previewImageUrl = () => {
   }
 }
 
-// Limpiar imagen
 const clearImage = () => {
   form.featuredImage.url = ''
   imagePreviewUrl.value = ''
   imagePreviewLabel.value = ''
 }
 
-// Guardar noticia
 const saveNews = async () => {
+  // Verificar autenticación antes de guardar
+  if (!authStore.isAuthenticated) {
+    alert('Tu sesión expiró. Por favor, inicia sesión nuevamente.')
+    router.push('/auth/login')
+    return
+  }
+
   if (!form.title.trim()) {
     alert('El título es requerido')
     return

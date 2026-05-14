@@ -9,23 +9,37 @@ export const useApi = () => {
       'Content-Type': 'application/json',
     }
     
-    if (authStore.token) {
-      headers['Authorization'] = `Bearer ${authStore.token}`
+    const token = localStorage.getItem('auth_token')
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
     }
     
     return headers
   }
 
   const handleResponse = async <T>(response: Response): Promise<T> => {
-    if (!response.ok) {
-      if (response.status === 401) {
-        authStore.clearAuth()
-        if (typeof window !== 'undefined') {
-          window.location.href = '/auth/login'
-        }
+    // Si el token expiró o es inválido (401)
+    if (response.status === 401) {
+      console.log('🔐 Token expirado o inválido. Cerrando sesión...')
+      
+      // Limpiar almacenamiento local
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('user')
+      
+      // Limpiar store
+      authStore.clearAuth()
+      
+      // Redirigir a login
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/login?session=expired'
       }
-      const data = await response.json()
-      throw new Error(data.message || 'Error en la petición')
+      
+      throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.')
+    }
+    
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}))
+      throw new Error(data.message || `Error ${response.status}`)
     }
     
     const data = await response.json()

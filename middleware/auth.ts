@@ -2,16 +2,26 @@
 export default defineNuxtRouteMiddleware((to) => {
   // Solo en cliente
   if (process.client) {
-    // Verificar token manualmente
     const token = localStorage.getItem('auth_token')
+    const user = localStorage.getItem('user')
     
-    // Si no está autenticado y no va a login, redirigir
-    if (!token && !to.path.startsWith('/auth/')) {
+    console.log('🔐 [auth] Verificando ruta:', to.path)
+    console.log('   Token:', token ? 'presente' : 'ausente')
+    console.log('   User:', user ? 'presente' : 'ausente')
+    
+    // Rutas protegidas (requieren autenticación)
+    const protectedRoutes = ['/dashboard', '/tabs', '/admin', '/admin/noticias']
+    const isProtectedRoute = protectedRoutes.some(route => to.path.startsWith(route))
+    
+    // Si la ruta es protegida y no hay token → redirigir a login
+    if (isProtectedRoute && (!token || !user)) {
+      console.log('❌ Ruta protegida sin autenticación, redirigiendo a login')
       return navigateTo('/auth/login')
     }
     
-    // Si está autenticado y va a login, redirigir al dashboard
-    if (token && to.path.startsWith('/auth/')) {
+    // Si hay token pero la ruta es de login → redirigir a dashboard
+    if (token && user && to.path.startsWith('/auth')) {
+      console.log('✅ Ya autenticado, redirigiendo a dashboard')
       return navigateTo('/dashboard')
     }
   }

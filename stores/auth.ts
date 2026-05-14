@@ -14,18 +14,6 @@ interface User {
   }
 }
 
-interface LoginResponse {
-  success: boolean
-  data: {
-    user: User
-    tokens: {
-      accessToken: string
-      refreshToken: string
-      expiresIn: number
-    }
-  }
-}
-
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null as User | null,
@@ -45,16 +33,15 @@ export const useAuthStore = defineStore('auth', {
       const token = localStorage.getItem('auth_token')
       const userStr = localStorage.getItem('user')
       
-      console.log('📦 Token en localStorage:', token ? token.substring(0, 20) + '...' : 'null')
-      console.log('📦 User en localStorage:', userStr ? 'presente' : 'null')
-      
       if (token && userStr) {
         try {
           const user = JSON.parse(userStr)
           this.token = token
           this.user = user
           console.log('✅ Sesión restaurada para:', user.email)
-          console.log('🔑 Token:', token.substring(0, 30) + '...')
+          
+          // Verificar si el token sigue siendo válido
+          this.verifyToken()
         } catch (error) {
           console.error('❌ Error parsing user:', error)
           this.clearAuth()
@@ -64,13 +51,42 @@ export const useAuthStore = defineStore('auth', {
       }
     },
     
-    // Login REAL con el backend
+    // Verificar si el token sigue siendo válido
+    async verifyToken() {
+      if (!this.token) return false
+      
+      try {
+        const response = await fetch('http://demoback.senado.gob.bo/api/auth/validate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token: this.token })
+        })
+        
+        const data = await response.json()
+        
+        if (!data.valid) {
+          console.log('⚠️ Token inválido o expirado, cerrando sesión')
+          this.clearAuth()
+          if (typeof window !== 'undefined') {
+            window.location.href = '/auth/login'
+          }
+          return false
+        }
+        
+        return true
+      } catch (error) {
+        console.error('Error verificando token:', error)
+        return false
+      }
+    },
+    
+    // Login
     async login(email: string, password: string) {
       console.log('🔐 Iniciando login con:', email)
       
       try {
-        console.log('📡 Enviando petición a http://demoback.senado.gob.bo/api/auth/login')
-        
         const response = await fetch('http://demoback.senado.gob.bo/api/auth/login', {
           method: 'POST',
           headers: {
@@ -79,42 +95,29 @@ export const useAuthStore = defineStore('auth', {
           body: JSON.stringify({ email, password })
         })
 
-        console.log('📥 Status de respuesta:', response.status)
-        
         const data = await response.json()
-        console.log('📦 Datos recibidos:', data)
 
-        if (!response.ok) {
-          throw new Error(data.message || `Error ${response.status}`)
-        }
-
-        if (!data.success) {
+        if (!response.ok || !data.success) {
           throw new Error(data.message || 'Error de autenticación')
         }
 
-        // Extraer datos de la respuesta
         const { user, tokens } = data.data
         const token = tokens.accessToken
-        
-        console.log('✅ Login exitoso!')
-        console.log('👤 Usuario:', user.email)
-        console.log('🔑 Token recibido:', token.substring(0, 50) + '...')
         
         // Guardar en localStorage
         localStorage.setItem('auth_token', token)
         localStorage.setItem('user', JSON.stringify(user))
         
-        console.log('💾 Token guardado en localStorage')
-        
-        // Verificar que se guardó
-        const savedToken = localStorage.getItem('auth_token')
-        console.log('🔍 Verificación - Token guardado:', savedToken ? savedToken.substring(0, 30) + '...' : 'ERROR NO SE GUARDÓ')
-        
         // Actualizar estado
         this.token = token
         this.user = user
         
-        console.log('✅ Estado actualizado')
+        console.log('✅ Login exitoso!')
+        
+        // Redirigir a dashboard
+        if (typeof window !== 'undefined') {
+          window.location.href = '/dashboard'
+        }
         
         return { user, token }
         
@@ -149,12 +152,14 @@ export const useAuthStore = defineStore('auth', {
   },
   
   getters: {
-    // Verificar si está autenticado
     isAuthenticated(): boolean {
-      return !!this.token
+      const hasToken = !!this.token
+      const hasUser = !!this.user
+      const hasLocalStorage = typeof window !== 'undefined' && !!localStorage.getItem('auth_token')
+      
+      return hasToken && hasUser && hasLocalStorage
     },
     
-    // Iniciales para avatar
     avatarInitials(): string {
       if (!this.user?.profile) return this.user?.name?.charAt(0) || 'U'
       const { firstName, lastName } = this.user.profile

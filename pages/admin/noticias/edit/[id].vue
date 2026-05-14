@@ -31,6 +31,20 @@
         />
       </div>
 
+      <!-- Slug -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Slug
+        </label>
+        <input
+          v-model="form.slug"
+          type="text"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
+          disabled
+        />
+        <p class="text-xs text-gray-500 mt-1">El slug no se puede modificar después de crear la noticia</p>
+      </div>
+
       <!-- Extracto -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -51,7 +65,7 @@
         <TiptapEditor v-model="form.content" />
       </div>
 
-      <!-- Imagen destacada CON SUBIDA -->
+      <!-- Imagen destacada -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">
           Imagen destacada
@@ -143,6 +157,32 @@
         </div>
       </div>
 
+      <!-- Tags -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Tags (etiquetas)
+        </label>
+        <input
+          v-model="tagsInput"
+          type="text"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+          placeholder="economia, desarrollo, leyes (separados por comas)"
+        />
+        <div class="flex flex-wrap gap-2 mt-2">
+          <span v-for="tag in form.tags" :key="tag" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+            {{ tag }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Vista previa -->
+      <div v-if="form.content" class="border-t pt-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-3">Vista previa</h3>
+        <div class="bg-gray-50 p-4 rounded-lg max-h-96 overflow-y-auto">
+          <RichContent :content="form.content" />
+        </div>
+      </div>
+
       <!-- Botones -->
       <div class="flex justify-end space-x-3 pt-4 border-t">
         <NuxtLink to="/admin/noticias" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
@@ -162,10 +202,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '~/stores/auth'
 import { useNews } from '~/composables/useNews'
 import TiptapEditor from '~/components/admin/TiptapEditor.vue'
+import RichContent from '~/components/ui/RichContent.vue'
 
 definePageMeta({
   layout: 'default',
@@ -174,6 +216,7 @@ definePageMeta({
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 const { getNewsById, updateNews, uploadImage: uploadImageApi } = useNews()
 
 const loading = ref(true)
@@ -196,6 +239,22 @@ const form = reactive({
   featuredImage: { url: '', alt: '' }
 })
 
+const tagsInput = ref('')
+
+watch(tagsInput, (newVal) => {
+  form.tags = newVal.split(',').map(t => t.trim()).filter(t => t)
+})
+
+// Verificar autenticación al montar
+onMounted(() => {
+  if (!authStore.isAuthenticated) {
+    console.log('❌ No autenticado, redirigiendo a login')
+    router.push('/auth/login')
+    return
+  }
+  loadNews()
+})
+
 const loadNews = async () => {
   const id = route.params.id as string
   try {
@@ -208,6 +267,7 @@ const loadNews = async () => {
     form.tags = news.tags || []
     form.status = news.status
     form.featuredImage = news.featuredImage || { url: '', alt: '' }
+    tagsInput.value = form.tags.join(', ')
     
     if (form.featuredImage.url) {
       imagePreviewUrl.value = form.featuredImage.url
@@ -215,12 +275,20 @@ const loadNews = async () => {
     }
   } catch (err: any) {
     error.value = err.message
+    console.error('Error loading news:', err)
   } finally {
     loading.value = false
   }
 }
 
 const handleFileSelect = async (event: Event) => {
+  // Verificar autenticación antes de subir
+  if (!authStore.isAuthenticated) {
+    alert('Tu sesión expiró. Por favor, inicia sesión nuevamente.')
+    router.push('/auth/login')
+    return
+  }
+
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (!file) return
@@ -247,6 +315,7 @@ const handleFileSelect = async (event: Event) => {
     uploadProgress.value = '¡Imagen subida con éxito!'
     setTimeout(() => { uploadProgress.value = '' }, 3000)
   } catch (error: any) {
+    console.error('Error:', error)
     alert(error.message || 'Error al subir la imagen')
     uploadProgress.value = ''
   } finally {
@@ -269,19 +338,23 @@ const clearImage = () => {
 }
 
 const saveNews = async () => {
+  // Verificar autenticación antes de guardar
+  if (!authStore.isAuthenticated) {
+    alert('Tu sesión expiró. Por favor, inicia sesión nuevamente.')
+    router.push('/auth/login')
+    return
+  }
+
   const id = route.params.id as string
   saving.value = true
   try {
     await updateNews(id, form)
     router.push('/admin/noticias')
   } catch (err: any) {
+    console.error('Error saving news:', err)
     alert(err.message || 'Error al guardar')
   } finally {
     saving.value = false
   }
 }
-
-onMounted(() => {
-  loadNews()
-})
-</script>d
+</script>
