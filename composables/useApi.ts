@@ -10,11 +10,13 @@ export const useApi = () => {
     }
     
     const token = localStorage.getItem('auth_token')
+    console.log('🔑 [useApi.getHeaders] Token desde localStorage:', token ? `${token.substring(0, 30)}...` : 'NO HAY TOKEN')
+    
     if (token) {
       headers['Authorization'] = `Bearer ${token}`
-      console.log('🔵 [useApi] Token presente en headers')
+      console.log('🔑 [useApi.getHeaders] Header Authorization agregado')
     } else {
-      console.log('🔴 [useApi] NO hay token')
+      console.log('🔴 [useApi.getHeaders] NO hay token en localStorage')
     }
     
     return headers
@@ -41,30 +43,28 @@ export const useApi = () => {
     }
     
     const data = await response.json()
-    console.log('🔵 [useApi] Respuesta exitosa, data keys:', Object.keys(data))
+    console.log('🔵 [useApi] Respuesta exitosa')
     return data.data || data
   }
 
   return {
     get: async <T>(url: string): Promise<T> => {
       console.log(`🔵 [useApi] GET ${url}`)
+      const headers = getHeaders()
+      console.log('🔵 [useApi] Headers:', Object.keys(headers))
       const response = await fetch(url, {
         method: 'GET',
-        headers: getHeaders(),
+        headers,
       })
       return handleResponse<T>(response, url)
     },
 
     post: async <T>(url: string, body: any): Promise<T> => {
       console.log(`🔵 [useApi] POST ${url}`)
-      console.log('🔵 Body enviado:', { 
-        ...body, 
-        content: body.content ? `${body.content.substring(0, 100)}...` : 'vacio',
-        status: body.status
-      })
+      const headers = getHeaders()
       const response = await fetch(url, {
         method: 'POST',
-        headers: getHeaders(),
+        headers,
         body: JSON.stringify(body),
       })
       return handleResponse<T>(response, url)
@@ -72,10 +72,10 @@ export const useApi = () => {
 
     put: async <T>(url: string, body: any): Promise<T> => {
       console.log(`🔵 [useApi] PUT ${url}`)
-      console.log('🔵 Body enviado:', { ...body, status: body.status })
+      const headers = getHeaders()
       const response = await fetch(url, {
         method: 'PUT',
-        headers: getHeaders(),
+        headers,
         body: JSON.stringify(body),
       })
       return handleResponse<T>(response, url)
@@ -83,9 +83,10 @@ export const useApi = () => {
 
     del: async <T>(url: string): Promise<T> => {
       console.log(`🔵 [useApi] DELETE ${url}`)
+      const headers = getHeaders()
       const response = await fetch(url, {
         method: 'DELETE',
-        headers: getHeaders(),
+        headers,
       })
       return handleResponse<T>(response, url)
     },

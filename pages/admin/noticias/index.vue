@@ -18,14 +18,22 @@
 
     <!-- Filtros -->
     <div class="bg-gray-50 p-4 rounded-lg mb-6 flex flex-wrap gap-4">
-      <select v-model="filters.status" @change="onFilterChange" class="px-3 py-2 border rounded-lg text-sm">
+      <select 
+        v-model="filters.status" 
+        @change="onStatusChange"
+        class="px-3 py-2 border rounded-lg text-sm"
+      >
         <option value="all">Todos los estados</option>
         <option value="published">Publicadas</option>
         <option value="draft">Borradores</option>
         <option value="archived">Archivadas</option>
       </select>
       
-      <select v-model="filters.type" @change="onFilterChange" class="px-3 py-2 border rounded-lg text-sm">
+      <select 
+        v-model="filters.type" 
+        @change="onTypeChange"
+        class="px-3 py-2 border rounded-lg text-sm"
+      >
         <option value="all">Todos los tipos</option>
         <option value="news">Noticias</option>
         <option value="article">Artículos</option>
@@ -183,8 +191,16 @@ const filters = ref({
 
 let searchTimeout: NodeJS.Timeout
 
-const onFilterChange = () => {
-  console.log('🔽 [Filtro] Cambió:', { status: filters.value.status, type: filters.value.type })
+// 🔥 Función que se llama cuando cambia el filtro de estado
+const onStatusChange = () => {
+  console.log('🔽 [onStatusChange] Nuevo status:', filters.value.status)
+  page.value = 1
+  loadNews()
+}
+
+// 🔥 Función que se llama cuando cambia el filtro de tipo
+const onTypeChange = () => {
+  console.log('🔽 [onTypeChange] Nuevo type:', filters.value.type)
   page.value = 1
   loadNews()
 }
@@ -192,7 +208,7 @@ const onFilterChange = () => {
 const onSearchInput = () => {
   if (searchTimeout) clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
-    console.log('🔍 [Búsqueda] Ejecutando:', filters.value.search)
+    console.log('🔍 [onSearchInput] Buscando:', filters.value.search)
     page.value = 1
     loadNews()
   }, 500)
@@ -216,19 +232,22 @@ const loadNews = async () => {
       limit: 10
     }
     
+    // 🔥 Enviar status si no es 'all'
     if (filters.value.status !== 'all') {
       params.status = filters.value.status
-      console.log('🔵 ✅ Agregando status al params:', params.status)
+      console.log('🔵 ✅ Enviando status:', params.status)
+    } else {
+      console.log('🔵 ⏭️ No enviando status (es "all")')
     }
     
     if (filters.value.type !== 'all') {
       params.type = filters.value.type
-      console.log('🔵 ✅ Agregando type al params:', params.type)
+      console.log('🔵 ✅ Enviando type:', params.type)
     }
     
     if (filters.value.search) {
       params.search = filters.value.search
-      console.log('🔵 ✅ Agregando search al params:', params.search)
+      console.log('🔵 ✅ Enviando search:', params.search)
     }
     
     console.log('🔵 Params a enviar:', params)

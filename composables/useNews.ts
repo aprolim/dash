@@ -35,7 +35,8 @@ export const useNews = () => {
   const config = useRuntimeConfig()
   const baseUrl = config.public.apiUrl || 'http://demoback.senado.gob.bo/api'
 
-  // Obtener todas las noticias (admin)
+  // Obtener todas las noticias (ADMIN DASHBOARD)
+  // 🔥 AHORA USA /content/admin EN LUGAR DE /content
   const getNews = async (params?: {
     page?: number
     limit?: number
@@ -51,6 +52,7 @@ export const useNews = () => {
     if (params?.page) query.append('page', params.page.toString())
     if (params?.limit) query.append('limit', params.limit.toString())
     
+    // Enviar status si existe y no es 'all'
     if (params?.status && params.status !== 'all') {
       console.log('🔵 ✅ Enviando status:', params.status)
       query.append('status', params.status)
@@ -73,8 +75,9 @@ export const useNews = () => {
       query.append('search', params.search)
     }
     
-    const url = `${baseUrl}/content?${query.toString()}`
-    console.log('🔵 URL final:', url)
+    // 🔥 CAMBIO IMPORTANTE: Usar /content/admin para el dashboard
+    const url = `${baseUrl}/content/admin?${query.toString()}`
+    console.log('🔵 URL final (admin):', url)
     
     try {
       const result = await get<any>(url)
@@ -87,14 +90,14 @@ export const useNews = () => {
     }
   }
 
-  // Obtener una noticia por ID
+  // Obtener una noticia por ID (ADMIN)
   const getNewsById = async (id: string) => {
     console.log(`🔵 [useNews.getNewsById] Buscando ID: ${id}`)
     const result = await get<NewsItem>(`${baseUrl}/content/${id}`)
     return result
   }
 
-  // Crear noticia
+  // Crear noticia (ADMIN)
   const createNews = async (data: Partial<NewsItem>) => {
     console.log('\n🔵 [useNews.createNews] ========== INICIO ==========')
     console.log('🔵 Datos a enviar:', {
@@ -110,7 +113,7 @@ export const useNews = () => {
     return result
   }
 
-  // Actualizar noticia
+  // Actualizar noticia (ADMIN)
   const updateNews = async (id: string, data: Partial<NewsItem>) => {
     console.log(`🔵 [useNews.updateNews] Actualizando ID: ${id}`)
     console.log('🔵 Datos:', { title: data.title, status: data.status })
@@ -118,21 +121,21 @@ export const useNews = () => {
     return result
   }
 
-  // Eliminar noticia
+  // Eliminar noticia (ADMIN)
   const deleteNews = async (id: string) => {
     console.log(`🔵 [useNews.deleteNews] Eliminando ID: ${id}`)
     const result = await del(`${baseUrl}/content/${id}`)
     return result
   }
 
-  // Cambiar estado
+  // Cambiar estado (ADMIN)
   const changeStatus = async (id: string, status: string) => {
     console.log(`🔵 [useNews.changeStatus] Cambiando ${id} a ${status}`)
     const result = await put(`${baseUrl}/content/${id}/status`, { status })
     return result
   }
 
-  // Subir imagen
+  // Subir imagen (ADMIN)
   const uploadImage = async (file: File, alt?: string) => {
     console.log('📸 [uploadImage] Subiendo imagen:', file.name, file.type, file.size)
     const formData = new FormData()
