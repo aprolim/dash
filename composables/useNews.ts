@@ -44,94 +44,114 @@ export const useNews = () => {
     category?: string
     search?: string
   }) => {
+    console.log('\n🔵 [useNews.getNews] ========== INICIO ==========')
+    console.log('🔵 Parámetros recibidos:', params)
+    
     const query = new URLSearchParams()
     if (params?.page) query.append('page', params.page.toString())
     if (params?.limit) query.append('limit', params.limit.toString())
-    if (params?.status && params.status !== 'all') query.append('status', params.status)
-    if (params?.type && params.type !== 'all') query.append('type', params.type)
-    if (params?.category) query.append('category', params.category)
-    if (params?.search) query.append('search', params.search)
-
-    const result = await get<any>(`${baseUrl}/content?${query.toString()}`)
-    return result
+    
+    if (params?.status && params.status !== 'all') {
+      console.log('🔵 ✅ Enviando status:', params.status)
+      query.append('status', params.status)
+    } else {
+      console.log('🔵 ⚠️ NO enviando status (es "all" o undefined)')
+    }
+    
+    if (params?.type && params.type !== 'all') {
+      console.log('🔵 ✅ Enviando type:', params.type)
+      query.append('type', params.type)
+    }
+    
+    if (params?.category) {
+      console.log('🔵 ✅ Enviando category:', params.category)
+      query.append('category', params.category)
+    }
+    
+    if (params?.search) {
+      console.log('🔵 ✅ Enviando search:', params.search)
+      query.append('search', params.search)
+    }
+    
+    const url = `${baseUrl}/content?${query.toString()}`
+    console.log('🔵 URL final:', url)
+    
+    try {
+      const result = await get<any>(url)
+      console.log('🔵 Respuesta recibida - total:', result.total, 'pages:', result.pages)
+      console.log('🔵 [useNews.getNews] ========== FIN ==========\n')
+      return result
+    } catch (error) {
+      console.error('🔴 Error en getNews:', error)
+      throw error
+    }
   }
 
   // Obtener una noticia por ID
   const getNewsById = async (id: string) => {
+    console.log(`🔵 [useNews.getNewsById] Buscando ID: ${id}`)
     const result = await get<NewsItem>(`${baseUrl}/content/${id}`)
     return result
   }
 
   // Crear noticia
   const createNews = async (data: Partial<NewsItem>) => {
+    console.log('\n🔵 [useNews.createNews] ========== INICIO ==========')
+    console.log('🔵 Datos a enviar:', {
+      title: data.title,
+      status: data.status,
+      category: data.category,
+      contentLength: data.content?.length || 0
+    })
+    
     const result = await post<NewsItem>(`${baseUrl}/content`, data)
+    console.log('🔵 Respuesta del servidor:', { id: result._id, status: result.status, title: result.title })
+    console.log('🔵 [useNews.createNews] ========== FIN ==========\n')
     return result
   }
 
   // Actualizar noticia
   const updateNews = async (id: string, data: Partial<NewsItem>) => {
+    console.log(`🔵 [useNews.updateNews] Actualizando ID: ${id}`)
+    console.log('🔵 Datos:', { title: data.title, status: data.status })
     const result = await put<NewsItem>(`${baseUrl}/content/${id}`, data)
     return result
   }
 
   // Eliminar noticia
   const deleteNews = async (id: string) => {
+    console.log(`🔵 [useNews.deleteNews] Eliminando ID: ${id}`)
     const result = await del(`${baseUrl}/content/${id}`)
     return result
   }
 
   // Cambiar estado
   const changeStatus = async (id: string, status: string) => {
+    console.log(`🔵 [useNews.changeStatus] Cambiando ${id} a ${status}`)
     const result = await put(`${baseUrl}/content/${id}/status`, { status })
     return result
   }
 
-  // Subir imagen - VERSIÓN CORREGIDA
+  // Subir imagen
   const uploadImage = async (file: File, alt?: string) => {
-    console.log('📸 [uploadImage] Iniciando subida de:', file.name)
-    console.log('📸 Tipo:', file.type)
-    console.log('📸 Tamaño:', file.size, 'bytes')
-    
+    console.log('📸 [uploadImage] Subiendo imagen:', file.name, file.type, file.size)
     const formData = new FormData()
     formData.append('image', file)
     if (alt) formData.append('alt', alt)
-    
-    const token = localStorage.getItem('auth_token')
-    console.log('🔑 Token presente:', !!token)
-    console.log('🔑 Token (primeros 30 chars):', token?.substring(0, 30) + '...')
-    
-    const url = `${baseUrl}/content/upload/image`
-    console.log('📡 URL:', url)
-    
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-          // ⚠️ NO poner 'Content-Type' aquí - fetch lo pone automáticamente con FormData
-        },
-        body: formData
-      })
 
-      console.log('📡 Response status:', response.status)
-      
-      const result = await response.json()
-      console.log('📦 Response data:', result)
-      
-      if (!response.ok) {
-        throw new Error(result.message || `Error HTTP ${response.status}`)
-      }
-      
-      if (!result.success) {
-        throw new Error(result.message || 'Error al subir la imagen')
-      }
-      
-      console.log('✅ Imagen subida exitosamente:', result.data.url)
-      return result.data
-    } catch (error) {
-      console.error('❌ Error en uploadImage:', error)
-      throw error
-    }
+    const token = localStorage.getItem('auth_token')
+    const response = await fetch(`${baseUrl}/content/upload/image`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    })
+
+    const result = await response.json()
+    console.log('📸 [uploadImage] Respuesta:', result)
+    if (!result.success) throw new Error(result.message)
+    return result.data
   }
 
   // Obtener estadísticas

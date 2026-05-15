@@ -145,8 +145,8 @@
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
           <select v-model="form.status" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-            <option value="draft">Borrador</option>
             <option value="published">Publicar</option>
+            <option value="draft">Borrador</option>
           </select>
         </div>
       </div>
@@ -222,6 +222,7 @@ const fileInput = ref<HTMLInputElement>()
 const imagePreviewUrl = ref('')
 const imagePreviewLabel = ref('')
 
+// 🔥 ESTADO POR DEFECTO: 'published' (Publicar)
 const form = reactive({
   title: '',
   slug: '',
@@ -229,7 +230,7 @@ const form = reactive({
   content: '',
   category: 'noticias',
   tags: [] as string[],
-  status: 'draft' as 'draft' | 'published',
+  status: 'published' as 'draft' | 'published', // ✅ Cambiado de 'draft' a 'published'
   featuredImage: { url: '', alt: '' }
 })
 
@@ -249,7 +250,6 @@ onMounted(() => {
 
 // Manejar selección de archivo
 const handleFileSelect = async (event: Event) => {
-  // Verificar autenticación antes de subir
   if (!authStore.isAuthenticated) {
     alert('Tu sesión expiró. Por favor, inicia sesión nuevamente.')
     router.push('/auth/login')
@@ -305,8 +305,17 @@ const clearImage = () => {
 }
 
 const saveNews = async () => {
-  // Verificar autenticación antes de guardar
+  console.log('\n🔵 [create.vue] ========== GUARDANDO NOTICIA ==========')
+  console.log('🔵 Datos del formulario:', {
+    title: form.title,
+    status: form.status,
+    category: form.category,
+    contentLength: form.content.length,
+    hasImage: !!form.featuredImage.url
+  })
+  
   if (!authStore.isAuthenticated) {
+    console.log('🔴 [create.vue] No autenticado')
     alert('Tu sesión expiró. Por favor, inicia sesión nuevamente.')
     router.push('/auth/login')
     return
@@ -323,10 +332,12 @@ const saveNews = async () => {
 
   saving.value = true
   try {
-    await createNews(form)
+    console.log('🔵 [create.vue] Llamando a createNews...')
+    const result = await createNews(form)
+    console.log('🔵 [create.vue] Noticia creada:', { id: result._id, status: result.status, title: result.title })
     router.push('/admin/noticias')
   } catch (error: any) {
-    console.error('Error:', error)
+    console.error('🔴 [create.vue] Error:', error)
     alert(error.message || 'Error al crear la noticia')
   } finally {
     saving.value = false

@@ -18,14 +18,14 @@
 
     <!-- Filtros -->
     <div class="bg-gray-50 p-4 rounded-lg mb-6 flex flex-wrap gap-4">
-      <select v-model="filters.status" @change="loadNews" class="px-3 py-2 border rounded-lg text-sm">
+      <select v-model="filters.status" @change="onFilterChange" class="px-3 py-2 border rounded-lg text-sm">
         <option value="all">Todos los estados</option>
         <option value="published">Publicadas</option>
         <option value="draft">Borradores</option>
         <option value="archived">Archivadas</option>
       </select>
       
-      <select v-model="filters.type" @change="loadNews" class="px-3 py-2 border rounded-lg text-sm">
+      <select v-model="filters.type" @change="onFilterChange" class="px-3 py-2 border rounded-lg text-sm">
         <option value="all">Todos los tipos</option>
         <option value="news">Noticias</option>
         <option value="article">Artículos</option>
@@ -35,7 +35,7 @@
       <div class="flex-1">
         <input 
           v-model="filters.search" 
-          @input="debouncedSearch"
+          @input="onSearchInput"
           type="text" 
           placeholder="Buscar por título..." 
           class="w-full px-3 py-2 border rounded-lg text-sm"
@@ -45,6 +45,17 @@
       <button @click="resetFilters" class="px-3 py-2 text-gray-600 hover:text-gray-800">
         Limpiar
       </button>
+    </div>
+
+    <!-- Debug info -->
+    <div class="bg-gray-100 p-3 rounded-lg mb-4 text-xs font-mono">
+      <div><strong>🔍 Debug:</strong></div>
+      <div>Filtro estado: {{ filters.status }}</div>
+      <div>Filtro tipo: {{ filters.type }}</div>
+      <div>Búsqueda: "{{ filters.search }}"</div>
+      <div>Página actual: {{ page }} de {{ totalPages }}</div>
+      <div>Total noticias: {{ total }}</div>
+      <div>Noticias cargadas: {{ newsList.length }}</div>
     </div>
 
     <!-- Tabla de noticias -->
@@ -99,6 +110,11 @@
               </div>
             </td>
           </tr>
+          <tr v-if="newsList.length === 0 && !loading">
+            <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+              No hay noticias con los filtros seleccionados
+            </td>
+          </tr>
         </tbody>
       </table>
       
@@ -141,7 +157,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useNews, type NewsItem } from '~/composables/useNews'
 import Modal from '~/components/ui/Modal.vue'
 
@@ -167,15 +183,30 @@ const filters = ref({
 
 let searchTimeout: NodeJS.Timeout
 
-const debouncedSearch = () => {
+const onFilterChange = () => {
+  console.log('🔽 [Filtro] Cambió:', { status: filters.value.status, type: filters.value.type })
+  page.value = 1
+  loadNews()
+}
+
+const onSearchInput = () => {
   if (searchTimeout) clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
+    console.log('🔍 [Búsqueda] Ejecutando:', filters.value.search)
     page.value = 1
     loadNews()
   }, 500)
 }
 
 const loadNews = async () => {
+  console.log('\n🔵 [index.vue] ========== CARGANDO NOTICIAS ==========')
+  console.log('🔵 Filtros actuales:', {
+    status: filters.value.status,
+    type: filters.value.type,
+    search: filters.value.search
+  })
+  console.log('🔵 Página:', page.value)
+  
   loading.value = true
   error.value = null
   
@@ -185,23 +216,49 @@ const loadNews = async () => {
       limit: 10
     }
     
-    if (filters.value.status !== 'all') params.status = filters.value.status
-    if (filters.value.type !== 'all') params.type = filters.value.type
-    if (filters.value.search) params.search = filters.value.search
+    if (filters.value.status !== 'all') {
+      params.status = filters.value.status
+      console.log('🔵 ✅ Agregando status al params:', params.status)
+    }
+    
+    if (filters.value.type !== 'all') {
+      params.type = filters.value.type
+      console.log('🔵 ✅ Agregando type al params:', params.type)
+    }
+    
+    if (filters.value.search) {
+      params.search = filters.value.search
+      console.log('🔵 ✅ Agregando search al params:', params.search)
+    }
+    
+    console.log('🔵 Params a enviar:', params)
     
     const result = await getNews(params)
+    
+    console.log('🔵 Respuesta recibida:')
+    console.log('   - total:', result.total)
+    console.log('   - pages:', result.pages)
+    console.log('   - contents length:', result.contents?.length)
+    
     newsList.value = result.contents || []
     total.value = result.total || 0
     totalPages.value = result.pages || 1
+    
+    console.log('🔵 Estado actualizado:')
+    console.log('   - newsList length:', newsList.value.length)
+    console.log('   - total:', total.value)
+    console.log('   - totalPages:', totalPages.value)
+    console.log('🔵 [index.vue] ========== FIN ==========\n')
   } catch (err: any) {
     error.value = err.message
-    console.error('Error loading news:', err)
+    console.error('🔴 Error en loadNews:', err)
   } finally {
     loading.value = false
   }
 }
 
 const resetFilters = () => {
+  console.log('🔄 [Reset] Limpiando filtros')
   filters.value = { status: 'all', type: 'all', search: '' }
   page.value = 1
   loadNews()
@@ -223,11 +280,13 @@ const nextPage = () => {
 
 const toggleStatus = async (item: NewsItem) => {
   const newStatus = item.status === 'published' ? 'archived' : 'published'
+  console.log('🔄 [ToggleStatus]', item.title, 'de', item.status, 'a', newStatus)
   try {
     await changeStatus(item._id, newStatus)
     await loadNews()
   } catch (err) {
     console.error('Error toggling status:', err)
+    alert('Error al cambiar el estado')
   }
 }
 
@@ -251,6 +310,7 @@ const deleteNews = async () => {
     await loadNews()
   } catch (err) {
     console.error('Error deleting news:', err)
+    alert('Error al eliminar la noticia')
   } finally {
     deleting.value = false
     newsToDelete.value = null
@@ -275,10 +335,8 @@ const statusText = (status: string) => {
   return texts[status] || status
 }
 
-watch(() => filters.value.status, () => { page.value = 1; loadNews() })
-watch(() => filters.value.type, () => { page.value = 1; loadNews() })
-
 onMounted(() => {
+  console.log('🚀 [onMounted] Componente montado, cargando noticias...')
   loadNews()
 })
 </script>
