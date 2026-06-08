@@ -24,9 +24,19 @@
         class="px-3 py-2 border rounded-lg text-sm"
       >
         <option value="all">Todos los estados</option>
-        <option value="published">Publicadas</option>
-        <option value="draft">Borradores</option>
-        <option value="archived">Archivadas</option>
+        <option value="published">✅ Publicadas</option>
+        <option value="draft">📝 Borradores</option>
+        <option value="archived">📦 Archivadas</option>
+      </select>
+      
+      <select 
+        v-model="filters.category" 
+        @change="onCategoryChange"
+        class="px-3 py-2 border rounded-lg text-sm"
+      >
+        <option value="all">Todas las categorías</option>
+        <option value="noticia">📰 Noticia</option>
+        <option value="importante">⭐ Importante</option>
       </select>
       
       <select 
@@ -59,6 +69,7 @@
     <div class="bg-gray-100 p-3 rounded-lg mb-4 text-xs font-mono">
       <div><strong>🔍 Debug:</strong></div>
       <div>Filtro estado: {{ filters.status }}</div>
+      <div>Filtro categoría: {{ filters.category }}</div>
       <div>Filtro tipo: {{ filters.type }}</div>
       <div>Búsqueda: "{{ filters.search }}"</div>
       <div>Página actual: {{ page }} de {{ totalPages }}</div>
@@ -81,8 +92,8 @@
         <thead class="bg-gray-50">
           <tr>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Título</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visitas</th>
             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
@@ -95,11 +106,15 @@
               <div class="text-xs text-gray-500">{{ item.slug }}</div>
             </td>
             <td class="px-6 py-4">
+              <span :class="item.category === 'importante' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'" class="px-2 py-1 rounded-full text-xs font-medium">
+                {{ item.category === 'importante' ? '⭐ Importante' : '📰 Noticia' }}
+              </span>
+            </td>
+            <td class="px-6 py-4">
               <span :class="statusClass(item.status)" class="px-2 py-1 rounded-full text-xs font-medium">
                 {{ statusText(item.status) }}
               </span>
             </td>
-            <td class="px-6 py-4 text-sm text-gray-500">{{ item.category || '-' }}</td>
             <td class="px-6 py-4 text-sm text-gray-500">
               {{ item.publishedAt ? new Date(item.publishedAt).toLocaleDateString('es-ES') : '-' }}
             </td>
@@ -109,9 +124,9 @@
                 <NuxtLink :to="`/admin/noticias/edit/${item._id}`" class="text-primary-600 hover:text-primary-900">
                   Editar
                 </NuxtLink>
-                <button @click="toggleStatus(item)" class="text-yellow-600 hover:text-yellow-900">
+                <!-- <button @click="toggleStatus(item)" class="text-yellow-600 hover:text-yellow-900">
                   {{ item.status === 'published' ? 'Archivar' : 'Publicar' }}
-                </button>
+                </button> -->
                 <button @click="confirmDelete(item)" class="text-red-600 hover:text-red-900">
                   Eliminar
                 </button>
@@ -183,9 +198,11 @@ const page = ref(1)
 const totalPages = ref(1)
 const total = ref(0)
 
+// 🔥 CORREGIDO: Añadida la propiedad 'category'
 const filters = ref({
   status: 'all',
   type: 'all',
+  category: 'all',
   search: ''
 })
 
@@ -198,6 +215,13 @@ const onStatusChange = () => {
   loadNews()
 }
 
+// 🔥 Función que se llama cuando cambia el filtro de categoría
+const onCategoryChange = () => {
+  console.log('🔽 [onCategoryChange] Nueva categoría:', filters.value.category)
+  page.value = 1
+  loadNews()
+}
+
 // 🔥 Función que se llama cuando cambia el filtro de tipo
 const onTypeChange = () => {
   console.log('🔽 [onTypeChange] Nuevo type:', filters.value.type)
@@ -205,6 +229,7 @@ const onTypeChange = () => {
   loadNews()
 }
 
+// 🔥 Función para búsqueda con debounce
 const onSearchInput = () => {
   if (searchTimeout) clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
@@ -214,10 +239,19 @@ const onSearchInput = () => {
   }, 500)
 }
 
+// 🔥 Función para limpiar filtros
+const resetFilters = () => {
+  console.log('🔄 [Reset] Limpiando filtros')
+  filters.value = { status: 'all', type: 'all', category: 'all', search: '' }
+  page.value = 1
+  loadNews()
+}
+
 const loadNews = async () => {
   console.log('\n🔵 [index.vue] ========== CARGANDO NOTICIAS ==========')
   console.log('🔵 Filtros actuales:', {
     status: filters.value.status,
+    category: filters.value.category,
     type: filters.value.type,
     search: filters.value.search
   })
@@ -232,12 +266,14 @@ const loadNews = async () => {
       limit: 10
     }
     
-    // 🔥 Enviar status si no es 'all'
     if (filters.value.status !== 'all') {
       params.status = filters.value.status
       console.log('🔵 ✅ Enviando status:', params.status)
-    } else {
-      console.log('🔵 ⏭️ No enviando status (es "all")')
+    }
+    
+    if (filters.value.category !== 'all') {
+      params.category = filters.value.category
+      console.log('🔵 ✅ Enviando category:', params.category)
     }
     
     if (filters.value.type !== 'all') {
@@ -274,13 +310,6 @@ const loadNews = async () => {
   } finally {
     loading.value = false
   }
-}
-
-const resetFilters = () => {
-  console.log('🔄 [Reset] Limpiando filtros')
-  filters.value = { status: 'all', type: 'all', search: '' }
-  page.value = 1
-  loadNews()
 }
 
 const prevPage = () => {

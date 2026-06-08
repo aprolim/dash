@@ -1,9 +1,7 @@
-<!-- components/admin/TiptapEditor.vue -->
 <template>
   <div class="tiptap-editor">
     <!-- Barra de herramientas -->
     <div class="toolbar mb-4 p-2 bg-gray-50 rounded-lg border border-gray-200 flex flex-wrap gap-1 sticky top-0 z-10">
-      <!-- Texto -->
       <button
         type="button"
         @click="editor?.chain().focus().toggleBold().run()"
@@ -36,7 +34,6 @@
       
       <div class="w-px h-6 bg-gray-300 mx-1"></div>
       
-      <!-- Títulos -->
       <button
         type="button"
         @click="editor?.chain().focus().toggleHeading({ level: 1 }).run()"
@@ -66,15 +63,14 @@
       
       <div class="w-px h-6 bg-gray-300 mx-1"></div>
       
-      <!-- Listas -->
       <button
         type="button"
         @click="editor?.chain().focus().toggleBulletList().run()"
         :class="{ 'bg-gray-200': editor?.isActive('bulletList') }"
         class="p-2 rounded hover:bg-gray-200 transition"
-        title="Lista desordenada"
+        title="Lista con viñetas"
       >
-        • Lista
+        <span class="text-lg">•</span> Lista
       </button>
       
       <button
@@ -82,58 +78,38 @@
         @click="editor?.chain().focus().toggleOrderedList().run()"
         :class="{ 'bg-gray-200': editor?.isActive('orderedList') }"
         class="p-2 rounded hover:bg-gray-200 transition"
-        title="Lista ordenada"
+        title="Lista numerada"
       >
-        1. Lista
+        <span class="text-sm">1.</span> Lista
       </button>
       
       <div class="w-px h-6 bg-gray-300 mx-1"></div>
       
-      <!-- Cita y línea -->
       <button
         type="button"
-        @click="editor?.chain().focus().toggleBlockquote().run()"
-        :class="{ 'bg-gray-200': editor?.isActive('blockquote') }"
+        @click="abrirModalCita"
         class="p-2 rounded hover:bg-gray-200 transition"
-        title="Cita"
+        title="Insertar cita"
       >
-        ""
-      </button>
-      
-      <button
-        type="button"
-        @click="editor?.chain().focus().setHorizontalRule().run()"
-        class="p-2 rounded hover:bg-gray-200 transition"
-        title="Línea horizontal"
-      >
-        ―
+        <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+        Cita
       </button>
       
       <div class="w-px h-6 bg-gray-300 mx-1"></div>
       
-      <!-- Imagen y enlace -->
       <button
         type="button"
-        @click="addImage"
+        @click="showVideoModal = true"
         class="p-2 rounded hover:bg-gray-200 transition"
-        title="Insertar imagen"
+        title="Insertar video (YouTube)"
       >
-        🖼️
-      </button>
-      
-      <button
-        type="button"
-        @click="setLink"
-        :class="{ 'bg-gray-200': editor?.isActive('link') }"
-        class="p-2 rounded hover:bg-gray-200 transition"
-        title="Insertar enlace"
-      >
-        🔗
+        📹 Video
       </button>
       
       <div class="w-px h-6 bg-gray-300 mx-1"></div>
       
-      <!-- Deshacer/Rehacer -->
       <button
         type="button"
         @click="editor?.chain().focus().undo().run()"
@@ -154,7 +130,6 @@
       
       <div class="flex-1"></div>
       
-      <!-- Limpiar formato -->
       <button
         type="button"
         @click="editor?.chain().focus().clearNodes().unsetAllMarks().run()"
@@ -165,25 +140,128 @@
       </button>
     </div>
     
-    <!-- Área de edición -->
     <EditorContent :editor="editor" class="min-h-[400px]" />
     
-    <!-- Vista previa (opcional) -->
-    <div v-if="showPreview" class="mt-4 border-t pt-4">
-      <div class="flex justify-between items-center mb-2">
-        <h4 class="text-sm font-medium text-gray-700">Vista previa</h4>
-        <button @click="showPreview = false" class="text-xs text-gray-500 hover:text-gray-700">Ocultar</button>
+    <!-- Modal para insertar cita -->
+    <Teleport to="body">
+      <div v-if="showCitaModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="showCitaModal = false">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+          <div class="px-6 py-4 border-b">
+            <h3 class="text-lg font-semibold text-gray-900">Insertar Cita</h3>
+          </div>
+          
+          <div class="p-6 space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Autor</label>
+              <input 
+                v-model="citaForm.autor" 
+                type="text" 
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder="Ej: Leonilda Zurita Vargas"
+              />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Cargo / Rol</label>
+              <input 
+                v-model="citaForm.cargo" 
+                type="text" 
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder="Ej: Senadora por Potosí"
+              />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Texto de la cita</label>
+              <textarea 
+                v-model="citaForm.texto" 
+                rows="4" 
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none"
+                placeholder="Escribe el texto de la cita aquí..."
+              ></textarea>
+            </div>
+          </div>
+          
+          <div class="px-6 py-4 border-t flex justify-end gap-3">
+            <button 
+              @click="showCitaModal = false" 
+              class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+            <button 
+              @click="guardarCita" 
+              class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+            >
+              Insertar Cita
+            </button>
+          </div>
+        </div>
       </div>
-      <div class="p-4 bg-gray-50 rounded-lg prose prose-sm max-w-none" v-html="editor?.getHTML()"></div>
-    </div>
-    
-    <button 
-      v-if="!showPreview"
-      @click="showPreview = true" 
-      class="mt-2 text-sm text-primary-600 hover:text-primary-700"
-    >
-      Ver vista previa
-    </button>
+    </Teleport>
+
+    <!-- Modal para insertar video -->
+    <Teleport to="body">
+      <div v-if="showVideoModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="showVideoModal = false">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+          <div class="px-6 py-4 border-b">
+            <h3 class="text-lg font-semibold text-gray-900">Insertar Video</h3>
+          </div>
+          
+          <div class="p-6 space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                URL del Video <span class="text-red-500">*</span>
+              </label>
+              <input 
+                v-model="videoForm.url" 
+                type="text" 
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder="https://www.youtube.com/watch?v=..."
+              />
+              <p class="text-xs text-gray-500 mt-1">Soporta YouTube</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Título (opcional)
+              </label>
+              <input 
+                v-model="videoForm.title" 
+                type="text" 
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder="Título del video"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Descripción (opcional)
+              </label>
+              <textarea 
+                v-model="videoForm.caption" 
+                rows="2" 
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none"
+                placeholder="Descripción del video..."
+              ></textarea>
+            </div>
+          </div>
+          
+          <div class="px-6 py-4 border-t flex justify-end gap-3">
+            <button 
+              @click="showVideoModal = false" 
+              class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+            <button 
+              @click="guardarVideo" 
+              class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+            >
+              Insertar Video
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -204,127 +282,90 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
 }>()
 
-const showPreview = ref(false)
+// Estado para modales
+const showCitaModal = ref(false)
+const editandoCita = ref(false)
+const citaSeleccionada = ref<any>(null)
+const showVideoModal = ref(false)
+
+const citaForm = ref({ autor: '', cargo: '', texto: '' })
+const videoForm = ref({ url: '', title: '', caption: '' })
+
+const abrirModalCita = () => {
+  editandoCita.value = false
+  citaSeleccionada.value = null
+  citaForm.value = { autor: '', cargo: '', texto: '' }
+  showCitaModal.value = true
+}
+
+// 🔥 Guardar cita en línea nueva
+const guardarCita = () => {
+  if (!citaForm.value.texto.trim()) {
+    alert('El texto de la cita es requerido')
+    return
+  }
+  
+  const autor = citaForm.value.autor || 'Senado de Bolivia'
+  const cargo = citaForm.value.cargo || 'Cámara de Senadores'
+  const texto = citaForm.value.texto
+  
+  // Crear marcador con saltos de línea
+  const marker = `\n\n[[CITA:${autor}|${cargo}|${texto}]]\n\n`
+  
+  editor.value?.chain().focus().insertContent(marker).run()
+  
+  citaForm.value = { autor: '', cargo: '', texto: '' }
+  showCitaModal.value = false
+}
+
+// 🔥 Guardar video en línea nueva
+const guardarVideo = () => {
+  if (!videoForm.value.url.trim()) {
+    alert('La URL del video es requerida')
+    return
+  }
+  
+  // Crear marcador con saltos de línea
+  const marker = `\n\n[[VIDEO:${videoForm.value.url}|${videoForm.value.title || 'Video'}|${videoForm.value.caption || ''}]]\n\n`
+  
+  editor.value?.chain().focus().insertContent(marker).run()
+  
+  videoForm.value = { url: '', title: '', caption: '' }
+  showVideoModal.value = false
+}
 
 const editor = useEditor({
   content: props.modelValue,
   extensions: [
-    StarterKit.configure({
-      heading: {
-        levels: [1, 2, 3]
-      }
-    }),
-    Image.configure({
-      inline: true,
-      allowBase64: true,
-    }),
-    Link.configure({
-      openOnClick: false,
-      HTMLAttributes: {
-        target: '_blank',
-        rel: 'noopener noreferrer',
-      },
-    }),
+    StarterKit.configure({ heading: { levels: [1, 2, 3] }, bulletList: {}, orderedList: {} }),
+    Image.configure({ inline: true, allowBase64: true }),
+    Link.configure({ openOnClick: false, HTMLAttributes: { target: '_blank' } }),
     Underline,
-    Placeholder.configure({
-      placeholder: props.placeholder || 'Escribe el contenido de la noticia aquí...',
-    }),
+    Placeholder.configure({ placeholder: props.placeholder || 'Escribe el contenido aquí...' })
   ],
   onUpdate: ({ editor }) => {
     emit('update:modelValue', editor.getHTML())
   },
+  onCreate: () => console.log('✅ Editor creado')
 })
 
-// Insertar imagen
-const addImage = () => {
-  const url = window.prompt('URL de la imagen:')
-  if (url && editor.value) {
-    editor.value.chain().focus().setImage({ src: url }).run()
-  }
-}
-
-// Insertar enlace
-const setLink = () => {
-  const previousUrl = editor.value?.getAttributes('link').href
-  const url = window.prompt('URL del enlace:', previousUrl)
-  
-  if (url === null) return
-  
-  if (url === '') {
-    editor.value?.chain().focus().extendMarkRange('link').unsetLink().run()
-    return
-  }
-  
-  editor.value?.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
-}
-
-// Actualizar contenido cuando cambia externamente
-watch(() => props.modelValue, (newValue) => {
-  const isSame = editor.value?.getHTML() === newValue
-  if (!isSame && editor.value) {
-    editor.value.commands.setContent(newValue)
-  }
-})
-
-onUnmounted(() => {
-  editor.value?.destroy()
-})
+onUnmounted(() => editor.value?.destroy())
 </script>
 
 <style scoped>
 .tiptap-editor :deep(.ProseMirror) {
   @apply p-4 border border-gray-300 rounded-lg min-h-[400px] focus:outline-none focus:ring-2 focus:ring-primary-500;
 }
-
 .tiptap-editor :deep(.ProseMirror p.is-editor-empty:first-child::before) {
   content: attr(data-placeholder);
   @apply text-gray-400 float-left h-0 pointer-events-none;
 }
-
-/* Estilos para el contenido */
-.tiptap-editor :deep(.ProseMirror h1) {
-  @apply text-3xl font-bold mt-6 mb-4;
-}
-
-.tiptap-editor :deep(.ProseMirror h2) {
-  @apply text-2xl font-bold mt-5 mb-3;
-}
-
-.tiptap-editor :deep(.ProseMirror h3) {
-  @apply text-xl font-semibold mt-4 mb-2;
-}
-
-.tiptap-editor :deep(.ProseMirror ul) {
-  @apply list-disc pl-5 my-3;
-}
-
-.tiptap-editor :deep(.ProseMirror ol) {
-  @apply list-decimal pl-5 my-3;
-}
-
-.tiptap-editor :deep(.ProseMirror blockquote) {
-  @apply border-l-4 border-gray-300 pl-4 my-3 text-gray-600 italic;
-}
-
-.tiptap-editor :deep(.ProseMirror a) {
-  @apply text-primary-600 underline;
-}
-
-.tiptap-editor :deep(.ProseMirror img) {
-  @apply max-w-full h-auto rounded-lg my-2;
-}
-
-.tiptap-editor :deep(.ProseMirror hr) {
-  @apply my-4 border-gray-300;
-}
-
-/* Toolbar responsive */
-@media (max-width: 768px) {
-  .toolbar {
-    @apply gap-0.5;
-  }
-  .toolbar button {
-    @apply p-1.5 text-sm;
-  }
-}
+.tiptap-editor :deep(.ProseMirror h1) { @apply text-3xl font-bold mt-6 mb-4; }
+.tiptap-editor :deep(.ProseMirror h2) { @apply text-2xl font-bold mt-5 mb-3; }
+.tiptap-editor :deep(.ProseMirror h3) { @apply text-xl font-semibold mt-4 mb-2; }
+.tiptap-editor :deep(.ProseMirror ul) { @apply list-disc pl-5 my-3; }
+.tiptap-editor :deep(.ProseMirror ol) { @apply list-decimal pl-5 my-3; }
+.tiptap-editor :deep(.ProseMirror li) { @apply mb-1; }
+.tiptap-editor :deep(.ProseMirror a) { @apply text-primary-600 underline; }
+.tiptap-editor :deep(.ProseMirror img) { @apply max-w-full h-auto rounded-lg my-2; }
 </style>
