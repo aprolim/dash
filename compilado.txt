@@ -360,7 +360,6 @@ onMounted(async () => {
 components\admin\TiptapEditor.vue 
 ================================= 
  
-<!-- components/admin/TiptapEditor.vue - COMPLETO CON LOGS -->
 <template>
   <div class="tiptap-editor">
     <!-- Barra de herramientas -->
@@ -464,7 +463,7 @@ components\admin\TiptapEditor.vue
       
       <button
         type="button"
-        @click="insertarVideo"
+        @click="showVideoModal = true"
         class="p-2 rounded hover:bg-gray-200 transition"
         title="Insertar video (YouTube)"
       >
@@ -505,12 +504,12 @@ components\admin\TiptapEditor.vue
     
     <EditorContent :editor="editor" class="min-h-[400px]" />
     
-    <!-- Modal para insertar/editar cita -->
+    <!-- Modal para insertar cita -->
     <Teleport to="body">
       <div v-if="showCitaModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="showCitaModal = false">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
           <div class="px-6 py-4 border-b">
-            <h3 class="text-lg font-semibold text-gray-900">{{ editandoCita ? 'Editar Cita' : 'Insertar Cita' }}</h3>
+            <h3 class="text-lg font-semibold text-gray-900">Insertar Cita</h3>
           </div>
           
           <div class="p-6 space-y-4">
@@ -556,7 +555,70 @@ components\admin\TiptapEditor.vue
               @click="guardarCita" 
               class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
             >
-              {{ editandoCita ? 'Actualizar Cita' : 'Insertar Cita' }}
+              Insertar Cita
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Modal para insertar video -->
+    <Teleport to="body">
+      <div v-if="showVideoModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="showVideoModal = false">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+          <div class="px-6 py-4 border-b">
+            <h3 class="text-lg font-semibold text-gray-900">Insertar Video</h3>
+          </div>
+          
+          <div class="p-6 space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                URL del Video <span class="text-red-500">*</span>
+              </label>
+              <input 
+                v-model="videoForm.url" 
+                type="text" 
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder="https://www.youtube.com/watch?v=..."
+              />
+              <p class="text-xs text-gray-500 mt-1">Soporta YouTube</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Título (opcional)
+              </label>
+              <input 
+                v-model="videoForm.title" 
+                type="text" 
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder="Título del video"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Descripción (opcional)
+              </label>
+              <textarea 
+                v-model="videoForm.caption" 
+                rows="2" 
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none"
+                placeholder="Descripción del video..."
+              ></textarea>
+            </div>
+          </div>
+          
+          <div class="px-6 py-4 border-t flex justify-end gap-3">
+            <button 
+              @click="showVideoModal = false" 
+              class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+            <button 
+              @click="guardarVideo" 
+              class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+            >
+              Insertar Video
             </button>
           </div>
         </div>
@@ -572,87 +634,6 @@ import Image from '@tiptap/extension-image'
 import Link from '@tiptap/extension-link'
 import Underline from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
-import { Node } from '@tiptap/core'
-
-// ============================================
-// EXTENSIÓN PARA VIDEO
-// ============================================
-const VideoBlock = Node.create({
-  name: 'video',
-  
-  group: 'block',
-  
-  atom: true,
-  
-  addAttributes() {
-    return {
-      url: {
-        default: null,
-      },
-      title: {
-        default: '',
-      },
-      caption: {
-        default: '',
-      },
-    }
-  },
-  
-  parseHTML() {
-    console.log('🔍 [VideoBlock] parseHTML llamado')
-    return [
-      {
-        tag: 'div[data-type="video"]',
-      },
-    ]
-  },
-  
-  renderHTML({ HTMLAttributes }) {
-    console.log('🎨 [VideoBlock] renderHTML con attrs:', { url: HTMLAttributes.url, title: HTMLAttributes.title, caption: HTMLAttributes.caption })
-    
-    const children = [
-      ['iframe', {
-        src: HTMLAttributes.url,
-        title: HTMLAttributes.title,
-        width: '100%',
-        height: '400',
-        frameborder: '0',
-        allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',
-        allowfullscreen: 'true'
-      }]
-    ]
-    
-    if (HTMLAttributes.caption) {
-      children.push(['p', { class: 'video-caption' }, HTMLAttributes.caption])
-    }
-    
-    console.log('🎨 [VideoBlock] children:', children.length)
-    
-    return ['div', { 'data-type': 'video', class: 'video-wrapper' }, children]
-  },
-})
-
-// ============================================
-// EXTENSIÓN PARA BLOCKQUOTE
-// ============================================
-const CustomBlockquote = Node.create({
-  name: 'blockquote',
-  group: 'block',
-  content: 'block+',
-  defining: true,
-  addAttributes() {
-    return {
-      'data-author': { default: null },
-      'data-role': { default: null },
-    }
-  },
-  parseHTML() {
-    return [{ tag: 'blockquote' }]
-  },
-  renderHTML({ HTMLAttributes }) {
-    return ['blockquote', HTMLAttributes, 0]
-  },
-})
 
 const props = defineProps<{
   modelValue: string
@@ -663,27 +644,24 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
 }>()
 
+// Estado para modales
 const showCitaModal = ref(false)
 const editandoCita = ref(false)
 const citaSeleccionada = ref<any>(null)
+const showVideoModal = ref(false)
 
-const citaForm = ref({
-  autor: '',
-  cargo: '',
-  texto: ''
-})
+const citaForm = ref({ autor: '', cargo: '', texto: '' })
+const videoForm = ref({ url: '', title: '', caption: '' })
 
 const abrirModalCita = () => {
   editandoCita.value = false
   citaSeleccionada.value = null
   citaForm.value = { autor: '', cargo: '', texto: '' }
   showCitaModal.value = true
-  console.log('📝 [TiptapEditor] Modal cita abierto')
 }
 
+// 🔥 Guardar cita en línea nueva
 const guardarCita = () => {
-  console.log('📝 [TiptapEditor] Guardando cita:', citaForm.value)
-  
   if (!citaForm.value.texto.trim()) {
     alert('El texto de la cita es requerido')
     return
@@ -693,220 +671,65 @@ const guardarCita = () => {
   const cargo = citaForm.value.cargo || 'Cámara de Senadores'
   const texto = citaForm.value.texto
   
-  if (editandoCita.value && citaSeleccionada.value) {
-    editor.value?.commands.deleteRange({ from: citaSeleccionada.value.from, to: citaSeleccionada.value.to })
-  }
+  // Crear marcador con saltos de línea
+  const marker = `\n\n[[CITA:${autor}|${cargo}|${texto}]]\n\n`
   
-  editor.value?.commands.insertContent({
-    type: 'blockquote',
-    attrs: { 'data-author': autor, 'data-role': cargo },
-    content: [
-      { type: 'paragraph', content: [{ type: 'text', text: texto }] },
-      { type: 'paragraph', content: [{ type: 'text', text: `— ${autor}, ${cargo}` }] }
-    ]
-  })
+  editor.value?.chain().focus().insertContent(marker).run()
   
+  citaForm.value = { autor: '', cargo: '', texto: '' }
   showCitaModal.value = false
-  console.log('✅ [TiptapEditor] Cita insertada')
 }
 
-// Insertar video
-const insertarVideo = () => {
-  console.log('\n🔴🔴🔴 [insertarVideo] INICIANDO 🔴🔴🔴')
-  
-  const url = window.prompt('URL del video (YouTube):', 'https://www.youtube.com/watch?v=')
-  if (!url || !editor.value) {
-    console.log('❌ [insertarVideo] URL no proporcionada o editor no disponible')
+// 🔥 Guardar video en línea nueva
+const guardarVideo = () => {
+  if (!videoForm.value.url.trim()) {
+    alert('La URL del video es requerida')
     return
   }
   
-  console.log('📹 URL original:', url)
+  // Crear marcador con saltos de línea
+  const marker = `\n\n[[VIDEO:${videoForm.value.url}|${videoForm.value.title || 'Video'}|${videoForm.value.caption || ''}]]\n\n`
   
-  // Convertir URL de YouTube a formato embed
-  let embedUrl = url
-  if (url.includes('youtube.com/watch?v=')) {
-    const videoId = url.split('v=')[1]?.split('&')[0]
-    embedUrl = `https://www.youtube.com/embed/${videoId}`
-    console.log('📹 Convertido YouTube normal:', embedUrl)
-  } else if (url.includes('youtu.be/')) {
-    const videoId = url.split('youtu.be/')[1]?.split('?')[0]
-    embedUrl = `https://www.youtube.com/embed/${videoId}`
-    console.log('📹 Convertido youtu.be:', embedUrl)
-  } else if (url.includes('/embed/')) {
-    embedUrl = url
-    console.log('📹 Ya es embed:', embedUrl)
-  }
+  editor.value?.chain().focus().insertContent(marker).run()
   
-  const titulo = window.prompt('Título del video (opcional):', 'Video institucional')
-  const caption = window.prompt('Descripción / pie de video (opcional):', '')
-  
-  const videoContent = {
-    type: 'video',
-    attrs: {
-      url: embedUrl,
-      title: titulo || 'Video de YouTube',
-      caption: caption || ''
-    }
-  }
-  
-  console.log('📹 Insertando contenido:', videoContent)
-  
-  editor.value.chain().focus().insertContent(videoContent).run()
-  
-  console.log('✅ [insertarVideo] Video insertado')
-  console.log('🔴🔴🔴 [insertarVideo] FIN 🔴🔴🔴\n')
+  videoForm.value = { url: '', title: '', caption: '' }
+  showVideoModal.value = false
 }
-
-// Log del contenido del editor
-watch(() => props.modelValue, (newValue, oldValue) => {
-  if (newValue !== oldValue) {
-    console.log('📝 [TiptapEditor] modelValue actualizado, length:', newValue?.length)
-    if (newValue && newValue.includes('data-type="video"')) {
-      console.log('📹 [TiptapEditor] ✅ Se detectó un video en el HTML!')
-    }
-  }
-}, { immediate: true })
 
 const editor = useEditor({
   content: props.modelValue,
   extensions: [
-    StarterKit.configure({
-      heading: { levels: [1, 2, 3] },
-      bulletList: {},
-      orderedList: {},
-      blockquote: false,
-    }),
-    CustomBlockquote,
+    StarterKit.configure({ heading: { levels: [1, 2, 3] }, bulletList: {}, orderedList: {} }),
     Image.configure({ inline: true, allowBase64: true }),
     Link.configure({ openOnClick: false, HTMLAttributes: { target: '_blank' } }),
     Underline,
-    VideoBlock,
     Placeholder.configure({ placeholder: props.placeholder || 'Escribe el contenido aquí...' })
   ],
   onUpdate: ({ editor }) => {
-    const html = editor.getHTML()
-    console.log('🔄 [TiptapEditor] onUpdate, HTML length:', html.length)
-    if (html.includes('data-type="video"')) {
-      console.log('📹 [TiptapEditor] ✅ El HTML contiene un video!')
-    }
-    emit('update:modelValue', html)
+    emit('update:modelValue', editor.getHTML())
   },
-  onCreate: ({ editor }) => {
-    console.log('✅ [TiptapEditor] Editor creado')
-    console.log('📄 Contenido inicial:', editor.getHTML()?.substring(0, 200))
-    if (typeof window !== 'undefined') {
-      (window as any).editarCitaEnEditor = (from, to, attrs, content) => {
-        console.log('✏️ Editando cita existente')
-        editandoCita.value = true
-        citaSeleccionada.value = { from, to }
-        const autor = attrs['data-author'] || 'Senado de Bolivia'
-        const cargo = attrs['data-role'] || 'Cámara de Senadores'
-        let texto = ''
-        if (content && content[0] && content[0].content) {
-          texto = content[0].content.map((t: any) => t.text).join('')
-        }
-        citaForm.value = { autor, cargo, texto }
-        showCitaModal.value = true
-      }
-    }
-  }
+  onCreate: () => console.log('✅ Editor creado')
 })
 
-onUnmounted(() => {
-  if (typeof window !== 'undefined') {
-    delete (window as any).editarCitaEnEditor
-  }
-  editor.value?.destroy()
-})
+onUnmounted(() => editor.value?.destroy())
 </script>
 
 <style scoped>
 .tiptap-editor :deep(.ProseMirror) {
   @apply p-4 border border-gray-300 rounded-lg min-h-[400px] focus:outline-none focus:ring-2 focus:ring-primary-500;
 }
-
 .tiptap-editor :deep(.ProseMirror p.is-editor-empty:first-child::before) {
   content: attr(data-placeholder);
   @apply text-gray-400 float-left h-0 pointer-events-none;
 }
-
-.tiptap-editor :deep(.ProseMirror h1) {
-  @apply text-3xl font-bold mt-6 mb-4;
-}
-
-.tiptap-editor :deep(.ProseMirror h2) {
-  @apply text-2xl font-bold mt-5 mb-3;
-}
-
-.tiptap-editor :deep(.ProseMirror h3) {
-  @apply text-xl font-semibold mt-4 mb-2;
-}
-
-.tiptap-editor :deep(.ProseMirror ul) {
-  @apply list-disc pl-5 my-3;
-}
-
-.tiptap-editor :deep(.ProseMirror ol) {
-  @apply list-decimal pl-5 my-3;
-}
-
-.tiptap-editor :deep(.ProseMirror li) {
-  @apply mb-1;
-}
-
-.tiptap-editor :deep(.ProseMirror blockquote) {
-  @apply border-l-4 border-gray-300 pl-4 my-3 text-gray-600 italic;
-  position: relative;
-}
-
-.tiptap-editor :deep(.ProseMirror blockquote:hover) {
-  @apply border-primary-500 bg-primary-50;
-}
-
-.tiptap-editor :deep(.ProseMirror blockquote p:last-child) {
-  @apply text-gray-500 text-sm mt-2 not-italic;
-}
-
-.tiptap-editor :deep(.ProseMirror a) {
-  @apply text-primary-600 underline;
-}
-
-.tiptap-editor :deep(.ProseMirror img) {
-  @apply max-w-full h-auto rounded-lg my-2;
-}
-
-.tiptap-editor :deep(.ProseMirror .video-wrapper) {
-  @apply my-4;
-}
-
-.tiptap-editor :deep(.ProseMirror iframe) {
-  @apply w-full rounded-lg shadow-md;
-  aspect-ratio: 16 / 9;
-}
-
-.tiptap-editor :deep(.ProseMirror .video-caption) {
-  @apply text-sm text-gray-500 text-center mt-2;
-}
-
-.quote-edit-btn {
-  position: absolute;
-  right: 10px;
-  top: 10px;
-  background: #e03735;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 12px;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.2s;
-  z-index: 10;
-}
-
-.tiptap-editor :deep(.ProseMirror blockquote:hover .quote-edit-btn) {
-  opacity: 1;
-}
+.tiptap-editor :deep(.ProseMirror h1) { @apply text-3xl font-bold mt-6 mb-4; }
+.tiptap-editor :deep(.ProseMirror h2) { @apply text-2xl font-bold mt-5 mb-3; }
+.tiptap-editor :deep(.ProseMirror h3) { @apply text-xl font-semibold mt-4 mb-2; }
+.tiptap-editor :deep(.ProseMirror ul) { @apply list-disc pl-5 my-3; }
+.tiptap-editor :deep(.ProseMirror ol) { @apply list-decimal pl-5 my-3; }
+.tiptap-editor :deep(.ProseMirror li) { @apply mb-1; }
+.tiptap-editor :deep(.ProseMirror a) { @apply text-primary-600 underline; }
+.tiptap-editor :deep(.ProseMirror img) { @apply max-w-full h-auto rounded-lg my-2; }
 </style> 
 ================================= 
 components\tabs\CategoriesList.vue 
@@ -1282,7 +1105,197 @@ onMounted(async () => {
 components\tabs\LinkForm.vue 
 ================================= 
  
- 
+<!-- components/tabs/LinkForm.vue -->
+<template>
+  <form @submit.prevent="handleSubmit" class="space-y-5">
+    <!-- ID del Link -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        ID del Link <span class="text-red-500">*</span>
+      </label>
+      <input
+        v-model="form.linkId"
+        type="text"
+        required
+        :disabled="!!link"
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg disabled:bg-gray-100"
+        placeholder="ej: leyes-tratamiento"
+      />
+    </div>
+
+    <!-- Título -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Título <span class="text-red-500">*</span>
+      </label>
+      <input
+        v-model="form.titulo"
+        type="text"
+        required
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg"
+        placeholder="Ej: Proyectos de Ley en Tratamiento"
+      />
+    </div>
+
+    <!-- Descripción -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Descripción <span class="text-red-500">*</span>
+      </label>
+      <textarea
+        v-model="form.descripcion"
+        rows="2"
+        required
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg resize-none"
+        placeholder="Descripción del link"
+      ></textarea>
+    </div>
+
+    <!-- Ruta -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Ruta (path) <span class="text-red-500">*</span>
+      </label>
+      <input
+        v-model="form.path"
+        type="text"
+        required
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg"
+        placeholder="/legislacion/proyectos-en-tratamiento"
+      />
+    </div>
+
+    <!-- Orden -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Orden
+      </label>
+      <input
+        v-model.number="form.orden"
+        type="number"
+        min="0"
+        step="10"
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg"
+      />
+    </div>
+
+    <!-- Icono -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Icono <span class="text-red-500">*</span>
+      </label>
+      <button
+        type="button"
+        @click="showIconSelector = true"
+        class="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors"
+      >
+        <div v-if="form.icono" class="flex items-center justify-center space-x-4">
+          <div class="w-10 h-10" v-html="form.icono"></div>
+          <span class="text-gray-600">Cambiar icono</span>
+        </div>
+        <div v-else class="text-gray-500">
+          <span class="block text-lg mb-1">🖼️</span>
+          <span>Seleccionar icono</span>
+        </div>
+      </button>
+    </div>
+
+    <!-- Modal de selector de iconos -->
+    <Modal v-model="showIconSelector" title="Seleccionar Icono" size="2xl">
+      <IconSelector
+        :selected-icon="form.icono"
+        @select="handleIconSelect"
+      />
+    </Modal>
+
+    <!-- Botones -->
+    <div class="flex justify-end space-x-3 pt-5 border-t border-gray-200">
+      <button
+        type="button"
+        @click="$emit('cancel')"
+        class="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+      >
+        Cancelar
+      </button>
+      <button
+        type="submit"
+        :disabled="loading"
+        class="px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+      >
+        <span v-if="loading" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
+        {{ loading ? 'Guardando...' : 'Guardar' }}
+      </button>
+    </div>
+  </form>
+</template>
+
+<script setup lang="ts">
+import { ref, watch } from 'vue'
+import type { TabLink } from '~/composables/useTabsApi'
+
+const props = defineProps<{
+  link?: TabLink | null
+  categoryId: string
+  loading?: boolean
+}>()
+
+const emit = defineEmits<{
+  (e: 'submit', data: any): void
+  (e: 'cancel'): void
+}>()
+
+const showIconSelector = ref(false)
+
+const form = ref({
+  linkId: '',
+  titulo: '',
+  descripcion: '',
+  path: '',
+  orden: 0,
+  icono: ''
+})
+
+// Cargar datos del link cuando se edita
+watch(() => props.link, (link) => {
+  if (link) {
+    form.value = {
+      linkId: link.linkId,
+      titulo: link.titulo,
+      descripcion: link.descripcion,
+      path: link.path,
+      orden: link.orden || 0,
+      icono: link.icono || ''
+    }
+  } else {
+    form.value = {
+      linkId: '',
+      titulo: '',
+      descripcion: '',
+      path: '',
+      orden: 0,
+      icono: ''
+    }
+  }
+}, { immediate: true })
+
+// ✅ ESTA ES LA FUNCIÓN QUE PREGUNTAS - SOLO ESTO
+const handleIconSelect = (svg: string) => {
+  console.log('📝 Icono recibido en LinkForm')
+  form.value.icono = svg
+  showIconSelector.value = false
+}
+
+const handleSubmit = () => {
+  if (!props.link) {
+    // Crear nuevo link
+    emit('submit', form.value)
+  } else {
+    // Actualizar link existente (sin el linkId)
+    const { linkId, ...dataToSend } = form.value
+    emit('submit', dataToSend)
+  }
+}
+</script> 
 ================================= 
 components\tabs\LinksList.vue 
 ================================= 
@@ -2941,7 +2954,46 @@ export const useTabsApi = () => {
 layouts\auth.vue 
 ================================= 
  
- 
+<!-- layouts/auth.vue -->
+<template>
+  <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <!-- Logo -->
+    <div class="sm:mx-auto sm:w-full sm:max-w-md">
+      <div class="flex justify-center">
+        <div class="h-12 w-12 bg-primary-600 rounded-lg flex items-center justify-center">
+          <span class="text-white font-bold text-lg">SB</span>
+        </div>
+      </div>
+      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        Senado de Bolivia
+      </h2>
+      <p class="mt-2 text-center text-sm text-gray-600">
+        Panel de Administración
+      </p>
+    </div>
+
+    <!-- Contenido de autenticación -->
+    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+      <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <slot />
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="mt-8 text-center">
+      <p class="text-sm text-gray-500">
+        © {{ new Date().getFullYear() }} Senado de Bolivia
+      </p>
+      <p class="text-xs text-gray-400 mt-1">
+        Sistema de gestión de contenido
+      </p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+// Layout específico para páginas de autenticación
+</script> 
 ================================= 
 layouts\default.vue 
 ================================= 
@@ -3453,3 +3505,3021 @@ const handleQuickAction = (action: any) => {
 pages\diagnostico.vue 
 ================================= 
  
+<!-- pages/diagnostico.vue -->
+<template>
+  <div>
+    <div style="padding: 20px; font-family: Arial;">
+      <h1 style="color: red; font-size: 24px;">🔍 DIAGNÓSTICO TAILWIND CSS</h1>
+      
+      <div style="margin: 20px 0; padding: 15px; background: #f0f0f0; border-radius: 8px;">
+        <h2 style="color: #333;">1. Verificación de archivos:</h2>
+        <ul style="list-style: none; padding: 0;">
+          <li>✅ app.vue: {{ archivos.appvue ? 'EXISTE' : 'NO EXISTE' }}</li>
+          <li>✅ tailwind.config.js: {{ archivos.tailwindConfig ? 'EXISTE' : 'NO EXISTE' }}</li>
+          <li>✅ assets/css/tailwind.css: {{ archivos.tailwindCss ? 'EXISTE' : 'NO EXISTE' }}</li>
+          <li>✅ nuxt.config.ts: {{ archivos.nuxtConfig ? 'EXISTE' : 'NO EXISTE' }}</li>
+        </ul>
+      </div>
+      
+      <div style="margin: 20px 0; padding: 15px; background: #e0f7fa; border-radius: 8px;">
+        <h2 style="color: #00796b;">2. Prueba de clases Tailwind:</h2>
+        
+        <!-- Clases que DEBEN funcionar -->
+        <div class="mb-4">
+          <h3>bg-red-500 + text-white:</h3>
+          <div class="bg-red-500 text-white p-4 rounded">
+            Este div debe tener fondo ROJO y texto BLANCO
+          </div>
+        </div>
+        
+        <div class="mb-4">
+          <h3>bg-blue-500 + text-white:</h3>
+          <div class="bg-blue-500 text-white p-4 rounded">
+            Este div debe tener fondo AZUL y texto BLANCO
+          </div>
+        </div>
+        
+        <div class="mb-4">
+          <h3>flex + space-x-4:</h3>
+          <div class="flex space-x-4">
+            <div class="bg-green-500 text-white p-3 rounded">Item 1</div>
+            <div class="bg-yellow-500 text-white p-3 rounded">Item 2</div>
+            <div class="bg-purple-500 text-white p-3 rounded">Item 3</div>
+          </div>
+        </div>
+        
+        <div>
+          <h3>Controles:</h3>
+          <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            Botón Hover
+          </button>
+          <button class="ml-4 bg-gray-600 text-white px-4 py-2 rounded">
+            Botón Gris
+          </button>
+        </div>
+      </div>
+      
+      <div style="margin: 20px 0; padding: 15px; background: #fff3cd; border-radius: 8px;">
+        <h2 style="color: #856404;">3. CSS Computado (Inspeccionar elemento):</h2>
+        <p>Presiona F12 y verifica si las clases Tailwind aparecen en el panel de estilos.</p>
+        <p>Si NO aparecen, Tailwind no está procesando.</p>
+      </div>
+      
+      <div style="margin: 20px 0; padding: 15px; background: #d4edda; border-radius: 8px;">
+        <h2 style="color: #155724;">4. Posibles soluciones:</h2>
+        <ol>
+          <li>Verificar que tailwind.css tenga @tailwind base, components, utilities</li>
+          <li>Verificar rutas en nuxt.config.ts</li>
+          <li>Limpiar caché: rm -rf .nuxt .output node_modules/.vite</li>
+          <li>Reiniciar servidor de desarrollo</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+
+const archivos = ref({
+  appvue: false,
+  tailwindConfig: false,
+  tailwindCss: false,
+  nuxtConfig: false
+})
+
+onMounted(() => {
+  // Simular verificación de archivos
+  archivos.value = {
+    appvue: true,
+    tailwindConfig: true,
+    tailwindCss: true,
+    nuxtConfig: true
+  }
+})
+</script> 
+================================= 
+pages\index.vue 
+================================= 
+ 
+<!-- pages/index.vue -->
+<template>
+  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div class="text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+      <p class="mt-4 text-gray-600">Redirigiendo al sistema...</p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { onMounted } from 'vue'
+import { useAuthStore } from '~/stores/auth'
+
+const authStore = useAuthStore()
+
+onMounted(() => {
+  authStore.initialize()
+  
+  if (authStore.isAuthenticated) {
+    window.location.href = '/dashboard'
+  } else {
+    window.location.href = '/auth/login'
+  }
+})
+</script> 
+================================= 
+pages\admin\noticias\create.vue 
+================================= 
+ 
+<template>
+  <div>
+    <div class="flex items-center gap-4 mb-6">
+      <NuxtLink to="/admin/noticias" class="text-gray-400 hover:text-gray-600 text-2xl">
+        ←
+      </NuxtLink>
+      <h1 class="text-2xl font-semibold text-gray-900">Crear Nueva Noticia</h1>
+    </div>
+
+    <form @submit.prevent="saveNews" class="space-y-6">
+      <!-- Título -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Título <span class="text-red-500">*</span>
+        </label>
+        <input
+          v-model="form.title"
+          type="text"
+          required
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          placeholder="Título de la noticia"
+        />
+        <p class="text-xs text-gray-500 mt-1">Usa *texto* para palabras en color rojo (ej: *Senado* aprueba ley)</p>
+      </div>
+
+      <!-- Slug -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Slug (URL amigable)
+        </label>
+        <input
+          v-model="form.slug"
+          type="text"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+          placeholder="mi-noticia-personalizada"
+        />
+        <p class="text-xs text-gray-500 mt-1">Dejar en blanco para generar automáticamente</p>
+      </div>
+
+      <!-- Extracto -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Extracto / Resumen
+        </label>
+        <textarea
+          v-model="form.excerpt"
+          rows="3"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg resize-none"
+          placeholder="Breve descripción de la noticia (aparece en listados)"
+        ></textarea>
+        <p class="text-xs text-gray-500 mt-1">Máximo 300 caracteres</p>
+      </div>
+
+      <!-- Contenido con editor -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Contenido <span class="text-red-500">*</span>
+        </label>
+        <TiptapEditor v-model="form.content" placeholder="Escribe el contenido de la noticia aquí..." />
+      </div>
+
+      <!-- Imagen destacada -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Imagen destacada
+        </label>
+        
+        <div class="mb-3">
+          <div class="flex gap-3 items-center flex-wrap">
+            <label class="cursor-pointer bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg transition flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              Subir imagen
+              <input 
+                ref="fileInput"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                class="hidden"
+                @change="handleFileSelect"
+              />
+            </label>
+            <span v-if="uploadingImage" class="text-sm text-gray-500 flex items-center gap-2">
+              <div class="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+              Subiendo...
+            </span>
+            <span v-if="uploadProgress" class="text-sm text-green-600">{{ uploadProgress }}</span>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">Formatos: JPG, PNG, WEBP, GIF. Máx 10MB</p>
+        </div>
+        
+        <div class="mb-3">
+          <div class="flex gap-3">
+            <input
+              v-model="form.featuredImage.url"
+              type="url"
+              class="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+              placeholder="https://ejemplo.com/imagen.jpg"
+            />
+            <button
+              v-if="form.featuredImage.url"
+              type="button"
+              @click="previewImageUrl"
+              class="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200"
+            >
+              Previsualizar
+            </button>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">O pega una URL de imagen externa</p>
+        </div>
+        
+        <div v-if="imagePreviewUrl" class="mt-3">
+          <div class="relative inline-block">
+            <img :src="imagePreviewUrl" class="h-40 w-auto object-cover rounded-lg shadow" />
+            <button
+              type="button"
+              @click="clearImage"
+              class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+            >
+              ✕
+            </button>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">{{ imagePreviewLabel }}</p>
+        </div>
+      </div>
+
+      <!-- Galería de imágenes -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Galería de imágenes
+        </label>
+        
+        <div class="mb-3">
+          <div class="flex gap-3 items-center flex-wrap">
+            <label class="cursor-pointer bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg transition flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              Subir imagen a galería
+              <input 
+                ref="galleryFileInput"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                class="hidden"
+                @change="handleGalleryFileSelect"
+              />
+            </label>
+            <span v-if="uploadingGalleryImage" class="text-sm text-gray-500 flex items-center gap-2">
+              <div class="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+              Subiendo...
+            </span>
+            <span v-if="galleryUploadProgress" class="text-sm text-green-600">{{ galleryUploadProgress }}</span>
+          </div>
+        </div>
+        
+        <div class="space-y-2 mb-3">
+          <div v-for="(img, idx) in form.gallery" :key="idx" class="flex gap-2 items-center">
+            <div class="relative">
+              <img :src="img.url" class="h-16 w-16 object-cover rounded-lg" />
+            </div>
+            <input
+              v-model="img.url"
+              type="text"
+              class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50"
+              readonly
+            />
+            <button
+              type="button"
+              @click="removeGalleryImage(idx)"
+              class="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        
+        <div class="flex gap-2">
+          <input
+            v-model="nuevaGalleryUrl"
+            type="url"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+            placeholder="https://ejemplo.com/imagen.jpg"
+          />
+          <button
+            type="button"
+            @click="agregarGalleryUrlManual"
+            class="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200"
+          >
+            Agregar URL
+          </button>
+        </div>
+        <p class="text-xs text-gray-500 mt-1">Pega una URL externa o sube una imagen</p>
+      </div>
+
+      <!-- Categoría y Estado -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+          <select v-model="form.category" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+            <option value="noticia">📰 Noticia</option>
+            <option value="importante">⭐ Importante</option>
+          </select>
+          <p class="text-xs text-gray-500 mt-1">
+            <span class="font-medium">Noticia:</span> Contenido informativo regular<br>
+            <span class="font-medium">Importante:</span> Noticias destacadas (aparecen en "Hechos Destacados")
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+          <select v-model="form.status" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+            <option value="published">✅ Publicado</option>
+            <option value="draft">📝 Borrador</option>
+            <option value="archived">📦 Archivado</option>
+          </select>
+          <p class="text-xs text-gray-500 mt-1">
+            <span class="font-medium">Publicado:</span> Visible en el portal<br>
+            <span class="font-medium">Borrador:</span> Solo visible en el panel<br>
+            <span class="font-medium">Archivado:</span> No visible en el portal
+          </p>
+        </div>
+      </div>
+
+      <!-- Tags -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+        <input
+          v-model="tagsInput"
+          type="text"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+          placeholder="economia, desarrollo, leyes (separados por comas)"
+        />
+        <div class="flex flex-wrap gap-2 mt-2">
+          <span v-for="tag in form.tags" :key="tag" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+            {{ tag }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Botones -->
+      <div class="flex justify-end space-x-3 pt-4 border-t">
+        <NuxtLink
+          to="/admin/noticias"
+          class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+        >
+          Cancelar
+        </NuxtLink>
+        <button
+          type="submit"
+          :disabled="saving"
+          class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center gap-2"
+        >
+          <span v-if="saving" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          {{ saving ? 'Guardando...' : 'Publicar noticia' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '~/stores/auth'
+import { useNews } from '~/composables/useNews'
+import TiptapEditor from '~/components/admin/TiptapEditor.vue'
+
+definePageMeta({ layout: 'default', middleware: 'auth' })
+
+const router = useRouter()
+const authStore = useAuthStore()
+const { createNews, uploadImage: uploadImageApi } = useNews()
+
+const saving = ref(false)
+
+// Variables para imágenes
+const fileInput = ref<HTMLInputElement>()
+const galleryFileInput = ref<HTMLInputElement>()
+const uploadingImage = ref(false)
+const uploadingGalleryImage = ref(false)
+const uploadProgress = ref('')
+const galleryUploadProgress = ref('')
+const imagePreviewUrl = ref('')
+const imagePreviewLabel = ref('')
+const nuevaGalleryUrl = ref('')
+
+// ============================================
+// CONVERTIR HTML A BLOQUES - VERSIÓN CORREGIDA
+// ============================================
+const convertirHTMLaBloques = (htmlContent: string) => {
+  if (!htmlContent) return []
+  
+  const bloques: any[] = []
+  const tempDiv = document.createElement('div')
+  tempDiv.innerHTML = htmlContent
+  
+  // Función para procesar texto y extraer marcadores
+  const procesarTextoConMarcadores = (texto: string) => {
+    if (!texto) return []
+    
+    const resultados: any[] = []
+    let textoRestante = texto
+    let lastIndex = 0
+    
+    // Buscar marcadores de VIDEO
+    const videoRegex = /\[\[VIDEO:(.*?)\|(.*?)\|(.*?)\]\]/g
+    let match
+    
+    while ((match = videoRegex.exec(textoRestante)) !== null) {
+      // Texto antes del marcador
+      if (match.index > lastIndex) {
+        const textoAntes = textoRestante.substring(lastIndex, match.index).trim()
+        if (textoAntes) {
+          resultados.push({ type: 'paragraph', content: `<p>${textoAntes}</p>` })
+        }
+      }
+      
+      // Agregar bloque de video
+      const url = match[1]
+      const title = match[2] || 'Video'
+      const caption = match[3] || ''
+      
+      let embedUrl = url
+      if (url.includes('youtube.com/watch?v=')) {
+        const videoId = url.split('v=')[1]?.split('&')[0]
+        embedUrl = `https://www.youtube.com/embed/${videoId}`
+      } else if (url.includes('youtu.be/')) {
+        const videoId = url.split('youtu.be/')[1]?.split('?')[0]
+        embedUrl = `https://www.youtube.com/embed/${videoId}`
+      }
+      
+      resultados.push({
+        type: 'video',
+        url: embedUrl,
+        title: title,
+        caption: caption
+      })
+      
+      lastIndex = match.index + match[0].length
+    }
+    
+    // Procesar CITAS en el texto restante
+    let textoPostVideo = textoRestante.substring(lastIndex)
+    const citaRegex = /\[\[CITA:(.*?)\|(.*?)\|(.*?)\]\]/g
+    lastIndex = 0
+    
+    while ((match = citaRegex.exec(textoPostVideo)) !== null) {
+      // Texto antes de la cita
+      if (match.index > lastIndex) {
+        const textoAntes = textoPostVideo.substring(lastIndex, match.index).trim()
+        if (textoAntes) {
+          resultados.push({ type: 'paragraph', content: `<p>${textoAntes}</p>` })
+        }
+      }
+      
+      // Agregar bloque de cita
+      const autor = match[1] || 'Senado de Bolivia'
+      const cargo = match[2] || 'Cámara de Senadores'
+      const texto = match[3] || ''
+      
+      resultados.push({
+        type: 'quote',
+        content: texto,
+        author: autor,
+        role: cargo
+      })
+      
+      lastIndex = match.index + match[0].length
+    }
+    
+    // Texto después del último marcador
+    const textoFinal = textoPostVideo.substring(lastIndex).trim()
+    if (textoFinal) {
+      resultados.push({ type: 'paragraph', content: `<p>${textoFinal}</p>` })
+    }
+    
+    return resultados
+  }
+  
+  // Procesar cada nodo del HTML
+  tempDiv.childNodes.forEach(node => {
+    if (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) {
+      const resultados = procesarTextoConMarcadores(node.textContent)
+      resultados.forEach(r => bloques.push(r))
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const element = node as HTMLElement
+      const tagName = element.tagName.toLowerCase()
+      
+      if (tagName === 'p') {
+        const innerHtml = element.innerHTML
+        if (innerHtml.includes('[[VIDEO:') || innerHtml.includes('[[CITA:')) {
+          const resultados = procesarTextoConMarcadores(innerHtml)
+          resultados.forEach(r => bloques.push(r))
+        } else {
+          bloques.push({ type: 'paragraph', content: innerHtml })
+        }
+      } 
+      else if (tagName === 'blockquote') {
+        const author = element.getAttribute('data-author') || 'Senado de Bolivia'
+        const role = element.getAttribute('data-role') || 'Cámara de Senadores'
+        const quoteText = element.textContent?.trim() || ''
+        const cleanText = quoteText.replace(/—.*$/, '').trim()
+        
+        bloques.push({
+          type: 'quote',
+          content: cleanText,
+          author: author,
+          role: role
+        })
+      } 
+      else if (tagName === 'div' && element.getAttribute('data-type') === 'video') {
+        const iframe = element.querySelector('iframe')
+        const captionEl = element.querySelector('.video-caption')
+        if (iframe) {
+          bloques.push({
+            type: 'video',
+            url: iframe.getAttribute('src') || '',
+            title: iframe.getAttribute('title') || '',
+            caption: captionEl?.textContent || ''
+          })
+        }
+      } 
+      else if (tagName === 'iframe') {
+        bloques.push({
+          type: 'video',
+          url: element.getAttribute('src') || '',
+          title: element.getAttribute('title') || 'Video institucional',
+          caption: ''
+        })
+      } 
+      else {
+        bloques.push({ type: 'paragraph', content: element.outerHTML })
+      }
+    }
+  })
+  
+  return bloques
+}
+
+// ============================================
+// FORMULARIO
+// ============================================
+const form = reactive({
+  title: '',
+  slug: '',
+  excerpt: '',
+  content: '',
+  category: 'noticia' as 'noticia' | 'importante',
+  tags: [] as string[],
+  status: 'published' as 'draft' | 'published' | 'archived',
+  featuredImage: { url: '', alt: '' },
+  gallery: [] as { url: string; alt: string; caption: string; order: number }[]
+})
+
+const tagsInput = ref('')
+
+watch(tagsInput, (newVal) => {
+  form.tags = newVal.split(',').map(t => t.trim()).filter(t => t)
+})
+
+const removeGalleryImage = (idx: number) => {
+  form.gallery.splice(idx, 1)
+}
+
+// Subir imagen destacada
+const handleFileSelect = async (event: Event) => {
+  if (!authStore.isAuthenticated) {
+    alert('Tu sesión expiró. Por favor, inicia sesión nuevamente.')
+    router.push('/auth/login')
+    return
+  }
+
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+  if (!validTypes.includes(file.type)) {
+    alert('Formato no válido. Use JPG, PNG, WEBP o GIF.')
+    return
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    alert('La imagen no puede superar los 10MB')
+    return
+  }
+
+  uploadingImage.value = true
+  uploadProgress.value = 'Subiendo imagen...'
+
+  try {
+    const result = await uploadImageApi(file, form.title)
+    form.featuredImage.url = result.url
+    imagePreviewUrl.value = result.url
+    imagePreviewLabel.value = `Imagen subida: ${result.originalName}`
+    uploadProgress.value = '¡Imagen subida con éxito!'
+    setTimeout(() => { uploadProgress.value = '' }, 3000)
+  } catch (error: any) {
+    console.error('Error:', error)
+    alert(error.message || 'Error al subir la imagen')
+    uploadProgress.value = ''
+  } finally {
+    uploadingImage.value = false
+    if (fileInput.value) fileInput.value.value = ''
+  }
+}
+
+// Subir imagen a galería
+const handleGalleryFileSelect = async (event: Event) => {
+  if (!authStore.isAuthenticated) {
+    alert('Tu sesión expiró. Por favor, inicia sesión nuevamente.')
+    router.push('/auth/login')
+    return
+  }
+
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+  if (!validTypes.includes(file.type)) {
+    alert('Formato no válido. Use JPG, PNG, WEBP o GIF.')
+    return
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    alert('La imagen no puede superar los 10MB')
+    return
+  }
+
+  uploadingGalleryImage.value = true
+  galleryUploadProgress.value = 'Subiendo imagen...'
+
+  try {
+    const result = await uploadImageApi(file, form.title)
+    form.gallery.push({
+      url: result.url,
+      alt: form.title,
+      caption: '',
+      order: form.gallery.length
+    })
+    galleryUploadProgress.value = '¡Imagen subida con éxito!'
+    setTimeout(() => { galleryUploadProgress.value = '' }, 3000)
+  } catch (error: any) {
+    console.error('Error:', error)
+    alert(error.message || 'Error al subir la imagen')
+    galleryUploadProgress.value = ''
+  } finally {
+    uploadingGalleryImage.value = false
+    if (galleryFileInput.value) galleryFileInput.value.value = ''
+  }
+}
+
+// Agregar URL manual a galería
+const agregarGalleryUrlManual = () => {
+  if (nuevaGalleryUrl.value && nuevaGalleryUrl.value.trim()) {
+    form.gallery.push({
+      url: nuevaGalleryUrl.value,
+      alt: form.title,
+      caption: '',
+      order: form.gallery.length
+    })
+    nuevaGalleryUrl.value = ''
+  }
+}
+
+const previewImageUrl = () => {
+  if (form.featuredImage.url) {
+    imagePreviewUrl.value = form.featuredImage.url
+    imagePreviewLabel.value = 'Vista previa desde URL'
+  }
+}
+
+const clearImage = () => {
+  form.featuredImage.url = ''
+  imagePreviewUrl.value = ''
+  imagePreviewLabel.value = ''
+}
+
+const saveNews = async () => {
+  if (!authStore.isAuthenticated) {
+    alert('Tu sesión expiró. Por favor, inicia sesión nuevamente.')
+    router.push('/auth/login')
+    return
+  }
+
+  if (!form.title.trim()) {
+    alert('El título es requerido')
+    return
+  }
+  if (!form.content.trim()) {
+    alert('El contenido es requerido')
+    return
+  }
+
+  saving.value = true
+  
+  const bloques = convertirHTMLaBloques(form.content)
+  console.log('📦 [create] Bloques a guardar:', JSON.stringify(bloques, null, 2))
+  
+  try {
+    await createNews({
+      title: form.title,
+      slug: form.slug || undefined,
+      excerpt: form.excerpt,
+      content: form.content,
+      blocks: bloques,
+      category: form.category,
+      tags: form.tags,
+      status: form.status,
+      featuredImage: form.featuredImage,
+      gallery: form.gallery
+    })
+    router.push('/admin/noticias')
+  } catch (error: any) {
+    console.error('Error:', error)
+    alert(error.message || 'Error al crear la noticia')
+  } finally {
+    saving.value = false
+  }
+}
+
+onMounted(() => {
+  if (!authStore.isAuthenticated) {
+    router.push('/auth/login')
+  }
+})
+</script>
+ 
+================================= 
+pages\admin\noticias\index.vue 
+================================= 
+ 
+<!-- pages/admin/noticias/index.vue -->
+<template>
+  <div>
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+      <div>
+        <h1 class="text-2xl font-semibold text-gray-900">Gestión de Noticias</h1>
+        <p class="text-gray-600">Crea, edita y administra todas las noticias del portal</p>
+      </div>
+      <NuxtLink 
+        to="/admin/noticias/create" 
+        class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+      >
+        <span class="mr-2">+</span>
+        Nueva Noticia
+      </NuxtLink>
+    </div>
+
+    <!-- Filtros -->
+    <div class="bg-gray-50 p-4 rounded-lg mb-6 flex flex-wrap gap-4">
+      <select 
+        v-model="filters.status" 
+        @change="onStatusChange"
+        class="px-3 py-2 border rounded-lg text-sm"
+      >
+        <option value="all">Todos los estados</option>
+        <option value="published">✅ Publicadas</option>
+        <option value="draft">📝 Borradores</option>
+        <option value="archived">📦 Archivadas</option>
+      </select>
+      
+      <select 
+        v-model="filters.category" 
+        @change="onCategoryChange"
+        class="px-3 py-2 border rounded-lg text-sm"
+      >
+        <option value="all">Todas las categorías</option>
+        <option value="noticia">📰 Noticia</option>
+        <option value="importante">⭐ Importante</option>
+      </select>
+      
+      <select 
+        v-model="filters.type" 
+        @change="onTypeChange"
+        class="px-3 py-2 border rounded-lg text-sm"
+      >
+        <option value="all">Todos los tipos</option>
+        <option value="news">Noticias</option>
+        <option value="article">Artículos</option>
+        <option value="announcement">Anuncios</option>
+      </select>
+      
+      <div class="flex-1">
+        <input 
+          v-model="filters.search" 
+          @input="onSearchInput"
+          type="text" 
+          placeholder="Buscar por título..." 
+          class="w-full px-3 py-2 border rounded-lg text-sm"
+        />
+      </div>
+      
+      <button @click="resetFilters" class="px-3 py-2 text-gray-600 hover:text-gray-800">
+        Limpiar
+      </button>
+    </div>
+
+    <!-- Debug info -->
+    <div class="bg-gray-100 p-3 rounded-lg mb-4 text-xs font-mono">
+      <div><strong>🔍 Debug:</strong></div>
+      <div>Filtro estado: {{ filters.status }}</div>
+      <div>Filtro categoría: {{ filters.category }}</div>
+      <div>Filtro tipo: {{ filters.type }}</div>
+      <div>Búsqueda: "{{ filters.search }}"</div>
+      <div>Página actual: {{ page }} de {{ totalPages }}</div>
+      <div>Total noticias: {{ total }}</div>
+      <div>Noticias cargadas: {{ newsList.length }}</div>
+    </div>
+
+    <!-- Tabla de noticias -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+      <div v-if="loading" class="text-center py-12">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+        <p class="mt-4 text-gray-600">Cargando noticias...</p>
+      </div>
+      
+      <div v-else-if="error" class="text-center py-12 text-red-600">
+        {{ error }}
+      </div>
+      
+      <table v-else class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Título</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visitas</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <tr v-for="item in newsList" :key="item._id" class="hover:bg-gray-50">
+            <td class="px-6 py-4">
+              <div class="text-sm font-medium text-gray-900">{{ item.title }}</div>
+              <div class="text-xs text-gray-500">{{ item.slug }}</div>
+            </td>
+            <td class="px-6 py-4">
+              <span :class="item.category === 'importante' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'" class="px-2 py-1 rounded-full text-xs font-medium">
+                {{ item.category === 'importante' ? '⭐ Importante' : '📰 Noticia' }}
+              </span>
+            </td>
+            <td class="px-6 py-4">
+              <span :class="statusClass(item.status)" class="px-2 py-1 rounded-full text-xs font-medium">
+                {{ statusText(item.status) }}
+              </span>
+            </td>
+            <td class="px-6 py-4 text-sm text-gray-500">
+              {{ item.publishedAt ? new Date(item.publishedAt).toLocaleDateString('es-ES') : '-' }}
+            </td>
+            <td class="px-6 py-4 text-sm text-gray-500">{{ item.views || 0 }}</td>
+            <td class="px-6 py-4 text-right text-sm font-medium">
+              <div class="flex justify-end gap-2">
+                <NuxtLink :to="`/admin/noticias/edit/${item._id}`" class="text-primary-600 hover:text-primary-900">
+                  Editar
+                </NuxtLink>
+                <!-- <button @click="toggleStatus(item)" class="text-yellow-600 hover:text-yellow-900">
+                  {{ item.status === 'published' ? 'Archivar' : 'Publicar' }}
+                </button> -->
+                <button @click="confirmDelete(item)" class="text-red-600 hover:text-red-900">
+                  Eliminar
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr v-if="newsList.length === 0 && !loading">
+            <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+              No hay noticias con los filtros seleccionados
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <!-- Paginación -->
+      <div v-if="totalPages > 1" class="px-6 py-4 border-t flex justify-between items-center">
+        <button 
+          @click="prevPage" 
+          :disabled="page === 1" 
+          class="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+        >
+          Anterior
+        </button>
+        <span class="text-sm text-gray-600">Página {{ page }} de {{ totalPages }}</span>
+        <button 
+          @click="nextPage" 
+          :disabled="page === totalPages" 
+          class="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+        >
+          Siguiente
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal de confirmación -->
+    <Modal v-model="showDeleteModal" title="Confirmar eliminación" size="lg">
+      <div class="p-4">
+        <p class="text-gray-700">¿Estás seguro de que deseas eliminar la noticia <strong>{{ newsToDelete?.title }}</strong>?</p>
+        <p class="text-red-600 text-sm mt-2">Esta acción no se puede deshacer.</p>
+        <div class="flex justify-end gap-3 mt-6">
+          <button @click="showDeleteModal = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50">
+            Cancelar
+          </button>
+          <button @click="deleteNews" :disabled="deleting" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">
+            {{ deleting ? 'Eliminando...' : 'Eliminar' }}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useNews, type NewsItem } from '~/composables/useNews'
+import Modal from '~/components/ui/Modal.vue'
+
+definePageMeta({
+  layout: 'default',
+  middleware: 'auth'
+})
+
+const { getNews, deleteNews: deleteNewsApi, changeStatus } = useNews()
+
+const newsList = ref<NewsItem[]>([])
+const loading = ref(false)
+const error = ref<string | null>(null)
+const page = ref(1)
+const totalPages = ref(1)
+const total = ref(0)
+
+// 🔥 CORREGIDO: Añadida la propiedad 'category'
+const filters = ref({
+  status: 'all',
+  type: 'all',
+  category: 'all',
+  search: ''
+})
+
+let searchTimeout: NodeJS.Timeout
+
+// 🔥 Función que se llama cuando cambia el filtro de estado
+const onStatusChange = () => {
+  console.log('🔽 [onStatusChange] Nuevo status:', filters.value.status)
+  page.value = 1
+  loadNews()
+}
+
+// 🔥 Función que se llama cuando cambia el filtro de categoría
+const onCategoryChange = () => {
+  console.log('🔽 [onCategoryChange] Nueva categoría:', filters.value.category)
+  page.value = 1
+  loadNews()
+}
+
+// 🔥 Función que se llama cuando cambia el filtro de tipo
+const onTypeChange = () => {
+  console.log('🔽 [onTypeChange] Nuevo type:', filters.value.type)
+  page.value = 1
+  loadNews()
+}
+
+// 🔥 Función para búsqueda con debounce
+const onSearchInput = () => {
+  if (searchTimeout) clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    console.log('🔍 [onSearchInput] Buscando:', filters.value.search)
+    page.value = 1
+    loadNews()
+  }, 500)
+}
+
+// 🔥 Función para limpiar filtros
+const resetFilters = () => {
+  console.log('🔄 [Reset] Limpiando filtros')
+  filters.value = { status: 'all', type: 'all', category: 'all', search: '' }
+  page.value = 1
+  loadNews()
+}
+
+const loadNews = async () => {
+  console.log('\n🔵 [index.vue] ========== CARGANDO NOTICIAS ==========')
+  console.log('🔵 Filtros actuales:', {
+    status: filters.value.status,
+    category: filters.value.category,
+    type: filters.value.type,
+    search: filters.value.search
+  })
+  console.log('🔵 Página:', page.value)
+  
+  loading.value = true
+  error.value = null
+  
+  try {
+    const params: any = {
+      page: page.value,
+      limit: 10
+    }
+    
+    if (filters.value.status !== 'all') {
+      params.status = filters.value.status
+      console.log('🔵 ✅ Enviando status:', params.status)
+    }
+    
+    if (filters.value.category !== 'all') {
+      params.category = filters.value.category
+      console.log('🔵 ✅ Enviando category:', params.category)
+    }
+    
+    if (filters.value.type !== 'all') {
+      params.type = filters.value.type
+      console.log('🔵 ✅ Enviando type:', params.type)
+    }
+    
+    if (filters.value.search) {
+      params.search = filters.value.search
+      console.log('🔵 ✅ Enviando search:', params.search)
+    }
+    
+    console.log('🔵 Params a enviar:', params)
+    
+    const result = await getNews(params)
+    
+    console.log('🔵 Respuesta recibida:')
+    console.log('   - total:', result.total)
+    console.log('   - pages:', result.pages)
+    console.log('   - contents length:', result.contents?.length)
+    
+    newsList.value = result.contents || []
+    total.value = result.total || 0
+    totalPages.value = result.pages || 1
+    
+    console.log('🔵 Estado actualizado:')
+    console.log('   - newsList length:', newsList.value.length)
+    console.log('   - total:', total.value)
+    console.log('   - totalPages:', totalPages.value)
+    console.log('🔵 [index.vue] ========== FIN ==========\n')
+  } catch (err: any) {
+    error.value = err.message
+    console.error('🔴 Error en loadNews:', err)
+  } finally {
+    loading.value = false
+  }
+}
+
+const prevPage = () => {
+  if (page.value > 1) {
+    page.value--
+    loadNews()
+  }
+}
+
+const nextPage = () => {
+  if (page.value < totalPages.value) {
+    page.value++
+    loadNews()
+  }
+}
+
+const toggleStatus = async (item: NewsItem) => {
+  const newStatus = item.status === 'published' ? 'archived' : 'published'
+  console.log('🔄 [ToggleStatus]', item.title, 'de', item.status, 'a', newStatus)
+  try {
+    await changeStatus(item._id, newStatus)
+    await loadNews()
+  } catch (err) {
+    console.error('Error toggling status:', err)
+    alert('Error al cambiar el estado')
+  }
+}
+
+// Delete
+const showDeleteModal = ref(false)
+const newsToDelete = ref<NewsItem | null>(null)
+const deleting = ref(false)
+
+const confirmDelete = (item: NewsItem) => {
+  newsToDelete.value = item
+  showDeleteModal.value = true
+}
+
+const deleteNews = async () => {
+  if (!newsToDelete.value) return
+  
+  deleting.value = true
+  try {
+    await deleteNewsApi(newsToDelete.value._id)
+    showDeleteModal.value = false
+    await loadNews()
+  } catch (err) {
+    console.error('Error deleting news:', err)
+    alert('Error al eliminar la noticia')
+  } finally {
+    deleting.value = false
+    newsToDelete.value = null
+  }
+}
+
+const statusClass = (status: string) => {
+  const classes: Record<string, string> = {
+    published: 'bg-green-100 text-green-800',
+    draft: 'bg-yellow-100 text-yellow-800',
+    archived: 'bg-gray-100 text-gray-800'
+  }
+  return classes[status] || 'bg-gray-100 text-gray-800'
+}
+
+const statusText = (status: string) => {
+  const texts: Record<string, string> = {
+    published: 'Publicada',
+    draft: 'Borrador',
+    archived: 'Archivada'
+  }
+  return texts[status] || status
+}
+
+onMounted(() => {
+  console.log('🚀 [onMounted] Componente montado, cargando noticias...')
+  loadNews()
+})
+</script> 
+================================= 
+pages\admin\noticias\edit\[id].vue 
+================================= 
+ 
+<template>
+  <div>
+    <div class="flex items-center gap-4 mb-6">
+      <NuxtLink to="/admin/noticias" class="text-gray-400 hover:text-gray-600 text-2xl">
+        ←
+      </NuxtLink>
+      <h1 class="text-2xl font-semibold text-gray-900">Editar Noticia</h1>
+    </div>
+
+    <div v-if="loading" class="text-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+      <p class="mt-4 text-gray-600">Cargando noticia...</p>
+    </div>
+
+    <div v-else-if="error" class="text-center py-12 text-red-600">
+      {{ error }}
+    </div>
+
+    <form v-else @submit.prevent="saveNews" class="space-y-6">
+      <!-- Título -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Título <span class="text-red-500">*</span>
+        </label>
+        <input
+          v-model="form.title"
+          type="text"
+          required
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          placeholder="Título de la noticia"
+        />
+        <p class="text-xs text-gray-500 mt-1">Usa *texto* para palabras en color rojo (ej: *Senado* aprueba ley)</p>
+      </div>
+
+      <!-- Slug -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Slug (URL amigable)
+        </label>
+        <input
+          v-model="form.slug"
+          type="text"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
+          disabled
+        />
+        <p class="text-xs text-gray-500 mt-1">El slug no se puede modificar después de crear la noticia</p>
+      </div>
+
+      <!-- Extracto -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Extracto / Resumen
+        </label>
+        <textarea
+          v-model="form.excerpt"
+          rows="3"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg resize-none"
+          placeholder="Breve descripción de la noticia (aparece en listados)"
+        ></textarea>
+        <p class="text-xs text-gray-500 mt-1">Máximo 300 caracteres</p>
+      </div>
+
+      <!-- Contenido con editor -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Contenido <span class="text-red-500">*</span>
+        </label>
+        <TiptapEditor v-model="form.content" placeholder="Escribe el contenido de la noticia aquí..." />
+      </div>
+
+      <!-- Imagen destacada -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Imagen destacada
+        </label>
+        
+        <div class="mb-3">
+          <div class="flex gap-3 items-center flex-wrap">
+            <label class="cursor-pointer bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg transition flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              Subir imagen
+              <input 
+                ref="fileInput"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                class="hidden"
+                @change="handleFileSelect"
+              />
+            </label>
+            <span v-if="uploadingImage" class="text-sm text-gray-500 flex items-center gap-2">
+              <div class="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+              Subiendo...
+            </span>
+            <span v-if="uploadProgress" class="text-sm text-green-600">{{ uploadProgress }}</span>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">Formatos: JPG, PNG, WEBP, GIF. Máx 10MB</p>
+        </div>
+        
+        <div class="mb-3">
+          <div class="flex gap-3">
+            <input
+              v-model="form.featuredImage.url"
+              type="url"
+              class="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+              placeholder="https://ejemplo.com/imagen.jpg"
+            />
+            <button
+              v-if="form.featuredImage.url"
+              type="button"
+              @click="previewImageUrl"
+              class="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200"
+            >
+              Previsualizar
+            </button>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">O pega una URL de imagen externa</p>
+        </div>
+        
+        <div v-if="imagePreviewUrl" class="mt-3">
+          <div class="relative inline-block">
+            <img :src="imagePreviewUrl" class="h-40 w-auto object-cover rounded-lg shadow" />
+            <button
+              type="button"
+              @click="clearImage"
+              class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+            >
+              ✕
+            </button>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">{{ imagePreviewLabel }}</p>
+        </div>
+      </div>
+
+      <!-- Galería de imágenes -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Galería de imágenes
+        </label>
+        
+        <div class="mb-3">
+          <div class="flex gap-3 items-center flex-wrap">
+            <label class="cursor-pointer bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg transition flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              Subir imagen a galería
+              <input 
+                ref="galleryFileInput"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                class="hidden"
+                @change="handleGalleryFileSelect"
+              />
+            </label>
+            <span v-if="uploadingGalleryImage" class="text-sm text-gray-500 flex items-center gap-2">
+              <div class="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+              Subiendo...
+            </span>
+            <span v-if="galleryUploadProgress" class="text-sm text-green-600">{{ galleryUploadProgress }}</span>
+          </div>
+        </div>
+        
+        <div class="space-y-2 mb-3">
+          <div v-for="(img, idx) in form.gallery" :key="idx" class="flex gap-2 items-center">
+            <div class="relative">
+              <img :src="img.url" class="h-16 w-16 object-cover rounded-lg" />
+            </div>
+            <input
+              v-model="img.url"
+              type="text"
+              class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50"
+              readonly
+            />
+            <button
+              type="button"
+              @click="removeGalleryImage(idx)"
+              class="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        
+        <div class="flex gap-2">
+          <input
+            v-model="nuevaGalleryUrl"
+            type="url"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+            placeholder="https://ejemplo.com/imagen.jpg"
+          />
+          <button
+            type="button"
+            @click="agregarGalleryUrlManual"
+            class="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200"
+          >
+            Agregar URL
+          </button>
+        </div>
+        <p class="text-xs text-gray-500 mt-1">Pega una URL externa o sube una imagen</p>
+      </div>
+
+      <!-- Categoría y Estado -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+          <select v-model="form.category" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+            <option value="noticia">📰 Noticia</option>
+            <option value="importante">⭐ Importante</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+          <select v-model="form.status" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+            <option value="draft">📝 Borrador</option>
+            <option value="published">✅ Publicado</option>
+            <option value="archived">📦 Archivado</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Tags -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+        <input
+          v-model="tagsInput"
+          type="text"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+          placeholder="economia, desarrollo, leyes (separados por comas)"
+        />
+        <div class="flex flex-wrap gap-2 mt-2">
+          <span v-for="tag in form.tags" :key="tag" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+            {{ tag }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Botones -->
+      <div class="flex justify-end space-x-3 pt-4 border-t">
+        <NuxtLink
+          to="/admin/noticias"
+          class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+        >
+          Cancelar
+        </NuxtLink>
+        <button
+          type="submit"
+          :disabled="saving"
+          class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center gap-2"
+        >
+          <span v-if="saving" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          {{ saving ? 'Guardando...' : 'Guardar cambios' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, watch, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '~/stores/auth'
+import { useNews } from '~/composables/useNews'
+import TiptapEditor from '~/components/admin/TiptapEditor.vue'
+
+definePageMeta({ layout: 'default', middleware: 'auth' })
+
+const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
+const { getNewsById, updateNews, uploadImage: uploadImageApi } = useNews()
+
+const loading = ref(true)
+const saving = ref(false)
+const error = ref<string | null>(null)
+
+// Variables para imágenes
+const fileInput = ref<HTMLInputElement>()
+const galleryFileInput = ref<HTMLInputElement>()
+const uploadingImage = ref(false)
+const uploadingGalleryImage = ref(false)
+const uploadProgress = ref('')
+const galleryUploadProgress = ref('')
+const imagePreviewUrl = ref('')
+const imagePreviewLabel = ref('')
+const nuevaGalleryUrl = ref('')
+
+// ============================================
+// Convertir bloques a HTML - Genera MARCADORES en lugar de HTML complejo
+const convertirBloquesAHTML = (blocks: any[]) => {
+  if (!blocks || blocks.length === 0) return ''
+  let html = ''
+  for (const block of blocks) {
+    if (block.type === 'paragraph') {
+      html += `<p>${block.content}</p>`
+    } else if (block.type === 'quote') {
+      // 🔥 Generar marcador [[CITA:autor|cargo|texto]]
+      const author = block.author || 'Senado de Bolivia'
+      const role = block.role || 'Cámara de Senadores'
+      const content = block.content || ''
+      html += `<p>[[CITA:${author}|${role}|${content}]]</p>`
+    } else if (block.type === 'video') {
+      // 🔥 Generar marcador [[VIDEO:url|título|caption]]
+      const url = block.url || ''
+      const title = block.title || 'Video'
+      const caption = block.caption || ''
+      html += `<p>[[VIDEO:${url}|${title}|${caption}]]</p>`
+    }
+  }
+  return html
+}
+
+// ============================================
+// CONVERTIR HTML A BLOQUES - CON DETECCIÓN DE MARCADORES
+// ============================================
+const convertirHTMLaBloques = (htmlContent: string) => {
+  if (!htmlContent) return []
+  
+  const bloques: any[] = []
+  const tempDiv = document.createElement('div')
+  tempDiv.innerHTML = htmlContent
+  
+  // Función para procesar texto y extraer marcadores
+  const procesarTextoConMarcadores = (texto: string) => {
+    if (!texto) return []
+    
+    const resultados: any[] = []
+    let textoRestante = texto
+    let lastIndex = 0
+    
+    // Buscar marcadores de VIDEO
+    const videoRegex = /\[\[VIDEO:(.*?)\|(.*?)\|(.*?)\]\]/g
+    let match
+    
+    while ((match = videoRegex.exec(textoRestante)) !== null) {
+      if (match.index > lastIndex) {
+        const textoAntes = textoRestante.substring(lastIndex, match.index).trim()
+        if (textoAntes) {
+          resultados.push({ type: 'paragraph', content: `<p>${textoAntes}</p>` })
+        }
+      }
+      
+      const url = match[1]
+      const title = match[2] || 'Video'
+      const caption = match[3] || ''
+      
+      let embedUrl = url
+      if (url.includes('youtube.com/watch?v=')) {
+        const videoId = url.split('v=')[1]?.split('&')[0]
+        embedUrl = `https://www.youtube.com/embed/${videoId}`
+      } else if (url.includes('youtu.be/')) {
+        const videoId = url.split('youtu.be/')[1]?.split('?')[0]
+        embedUrl = `https://www.youtube.com/embed/${videoId}`
+      }
+      
+      resultados.push({
+        type: 'video',
+        url: embedUrl,
+        title: title,
+        caption: caption
+      })
+      
+      lastIndex = match.index + match[0].length
+    }
+    
+    // Procesar CITAS en el texto restante
+    let textoPostVideo = textoRestante.substring(lastIndex)
+    const citaRegex = /\[\[CITA:(.*?)\|(.*?)\|(.*?)\]\]/g
+    lastIndex = 0
+    
+    while ((match = citaRegex.exec(textoPostVideo)) !== null) {
+      if (match.index > lastIndex) {
+        const textoAntes = textoPostVideo.substring(lastIndex, match.index).trim()
+        if (textoAntes) {
+          resultados.push({ type: 'paragraph', content: `<p>${textoAntes}</p>` })
+        }
+      }
+      
+      const autor = match[1] || 'Senado de Bolivia'
+      const cargo = match[2] || 'Cámara de Senadores'
+      const texto = match[3] || ''
+      
+      resultados.push({
+        type: 'quote',
+        content: texto,
+        author: autor,
+        role: cargo
+      })
+      
+      lastIndex = match.index + match[0].length
+    }
+    
+    const textoFinal = textoPostVideo.substring(lastIndex).trim()
+    if (textoFinal) {
+      resultados.push({ type: 'paragraph', content: `<p>${textoFinal}</p>` })
+    }
+    
+    return resultados
+  }
+  
+  // Procesar cada nodo del HTML
+  tempDiv.childNodes.forEach(node => {
+    if (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) {
+      const resultados = procesarTextoConMarcadores(node.textContent)
+      resultados.forEach(r => bloques.push(r))
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const element = node as HTMLElement
+      const tagName = element.tagName.toLowerCase()
+      
+      if (tagName === 'p') {
+        const innerHtml = element.innerHTML
+        if (innerHtml.includes('[[VIDEO:') || innerHtml.includes('[[CITA:')) {
+          const resultados = procesarTextoConMarcadores(innerHtml)
+          resultados.forEach(r => bloques.push(r))
+        } else {
+          bloques.push({ type: 'paragraph', content: innerHtml })
+        }
+      } 
+      else if (tagName === 'blockquote') {
+        const author = element.getAttribute('data-author') || 'Senado de Bolivia'
+        const role = element.getAttribute('data-role') || 'Cámara de Senadores'
+        const quoteText = element.textContent?.trim() || ''
+        const cleanText = quoteText.replace(/—.*$/, '').trim()
+        
+        bloques.push({
+          type: 'quote',
+          content: cleanText,
+          author: author,
+          role: role
+        })
+      } 
+      else if (tagName === 'div' && element.getAttribute('data-type') === 'video') {
+        const iframe = element.querySelector('iframe')
+        const captionEl = element.querySelector('.video-caption')
+        if (iframe) {
+          bloques.push({
+            type: 'video',
+            url: iframe.getAttribute('src') || '',
+            title: iframe.getAttribute('title') || '',
+            caption: captionEl?.textContent || ''
+          })
+        }
+      } 
+      else if (tagName === 'iframe') {
+        bloques.push({
+          type: 'video',
+          url: element.getAttribute('src') || '',
+          title: element.getAttribute('title') || 'Video institucional',
+          caption: ''
+        })
+      } 
+      else {
+        bloques.push({ type: 'paragraph', content: element.outerHTML })
+      }
+    }
+  })
+  
+  return bloques
+}
+
+// ============================================
+// FORMULARIO
+// ============================================
+const form = reactive({
+  title: '',
+  slug: '',
+  excerpt: '',
+  content: '',
+  category: 'noticia' as 'noticia' | 'importante',
+  tags: [] as string[],
+  status: 'draft' as 'draft' | 'published' | 'archived',
+  featuredImage: { url: '', alt: '' },
+  gallery: [] as { url: string; alt: string; caption: string; order: number }[]
+})
+
+const tagsInput = ref('')
+
+watch(tagsInput, (newVal) => {
+  form.tags = newVal.split(',').map(t => t.trim()).filter(t => t)
+})
+
+const removeGalleryImage = (idx: number) => {
+  form.gallery.splice(idx, 1)
+}
+
+// Subir imagen destacada
+const handleFileSelect = async (event: Event) => {
+  if (!authStore.isAuthenticated) {
+    alert('Tu sesión expiró. Por favor, inicia sesión nuevamente.')
+    router.push('/auth/login')
+    return
+  }
+
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+  if (!validTypes.includes(file.type)) {
+    alert('Formato no válido. Use JPG, PNG, WEBP o GIF.')
+    return
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    alert('La imagen no puede superar los 10MB')
+    return
+  }
+
+  uploadingImage.value = true
+  uploadProgress.value = 'Subiendo imagen...'
+
+  try {
+    const result = await uploadImageApi(file, form.title)
+    form.featuredImage.url = result.url
+    imagePreviewUrl.value = result.url
+    imagePreviewLabel.value = `Imagen subida: ${result.originalName}`
+    uploadProgress.value = '¡Imagen subida con éxito!'
+    setTimeout(() => { uploadProgress.value = '' }, 3000)
+  } catch (error: any) {
+    console.error('Error:', error)
+    alert(error.message || 'Error al subir la imagen')
+    uploadProgress.value = ''
+  } finally {
+    uploadingImage.value = false
+    if (fileInput.value) fileInput.value.value = ''
+  }
+}
+
+// Subir imagen a galería
+const handleGalleryFileSelect = async (event: Event) => {
+  if (!authStore.isAuthenticated) {
+    alert('Tu sesión expiró. Por favor, inicia sesión nuevamente.')
+    router.push('/auth/login')
+    return
+  }
+
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+  if (!validTypes.includes(file.type)) {
+    alert('Formato no válido. Use JPG, PNG, WEBP o GIF.')
+    return
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    alert('La imagen no puede superar los 10MB')
+    return
+  }
+
+  uploadingGalleryImage.value = true
+  galleryUploadProgress.value = 'Subiendo imagen...'
+
+  try {
+    const result = await uploadImageApi(file, form.title)
+    form.gallery.push({
+      url: result.url,
+      alt: form.title,
+      caption: '',
+      order: form.gallery.length
+    })
+    galleryUploadProgress.value = '¡Imagen subida con éxito!'
+    setTimeout(() => { galleryUploadProgress.value = '' }, 3000)
+  } catch (error: any) {
+    console.error('Error:', error)
+    alert(error.message || 'Error al subir la imagen')
+    galleryUploadProgress.value = ''
+  } finally {
+    uploadingGalleryImage.value = false
+    if (galleryFileInput.value) galleryFileInput.value.value = ''
+  }
+}
+
+// Agregar URL manual a galería
+const agregarGalleryUrlManual = () => {
+  if (nuevaGalleryUrl.value && nuevaGalleryUrl.value.trim()) {
+    form.gallery.push({
+      url: nuevaGalleryUrl.value,
+      alt: form.title,
+      caption: '',
+      order: form.gallery.length
+    })
+    nuevaGalleryUrl.value = ''
+  }
+}
+
+const previewImageUrl = () => {
+  if (form.featuredImage.url) {
+    imagePreviewUrl.value = form.featuredImage.url
+    imagePreviewLabel.value = 'Vista previa desde URL'
+  }
+}
+
+const clearImage = () => {
+  form.featuredImage.url = ''
+  imagePreviewUrl.value = ''
+  imagePreviewLabel.value = ''
+}
+
+const loadNews = async () => {
+  const id = route.params.id as string
+  try {
+    const news = await getNewsById(id)
+    form.title = news.title
+    form.slug = news.slug
+    form.excerpt = news.excerpt || ''
+    
+    if (news.blocks && news.blocks.length > 0) {
+      form.content = convertirBloquesAHTML(news.blocks)
+    } else {
+      form.content = news.content
+    }
+    
+    form.category = news.category || 'noticia'
+    form.tags = news.tags || []
+    form.status = news.status
+    form.featuredImage = news.featuredImage || { url: '', alt: '' }
+    form.gallery = news.gallery || []
+    tagsInput.value = form.tags.join(', ')
+    
+    if (form.featuredImage.url) {
+      imagePreviewUrl.value = form.featuredImage.url
+      imagePreviewLabel.value = 'Imagen actual'
+    }
+  } catch (err: any) {
+    error.value = err.message
+  } finally {
+    loading.value = false
+  }
+}
+
+const saveNews = async () => {
+  const id = route.params.id as string
+  saving.value = true
+  
+  const bloques = convertirHTMLaBloques(form.content)
+  console.log('📦 [edit] Bloques a guardar:', JSON.stringify(bloques, null, 2))
+  
+  try {
+    await updateNews(id, {
+      title: form.title,
+      excerpt: form.excerpt,
+      content: form.content,
+      blocks: bloques,
+      category: form.category,
+      tags: form.tags,
+      status: form.status,
+      featuredImage: form.featuredImage,
+      gallery: form.gallery
+    })
+    router.push('/admin/noticias')
+  } catch (err: any) {
+    console.error('Error:', err)
+    alert(err.message || 'Error al guardar')
+  } finally {
+    saving.value = false
+  }
+}
+
+onMounted(() => {
+  if (!authStore.isAuthenticated) {
+    router.push('/auth/login')
+    return
+  }
+  loadNews()
+})
+</script> 
+================================= 
+pages\auth\login.vue 
+================================= 
+ 
+<!-- pages/auth/login.vue -->
+<template>
+  <div>
+    <form @submit.prevent="handleLogin" class="space-y-6">
+      <div>
+        <label for="email" class="block text-sm font-medium text-gray-700">
+          Correo electrónico
+        </label>
+        <div class="mt-1">
+          <input
+            id="email"
+            v-model="form.email"
+            type="email"
+            required
+            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+            placeholder="admin@senado.bo"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label for="password" class="block text-sm font-medium text-gray-700">
+          Contraseña
+        </label>
+        <div class="mt-1">
+          <input
+            id="password"
+            v-model="form.password"
+            type="password"
+            required
+            class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+            placeholder="••••••••"
+          />
+        </div>
+      </div>
+
+      <div>
+        <button
+          type="submit"
+          :disabled="isSubmitting"
+          class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <span v-if="isSubmitting" class="flex items-center">
+            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+            Iniciando sesión...
+          </span>
+          <span v-else>
+            Iniciar sesión
+          </span>
+        </button>
+      </div>
+
+      <div v-if="error" class="rounded-md bg-red-50 p-4">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <span class="text-red-400">⚠️</span>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-red-800">
+              Error de autenticación
+            </h3>
+            <div class="mt-2 text-sm text-red-700">
+              {{ error }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <div class="mt-6">
+      <div class="relative">
+        <div class="absolute inset-0 flex items-center">
+          <div class="w-full border-t border-gray-300" />
+        </div>
+        <div class="relative flex justify-center text-sm">
+          <span class="px-2 bg-white text-gray-500">
+            Credenciales de prueba
+          </span>
+        </div>
+      </div>
+      <div class="mt-4 text-sm text-center text-gray-600 space-y-1">
+        <p>Email: <span class="font-mono">admin@senado.bo</span></p>
+        <p>Contraseña: <span class="font-mono">Admin123!</span></p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+// Usando ruta relativa para evitar problemas de path
+import { useAuthStore } from '@/stores/auth'
+import { ref, reactive, onMounted } from 'vue'
+
+// Para definePageMeta, podemos usar un enfoque diferente
+// En lugar de definePageMeta, podemos usar un middleware simple
+// o configurar el layout en el componente
+
+const authStore = useAuthStore()
+const isSubmitting = ref(false)
+const error = ref('')
+
+const form = reactive({
+  email: 'admin@senado.bo',
+  password: 'Admin123!',
+  remember: false
+})
+
+const handleLogin = async () => {
+  isSubmitting.value = true
+  error.value = ''
+
+  try {
+    await authStore.login(form.email, form.password)
+  } catch (err: any) {
+    error.value = err.message || 'Error de autenticación'
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+onMounted(() => {
+  if (authStore.isAuthenticated) {
+    window.location.href = '/dashboard'
+  }
+})
+</script> 
+================================= 
+pages\dashboard\index.vue 
+================================= 
+ 
+<!-- pages/dashboard/index.vue -->
+<template>
+  <div>
+    <!-- Estadísticas principales -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
+              <span class="text-blue-600 text-xl">📊</span>
+            </div>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-500">Visitas Hoy</p>
+            <p class="text-2xl font-semibold text-gray-900">1,248</p>
+            <p class="text-sm text-green-600">+12.5%</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <span class="text-green-600 text-xl">📝</span>
+            </div>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-500">Contenido Activo</p>
+            <p class="text-2xl font-semibold text-gray-900">342</p>
+            <p class="text-sm text-green-600">+8.2%</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
+              <span class="text-purple-600 text-xl">👥</span>
+            </div>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-500">Legisladores</p>
+            <p class="text-2xl font-semibold text-gray-900">36</p>
+            <p class="text-sm text-gray-500">Completo</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="h-12 w-12 bg-orange-100 rounded-lg flex items-center justify-center">
+              <span class="text-orange-600 text-xl">👤</span>
+            </div>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-500">Usuarios Activos</p>
+            <p class="text-2xl font-semibold text-gray-900">24</p>
+            <p class="text-sm text-green-600">+3.4%</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bienvenida -->
+    <div class="bg-white rounded-lg shadow p-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">¡Bienvenido al Panel de Administración!</h2>
+      <p class="text-gray-600 mb-4">
+        Sistema de gestión de contenido para el portal web del Senado de Bolivia.
+      </p>
+      
+      <div class="mt-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-3">Próximos pasos:</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="border border-gray-200 rounded-lg p-4">
+            <h4 class="font-medium text-gray-800 mb-2">✅ Configuración completada</h4>
+            <ul class="text-sm text-gray-600 space-y-1">
+              <li>• Nuxt 4 instalado</li>
+              <li>• Tailwind CSS funcionando</li>
+              <li>• Sistema de autenticación básico</li>
+              <li>• Layouts configurados</li>
+            </ul>
+          </div>
+          
+          <div class="border border-gray-200 rounded-lg p-4">
+            <h4 class="font-medium text-gray-800 mb-2">🚀 Próximo: Paso 3</h4>
+            <ul class="text-sm text-gray-600 space-y-1">
+              <li>• Store de Pinia para estado</li>
+              <li>• Servicios API para backend</li>
+              <li>• Componentes reutilizables</li>
+              <li>• CRUD de contenido</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { onMounted } from 'vue'
+import { useAuthStore } from '~/stores/auth'
+
+// Especificar layout
+definePageMeta({
+  layout: 'default'
+})
+
+const authStore = useAuthStore()
+
+// Verificar autenticación
+onMounted(() => {
+  authStore.initialize()
+  
+  if (!authStore.isAuthenticated) {
+    window.location.href = '/auth/login'
+  }
+})
+</script> 
+================================= 
+pages\tabs\index.vue 
+================================= 
+ 
+<!-- pages/tabs/index.vue -->
+<template>
+  <div>
+    <div class="flex justify-between items-center mb-6">
+      <div>
+        <h1 class="text-2xl font-semibold text-gray-900">Gestión de Tabs</h1>
+        <p class="text-gray-600">Administra y reordena las pestañas del portal</p>
+      </div>
+      <!-- se deshabilito porque no deberian crearse mas secciones -->
+      <!-- <button
+        @click="openCategoryModal()"
+        class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+      >
+        <span class="mr-2">+</span>
+        Nueva Categoría
+      </button> -->
+    </div>
+
+    <!-- Instrucciones -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-sm text-blue-700">
+      <div class="flex items-center space-x-2">
+        <span class="text-lg">🖱️</span>
+        <span><strong>Arrastra</strong> las categorías usando el ícono ⋮⋮ para reordenarlas. El cambio se guarda automáticamente.</span>
+      </div>
+    </div>
+
+    <!-- Lista de categorías -->
+    <div v-if="categoriesLoading" class="text-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+      <p class="mt-4 text-gray-600">Cargando categorías...</p>
+    </div>
+
+    <div v-else-if="categoriesError" class="bg-red-50 p-4 rounded-md">
+      <p class="text-red-800">{{ categoriesError }}</p>
+    </div>
+
+    <div v-else class="space-y-2">
+      <transition-group name="list" tag="div" class="space-y-2">
+        <div
+          v-for="(category, index) in orderedCategories"
+          :key="category.categoryId"
+          class="bg-white border rounded-lg overflow-hidden"
+          :class="{ 
+            'opacity-50': !category.isActive,
+            'dragging border-2 border-primary-500 shadow-lg': dragIndex === index
+          }"
+          :draggable="true"
+          @dragstart="handleDragStart($event, index, category)"
+          @dragover.prevent="handleDragOver($event, index)"
+          @dragend="handleDragEnd($event)"
+          @dragenter.prevent
+          @dragleave.prevent
+          @drop.prevent="handleDrop($event, index)"
+        >
+          <div class="p-6">
+            <div class="flex items-start">
+              <!-- Drag Handle -->
+              <div class="drag-handle cursor-grab text-gray-400 hover:text-gray-600 mr-4 mt-1 select-none text-2xl">
+                ⋮⋮
+              </div>
+
+              <!-- Contenido -->
+              <div class="flex-1">
+                <div class="flex items-center space-x-3">
+                  <div class="w-10 h-10 rounded-lg flex items-center justify-center ">
+                    <div class="w-6 h-6" v-html="category.icon"></div>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                      {{ category.name }}
+                      <span class="ml-3 text-xs text-gray-500">#{{ index + 1 }}</span>
+                    </h3>
+                    <p class="text-sm text-gray-500">ID: {{ category.categoryId }}</p>
+                  </div>
+                </div>
+                
+                <p class="mt-2 text-gray-600">{{ category.description }}</p>
+                
+                <div class="mt-4 flex items-center space-x-4 text-sm">
+                  <span class="text-gray-500">Orden: {{ category.order }}</span>
+                  <span class="text-gray-500">•</span>
+                  <span class="text-gray-500">Links: {{ category.linksCount || 0 }}</span>
+                  <span class="text-gray-500">•</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                    :class="category.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
+                  >
+                    {{ category.isActive ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Acciones -->
+              <div class="flex space-x-2">
+                <NuxtLink :to="`/tabs/categorias/${category.categoryId}/links`">
+                  <button
+                    class="p-2 text-gray-400 hover:text-primary-600"
+                    title="Gestionar Links"
+                  >
+                    🔗
+                  </button>
+                </NuxtLink>
+                <button
+                  @click="openCategoryModal(category)"
+                  class="p-2 text-gray-400 hover:text-primary-600"
+                  title="Editar"
+                >
+                  ✏️
+                </button>
+                <button
+                  @click="toggleCategory(category)"
+                  class="p-2 text-gray-400 hover:text-primary-600"
+                  :title="category.isActive ? 'Desactivar' : 'Activar'"
+                >
+                  {{ category.isActive ? '⏸️' : '▶️' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition-group>
+    </div>
+
+    <!-- Modal de Categoría -->
+    <Modal v-model="showCategoryModal" :title="modalTitle" size="lg">
+      <CategoryForm
+        :category="selectedCategory"
+        :loading="saving"
+        @submit="saveCategory"
+        @cancel="showCategoryModal = false"
+      />
+    </Modal>
+
+    <!-- Toast de notificación -->
+    <div v-if="toast.show" 
+         class="fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 z-50"
+         :class="{
+           'bg-green-500 text-white': toast.type === 'success',
+           'bg-red-500 text-white': toast.type === 'error',
+           'bg-blue-500 text-white': toast.type === 'info'
+         }"
+    >
+      {{ toast.message }}
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useTabsApi, type TabCategory } from '~/composables/useTabsApi'
+
+definePageMeta({
+  layout: 'default',
+  middleware: 'auth'
+})
+
+const tabsApi = useTabsApi()
+
+// Estado para categorías
+const categories = ref<TabCategory[]>([])
+const orderedCategories = ref<TabCategory[]>([])
+const categoriesLoading = ref(false)
+const categoriesError = ref<string | null>(null)
+
+// Estado para drag and drop
+const dragIndex = ref<number | null>(null)
+const isReordering = ref(false)
+
+// Estado para modal
+const showCategoryModal = ref(false)
+const selectedCategory = ref<TabCategory | null>(null)
+const saving = ref(false)
+
+// Estado para toast
+const toast = ref({
+  show: false,
+  message: '',
+  type: 'info' as 'success' | 'error' | 'info'
+})
+
+const modalTitle = computed(() => 
+  selectedCategory.value ? 'Editar Categoría' : 'Nueva Categoría'
+)
+
+// Mostrar toast
+const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+  toast.value = { show: true, message, type }
+  setTimeout(() => {
+    toast.value.show = false
+  }, 3000)
+}
+
+// Cargar categorías
+const loadCategories = async () => {
+  try {
+    categoriesLoading.value = true
+    categoriesError.value = null
+    const data = await tabsApi.getCategories(true)
+    categories.value = data
+    orderedCategories.value = [...data].sort((a, b) => a.order - b.order)
+  } catch (error: any) {
+    categoriesError.value = error.message
+    showToast(error.message, 'error')
+  } finally {
+    categoriesLoading.value = false
+  }
+}
+
+// Drag and drop
+const handleDragStart = (event: DragEvent, index: number, category: TabCategory) => {
+  dragIndex.value = index
+  event.dataTransfer?.setData('text/plain', JSON.stringify({
+    index,
+    categoryId: category.categoryId
+  }))
+  event.dataTransfer!.effectAllowed = 'move'
+}
+
+const handleDragOver = (event: DragEvent, index: number) => {
+  event.preventDefault()
+  if (dragIndex.value === null || dragIndex.value === index) return
+  event.dataTransfer!.dropEffect = 'move'
+}
+
+const handleDrop = (event: DragEvent, dropIndex: number) => {
+  event.preventDefault()
+  
+  if (dragIndex.value === null) return
+  
+  const data = event.dataTransfer?.getData('text/plain')
+  if (!data) return
+  
+  try {
+    const draggedData = JSON.parse(data)
+    
+    if (draggedData.index === dropIndex) {
+      dragIndex.value = null
+      return
+    }
+    
+    const newOrder = [...orderedCategories.value]
+    const [draggedItem] = newOrder.splice(draggedData.index, 1)
+    newOrder.splice(dropIndex, 0, draggedItem)
+    orderedCategories.value = newOrder
+    
+  } catch (error) {
+    console.error('Error parsing drag data:', error)
+  }
+}
+
+const handleDragEnd = async (event: DragEvent) => {
+  if (dragIndex.value === null || isReordering.value) {
+    dragIndex.value = null
+    return
+  }
+  
+  const orderToSend = orderedCategories.value.map((category, index) => ({
+    categoryId: category.categoryId,
+    order: (index + 1) * 10
+  }))
+  
+  try {
+    isReordering.value = true
+    
+    for (const item of orderToSend) {
+      await tabsApi.updateCategory(item.categoryId, { order: item.order })
+    }
+    
+    await loadCategories()
+    showToast('Orden actualizado correctamente', 'success')
+    
+  } catch (error: any) {
+    showToast('Error al actualizar el orden', 'error')
+    await loadCategories()
+  } finally {
+    isReordering.value = false
+    dragIndex.value = null
+  }
+}
+
+// Acciones de categoría
+const openCategoryModal = (category?: TabCategory) => {
+  selectedCategory.value = category || null
+  showCategoryModal.value = true
+}
+
+const saveCategory = async (formData: any) => {
+  try {
+    saving.value = true
+    if (selectedCategory.value) {
+      await tabsApi.updateCategory(selectedCategory.value.categoryId, formData)
+      showToast('Categoría actualizada', 'success')
+    } else {
+      await tabsApi.createCategory(formData)
+      showToast('Categoría creada', 'success')
+    }
+    showCategoryModal.value = false
+    await loadCategories()
+  } catch (error: any) {
+    showToast(error.message, 'error')
+  } finally {
+    saving.value = false
+  }
+}
+
+const toggleCategory = async (category: TabCategory) => {
+  try {
+    await tabsApi.updateCategory(category.categoryId, {
+      isActive: !category.isActive
+    })
+    await loadCategories()
+    showToast(
+      category.isActive ? 'Categoría desactivada' : 'Categoría activada',
+      'success'
+    )
+  } catch (error: any) {
+    showToast(error.message, 'error')
+  }
+}
+
+onMounted(() => {
+  loadCategories()
+})
+</script>
+
+<style scoped>
+.list-move {
+  transition: transform 0.3s ease;
+}
+
+.dragging {
+  opacity: 0.7;
+  transform: scale(1.02);
+  transition: all 0.2s ease;
+}
+
+[draggable=true] {
+  user-select: none;
+  -webkit-user-drag: element;
+}
+
+.drag-handle {
+  user-select: none;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.drag-handle * {
+  pointer-events: none;
+}
+</style> 
+================================= 
+pages\tabs\categorias\[categoryId]\links.vue 
+================================= 
+ 
+<!-- pages/tabs/categorias/[categoryId]/links.vue -->
+<template>
+  <div>
+    <div class="mb-6 flex items-center space-x-2">
+      <NuxtLink to="/tabs" class="text-gray-400 hover:text-gray-600 text-xl">
+        ←
+      </NuxtLink>
+      <h1 class="text-2xl font-semibold text-gray-900">Links: {{ categoryName }}</h1>
+    </div>
+
+    <!-- Instrucciones -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-sm text-blue-700">
+      <div class="flex items-center space-x-2">
+        <span class="text-lg">🖱️</span>
+        <span><strong>Arrastra</strong> los links usando el ícono ⋮⋮ para reordenarlos. El cambio se guarda automáticamente.</span>
+      </div>
+    </div>
+
+    <!-- Debug info (opcional) -->
+    <div v-if="debug" class="mb-4 p-4 bg-gray-100 rounded-lg text-xs font-mono">
+      <div>🔍 Debug:</div>
+      <div>links count: {{ links.length }}</div>
+      <div>loading: {{ loading }}</div>
+      <div>saving: {{ saving }}</div>
+    </div>
+
+    <LinksList
+      :category-id="categoryId"
+      :category-name="categoryName"
+      :links="links"
+      :loading="loading"
+      :error="error"
+      @create="openLinkModal()"
+      @edit="openLinkModal($event)"
+      @toggle="toggleLink"
+      @reorder="reorderLinks"
+    />
+
+    <!-- Modal de Link -->
+    <Modal v-model="showLinkModal" :title="modalTitle" size="lg">
+      <LinkForm
+        :link="selectedLink"
+        :category-id="categoryId"
+        :loading="saving"
+        @submit="saveLink"
+        @cancel="showLinkModal = false"
+      />
+    </Modal>
+
+    <!-- Toast -->
+    <div v-if="toast.show" 
+         class="fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 z-50"
+         :class="{
+           'bg-green-500 text-white': toast.type === 'success',
+           'bg-red-500 text-white': toast.type === 'error',
+           'bg-blue-500 text-white': toast.type === 'info'
+         }"
+    >
+      {{ toast.message }}
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useTabsApi, type TabLink } from '~/composables/useTabsApi'
+
+definePageMeta({
+  layout: 'default',
+  middleware: 'auth'
+})
+
+const route = useRoute()
+const tabsApi = useTabsApi()
+const categoryId = route.params.categoryId as string
+
+// Debug flag
+const debug = ref(false) // Cambiar a false en producción
+
+// Estado
+const categoryName = ref('')
+const links = ref<TabLink[]>([])
+const loading = ref(false)
+const error = ref<string | null>(null)
+
+// Modal
+const showLinkModal = ref(false)
+const selectedLink = ref<TabLink | null>(null)
+const saving = ref(false)
+
+// Toast
+const toast = ref({
+  show: false,
+  message: '',
+  type: 'info' as 'success' | 'error' | 'info'
+})
+
+const modalTitle = computed(() => 
+  selectedLink.value ? 'Editar Link' : 'Nuevo Link'
+)
+
+const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+  toast.value = { show: true, message, type }
+  setTimeout(() => {
+    toast.value.show = false
+  }, 3000)
+}
+
+// Cargar datos
+const loadData = async () => {
+  console.log('\n🔵 ===== loadData INICIANDO =====')
+  console.log('categoryId:', categoryId)
+  
+  try {
+    loading.value = true
+    error.value = null
+
+    // Cargar categoría
+    const category = await tabsApi.getCategory(categoryId)
+    categoryName.value = category.name
+
+    // Cargar links
+    const data = await tabsApi.getLinks({ 
+      categoryId, 
+      includeInactive: true 
+    })
+    
+    links.value = data.links || []
+    console.log('✅ Links cargados:', links.value.length)
+    
+  } catch (error: any) {
+    console.error('❌ ERROR en loadData:', error)
+    error.value = error.message
+    showToast(error.message, 'error')
+  } finally {
+    loading.value = false
+    console.log('🔵 ===== loadData COMPLETADO =====\n')
+  }
+}
+
+// Abrir modal de link
+const openLinkModal = (link?: TabLink) => {
+  console.log('🚪 Abriendo modal con link:', link?.linkId)
+  selectedLink.value = link || null
+  showLinkModal.value = true
+}
+
+// Guardar link - VERSIÓN CORREGIDA (todos los campos se actualizan)
+const saveLink = async (formData: any) => {
+  console.log('💾 Guardando link:', formData)
+  console.log('📦 Links antes de guardar:', links.value.map(l => ({ 
+    id: l.linkId, 
+    titulo: l.titulo,
+    descripcion: l.descripcion,
+    path: l.path,
+    orden: l.orden,
+    iconoPreview: l.icono ? l.icono.substring(0, 30) + '...' : 'VACÍO'
+  })))
+  
+  try {
+    saving.value = true
+    
+    if (selectedLink.value) {
+      // Actualizar link existente
+      console.log('📡 Actualizando link:', selectedLink.value.linkId)
+      
+      // Guardar el linkId antes de usarlo
+      const linkIdToUpdate = selectedLink.value.linkId
+      
+      // Enviar al servidor
+      const updatedLinkFromServer = await tabsApi.updateLink(
+        linkIdToUpdate, 
+        formData
+      )
+      console.log('✅ Respuesta del servidor:', updatedLinkFromServer)
+      
+      // ✅ ACTUALIZACIÓN CORREGIDA - Usar formData para TODOS los campos
+      const index = links.value.findIndex(l => l.linkId === linkIdToUpdate)
+      console.log('🔍 Índice encontrado:', index)
+      
+      if (index !== -1) {
+        // Crear nuevo array
+        const newLinks = [...links.value]
+        
+        // ✅ IMPORTANTE: Usar formData para todos los campos, no solo la respuesta
+        newLinks[index] = {
+          ...links.value[index],        // Mantener propiedades existentes (isActive, createdAt, etc.)
+          ...formData,                  // ← USAR formData (título, descripción, icono, path, orden)
+          linkId: links.value[index].linkId, // Asegurar que no se pierda el ID
+          categoryId: links.value[index].categoryId, // Mantener categoryId
+          isActive: links.value[index].isActive, // Mantener estado activo/inactivo
+          updatedAt: new Date().toISOString()
+        }
+        
+        // Asegurar que el icono esté presente
+        if (formData.icono) {
+          newLinks[index].icono = formData.icono
+        }
+        
+        // Asignar el nuevo array
+        links.value = newLinks
+        
+        console.log('✅ Link actualizado localmente con TODOS los campos:', {
+          id: newLinks[index].linkId,
+          titulo: newLinks[index].titulo,
+          descripcion: newLinks[index].descripcion,
+          path: newLinks[index].path,
+          orden: newLinks[index].orden,
+          iconoPreview: newLinks[index].icono ? newLinks[index].icono.substring(0, 30) + '...' : 'VACÍO'
+        })
+      }
+      
+      showToast('Link actualizado', 'success')
+    } else {
+      // Crear nuevo link
+      console.log('📡 Creando nuevo link')
+      const newLink = await tabsApi.createLink({
+        ...formData,
+        categoryId
+      })
+      console.log('✅ Link creado:', newLink)
+      
+      links.value = [...links.value, newLink].sort((a, b) => a.orden - b.orden)
+      showToast('Link creado', 'success')
+    }
+    
+    showLinkModal.value = false
+    
+    // Verificar después de guardar
+    console.log('📦 Links después de guardar:', links.value.map(l => ({ 
+      id: l.linkId, 
+      titulo: l.titulo,
+      descripcion: l.descripcion,
+      path: l.path,
+      orden: l.orden,
+      iconoPreview: l.icono ? l.icono.substring(0, 30) + '...' : 'VACÍO'
+    })))
+    
+  } catch (error: any) {
+    console.error('❌ Error guardando link:', error)
+    showToast(error.message, 'error')
+    // Solo recargar si hay error
+    await loadData()
+  } finally {
+    saving.value = false
+  }
+}
+
+// Activar/Desactivar link
+const toggleLink = async (link: TabLink) => {
+  console.log('🔄 Toggle link:', link.linkId, 'estado actual:', link.isActive)
+  
+  try {
+    await tabsApi.updateLink(link.linkId, {
+      isActive: !link.isActive
+    })
+    
+    // Actualizar localmente
+    const index = links.value.findIndex(l => l.linkId === link.linkId)
+    if (index !== -1) {
+      const newLinks = [...links.value]
+      newLinks[index] = {
+        ...newLinks[index],
+        isActive: !link.isActive
+      }
+      links.value = newLinks
+    }
+    
+    showToast(link.isActive ? 'Link desactivado' : 'Link activado', 'success')
+  } catch (error: any) {
+    console.error('❌ Error toggling link:', error)
+    showToast(error.message, 'error')
+    await loadData() // Recargar si hay error
+  }
+}
+
+// Reordenar links
+const reorderLinks = async (order: { linkId: string; position: number }[]) => {
+  console.log('📊 Reordenando links:', order)
+  
+  try {
+    await tabsApi.reorderLinks(categoryId, order)
+    await loadData() // Recargar para obtener el orden confirmado
+    showToast('Orden actualizado', 'success')
+  } catch (error: any) {
+    console.error('❌ Error reordering links:', error)
+    showToast(error.message, 'error')
+  }
+}
+
+onMounted(() => {
+  console.log('🚀 Página montada, cargando datos...')
+  loadData()
+})
+</script> 
+================================= 
+stores\auth.ts 
+================================= 
+ 
+// stores/auth.ts
+import { defineStore } from 'pinia'
+
+interface User {
+  id: number
+  email: string
+  name: string
+  role: string
+  profile?: {
+    firstName?: string
+    lastName?: string
+    position?: string
+    avatar?: string
+  }
+}
+
+export const useAuthStore = defineStore('auth', {
+  state: () => ({
+    user: null as User | null,
+    token: null as string | null,
+  }),
+
+  actions: {
+    // Inicializar desde localStorage
+    initialize() {
+      console.log('🔍 [AuthStore] Inicializando...')
+      
+      if (typeof window === 'undefined') {
+        console.log('⚠️ Window no disponible (SSR)')
+        return
+      }
+      
+      const token = localStorage.getItem('auth_token')
+      const userStr = localStorage.getItem('user')
+      
+      console.log('🔍 [AuthStore] Token:', token ? `${token.substring(0, 30)}...` : 'null')
+      console.log('🔍 [AuthStore] User:', userStr ? 'presente' : 'null')
+      
+      if (token && userStr) {
+        try {
+          const user = JSON.parse(userStr)
+          this.token = token
+          this.user = user
+          console.log('✅ [AuthStore] Sesión restaurada para:', user.email)
+          
+          // Verificar si el token sigue siendo válido
+          this.verifyToken()
+        } catch (error) {
+          console.error('❌ Error parsing user:', error)
+          this.clearAuth()
+        }
+      } else {
+        console.log('ℹ️ [AuthStore] No hay sesión previa')
+      }
+    },
+    
+    // Verificar si el token sigue siendo válido
+    async verifyToken() {
+      if (!this.token) return false
+      
+      console.log('🔍 [AuthStore] Verificando token...')
+      
+      try {
+        const response = await fetch('http://demoback.senado.gob.bo/api/auth/validate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token: this.token })
+        })
+        
+        const data = await response.json()
+        console.log('🔍 [AuthStore] Validación respuesta:', { valid: data.valid })
+        
+        if (!data.valid) {
+          console.log('⚠️ [AuthStore] Token inválido o expirado, cerrando sesión')
+          this.clearAuth()
+          if (typeof window !== 'undefined') {
+            window.location.href = '/auth/login'
+          }
+          return false
+        }
+        
+        console.log('✅ [AuthStore] Token válido')
+        return true
+      } catch (error) {
+        console.error('❌ [AuthStore] Error verificando token:', error)
+        return false
+      }
+    },
+    
+    // Login
+    async login(email: string, password: string) {
+      console.log('🔐 [AuthStore] Login con:', email)
+      
+      try {
+        const response = await fetch('http://demoback.senado.gob.bo/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password })
+        })
+
+        const data = await response.json()
+        console.log('📥 [AuthStore] Respuesta login:', { success: data.success, status: response.status })
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || 'Error de autenticación')
+        }
+
+        const { user, tokens } = data.data
+        const token = tokens.accessToken
+        
+        // Guardar en localStorage
+        localStorage.setItem('auth_token', token)
+        localStorage.setItem('user', JSON.stringify(user))
+        
+        // Actualizar estado
+        this.token = token
+        this.user = user
+        
+        console.log('✅ [AuthStore] Login exitoso! Redirigiendo a dashboard')
+        
+        // Redirigir a dashboard
+        if (typeof window !== 'undefined') {
+          window.location.href = '/dashboard'
+        }
+        
+        return { user, token }
+        
+      } catch (error: any) {
+        console.error('❌ [AuthStore] Error en login:', error)
+        this.clearAuth()
+        throw error
+      }
+    },
+    
+    // Logout
+    logout() {
+      console.log('👋 [AuthStore] Cerrando sesión')
+      this.clearAuth()
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/login'
+      }
+    },
+    
+    // Limpiar autenticación
+    clearAuth() {
+      console.log('🧹 [AuthStore] Limpiando autenticación')
+      this.user = null
+      this.token = null
+      
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token')
+        localStorage.removeItem('user')
+        console.log('✅ [AuthStore] localStorage limpiado')
+      }
+    },
+  },
+  
+  getters: {
+    isAuthenticated(): boolean {
+      const hasToken = !!this.token
+      const hasUser = !!this.user
+      const hasLocalStorage = typeof window !== 'undefined' && !!localStorage.getItem('auth_token')
+      const result = hasToken && hasUser && hasLocalStorage
+      console.log('🔍 [AuthStore] isAuthenticated:', result, { hasToken, hasUser, hasLocalStorage })
+      return result
+    },
+    
+    avatarInitials(): string {
+      if (!this.user?.profile) return this.user?.name?.charAt(0) || 'U'
+      const { firstName, lastName } = this.user.profile
+      return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}` || 'U'
+    },
+  },
+})
+
+export type { User } 
+================================= 
+types\auth.ts 
+================================= 
+ 
+// types/auth.ts
+export interface User {
+  id: number
+  email: string
+  name: string
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'EDITOR' | 'VIEWER' | 'CITIZEN'
+  profile?: {
+    firstName?: string
+    lastName?: string
+    position?: string
+    avatar?: string
+  }
+}
+
+export interface LoginCredentials {
+  email: string
+  password: string
+  remember?: boolean
+}
+
+export interface AuthState {
+  user: User | null
+  token: string | null
+  isAuthenticated: boolean
+} 
+================================= 
+types\auto-imports.d.ts 
+================================= 
+ 
+// types/auto-imports.d.ts
+// Esto ayuda a TypeScript a entender los auto-imports de Nuxt
+
+// Auto-imports de Vue
+declare global {
+  // Vue Composition API
+  const ref: typeof import('vue')['ref']
+  const reactive: typeof import('vue')['reactive']
+  const computed: typeof import('vue')['computed']
+  const watch: typeof import('vue')['watch']
+  const onMounted: typeof import('vue')['onMounted']
+  const onUnmounted: typeof import('vue')['onUnmounted']
+  const nextTick: typeof import('vue')['nextTick']
+  
+  // Nuxt
+  const useRoute: typeof import('#app')['useRoute']
+  const useRouter: typeof import('#app')['useRouter']
+  const navigateTo: typeof import('#app')['navigateTo']
+  const definePageMeta: typeof import('#app')['definePageMeta']
+  const defineNuxtRouteMiddleware: typeof import('#app')['defineNuxtRouteMiddleware']
+  const useRuntimeConfig: typeof import('#app')['useRuntimeConfig']
+  
+  // Nuxt composables
+  const useState: typeof import('#app')['useState']
+  const useFetch: typeof import('#app')['useFetch']
+  const useAsyncData: typeof import('#app')['useAsyncData']
+  
+  // Componentes de Nuxt
+  const NuxtLink: typeof import('#app')['NuxtLink']
+  const NuxtPage: typeof import('#app')['NuxtPage']
+}
+
+export {} 
+================================= 
+types\stores.d.ts 
+================================= 
+ 
+// types/stores.d.ts
+declare module '~/stores/auth' {
+  export interface User {
+    id: number
+    email: string
+    name: string
+    role: string
+    profile?: {
+      firstName?: string
+      lastName?: string
+      position?: string
+      avatar?: string
+    }
+  }
+
+  export const useAuthStore: () => {
+    // State
+    user: User | null
+    token: string | null
+    
+    // Actions
+    initialize: () => void
+    login: (email: string, password: string) => Promise<{ user: User, token: string }>
+    logout: () => void
+    clearAuth: () => void
+    
+    // Getters
+    isAuthenticated: boolean
+    avatarInitials: string
+  }
+} 
+Total archivos: 42 

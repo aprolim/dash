@@ -15,11 +15,13 @@ export interface NewsItem {
   featuredImage?: {
     url: string
     alt: string
+    name?: string
     caption?: string
   }
   gallery?: {
     url: string
     alt: string
+    name: string
     caption: string
     order: number
   }[]
@@ -88,9 +90,11 @@ export const useNews = () => {
     return result
   }
 
-  const uploadImage = async (file: File, alt?: string) => {
+  // ✅ CORREGIDO: Acepta 3 parámetros: file, name, alt
+  const uploadImage = async (file: File, name?: string, alt?: string) => {
     const formData = new FormData()
     formData.append('image', file)
+    if (name) formData.append('name', name)
     if (alt) formData.append('alt', alt)
 
     const token = localStorage.getItem('auth_token')

@@ -152,7 +152,7 @@
           
           <div class="p-6 space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Autor</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Autor (opcional)</label>
               <input 
                 v-model="citaForm.autor" 
                 type="text" 
@@ -162,7 +162,7 @@
             </div>
             
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Cargo / Rol</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Cargo / Rol (opcional)</label>
               <input 
                 v-model="citaForm.cargo" 
                 type="text" 
@@ -172,7 +172,9 @@
             </div>
             
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Texto de la cita</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Texto de la cita <span class="text-red-500">*</span>
+              </label>
               <textarea 
                 v-model="citaForm.texto" 
                 rows="4" 
@@ -284,32 +286,28 @@ const emit = defineEmits<{
 
 // Estado para modales
 const showCitaModal = ref(false)
-const editandoCita = ref(false)
-const citaSeleccionada = ref<any>(null)
 const showVideoModal = ref(false)
 
 const citaForm = ref({ autor: '', cargo: '', texto: '' })
 const videoForm = ref({ url: '', title: '', caption: '' })
 
 const abrirModalCita = () => {
-  editandoCita.value = false
-  citaSeleccionada.value = null
   citaForm.value = { autor: '', cargo: '', texto: '' }
   showCitaModal.value = true
 }
 
-// 🔥 Guardar cita en línea nueva
+// 🔥 Guardar cita - CORREGIDO
 const guardarCita = () => {
   if (!citaForm.value.texto.trim()) {
     alert('El texto de la cita es requerido')
     return
   }
   
-  const autor = citaForm.value.autor || 'Senado de Bolivia'
-  const cargo = citaForm.value.cargo || 'Cámara de Senadores'
-  const texto = citaForm.value.texto
+  const autor = citaForm.value.autor.trim() || 'Senado de Bolivia'
+  const cargo = citaForm.value.cargo.trim() || 'Cámara de Senadores'
+  const texto = citaForm.value.texto.trim()
   
-  // Crear marcador con saltos de línea
+  // Crear marcador con saltos de línea para separación
   const marker = `\n\n[[CITA:${autor}|${cargo}|${texto}]]\n\n`
   
   editor.value?.chain().focus().insertContent(marker).run()
@@ -318,7 +316,7 @@ const guardarCita = () => {
   showCitaModal.value = false
 }
 
-// 🔥 Guardar video en línea nueva
+// 🔥 Guardar video
 const guardarVideo = () => {
   if (!videoForm.value.url.trim()) {
     alert('La URL del video es requerida')
