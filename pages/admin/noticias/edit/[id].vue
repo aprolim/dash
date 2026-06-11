@@ -303,6 +303,8 @@ const router = useRouter()
 const authStore = useAuthStore()
 const { getNewsById, updateNews, uploadImage: uploadImageApi } = useNews()
 
+const API_BASE_URL = 'http://demoback.senado.gob.bo/api'
+
 const loading = ref(true)
 const saving = ref(false)
 const error = ref<string | null>(null)
@@ -372,6 +374,33 @@ const generateSlugFromTitle = () => {
 }
 
 // ============================================
+// VERIFICAR SI SLUG YA EXISTE EN LA BD (excluyendo la actual)
+// ============================================
+const checkSlugExists = async (slug: string, excludeId: string): Promise<boolean> => {
+  if (!slug) return false
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/content/slug/${slug}`)
+    
+    if (response.status === 404) {
+      return false
+    }
+    
+    if (response.ok) {
+      const result = await response.json()
+      const existingNewsId = result.data?._id
+      // Si existe y no es la noticia actual, está ocupado
+      return existingNewsId !== null && existingNewsId !== undefined && existingNewsId !== excludeId
+    }
+    
+    return false
+  } catch (error) {
+    console.error('Error verificando slug:', error)
+    return false
+  }
+}
+
+// ============================================
 // VALIDACIÓN DEL EXTRACTO
 // ============================================
 const validateExcerpt = () => {
@@ -379,7 +408,7 @@ const validateExcerpt = () => {
 }
 
 // ============================================
-// CONVERTIR HTML A BLOQUES - CORREGIDO
+// CONVERTIR HTML A BLOQUES
 // ============================================
 const convertirHTMLaBloques = (htmlContent: string) => {
   if (!htmlContent) return []
@@ -429,7 +458,6 @@ const convertirHTMLaBloques = (htmlContent: string) => {
       lastIndex = match.index + match[0].length
     }
     
-    // Buscar marcadores de CITA - CORREGIDO
     let textoPostVideo = textoRestante.substring(lastIndex)
     const citaRegex = /\[\[CITA:(.*?)\|(.*?)\|(.*?)\]\]/g
     lastIndex = 0
@@ -531,7 +559,7 @@ const convertirHTMLaBloques = (htmlContent: string) => {
 }
 
 // ============================================
-// CONVERTIR BLOQUES A HTML - CORREGIDO
+// CONVERTIR BLOQUES A HTML
 // ============================================
 const convertirBloquesAHTML = (blocks: any[]) => {
   if (!blocks || blocks.length === 0) return ''
@@ -742,6 +770,14 @@ const saveNews = async () => {
     return
   }
   
+  // 🔥 VERIFICAR SI EL NUEVO SLUG YA EXISTE EN OTRA NOTICIA
+  const currentId = route.params.id as string
+  const slugExists = await checkSlugExists(form.slug, currentId)
+  if (slugExists) {
+    alert(`❌ ERROR: El slug "${form.slug}" ya está siendo usado por otra noticia.\n\nPor favor, cambia el slug (URL amigable) e intenta nuevamente.`)
+    return
+  }
+  
   if (!form.excerpt?.trim()) {
     alert('El extracto/resumen es obligatorio. Aparecerá en Google, redes sociales y listados de noticias.')
     return
@@ -805,7 +841,11 @@ const saveNews = async () => {
     router.push('/admin/noticias')
   } catch (err: any) {
     console.error('Error:', err)
-    alert(err.message || 'Error al guardar los cambios')
+    if (err.message?.includes('duplicate key') || err.message?.includes('E11000')) {
+      alert(`❌ ERROR: El slug "${form.slug}" ya está siendo usado por otra noticia.\n\nPor favor, cambia el slug e intenta nuevamente.`)
+    } else {
+      alert(err.message || 'Error al guardar los cambios')
+    }
   } finally {
     saving.value = false
   }

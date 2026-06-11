@@ -293,6 +293,8 @@ const router = useRouter()
 const authStore = useAuthStore()
 const { createNews, uploadImage: uploadImageApi } = useNews()
 
+const API_BASE_URL = 'http://demoback.senado.gob.bo/api'
+
 const saving = ref(false)
 
 // Variables para imágenes
@@ -360,6 +362,31 @@ const generateSlugFromTitle = () => {
 }
 
 // ============================================
+// VERIFICAR SI SLUG YA EXISTE EN LA BD
+// ============================================
+const checkSlugExists = async (slug: string): Promise<boolean> => {
+  if (!slug) return false
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/content/slug/${slug}`)
+    
+    if (response.status === 404) {
+      return false // No existe, está bien
+    }
+    
+    if (response.ok) {
+      const result = await response.json()
+      return result.data !== null && result.data !== undefined
+    }
+    
+    return false
+  } catch (error) {
+    console.error('Error verificando slug:', error)
+    return false
+  }
+}
+
+// ============================================
 // VALIDACIÓN DEL EXTRACTO
 // ============================================
 const validateExcerpt = () => {
@@ -367,7 +394,7 @@ const validateExcerpt = () => {
 }
 
 // ============================================
-// CONVERTIR HTML A BLOQUES - CORREGIDO
+// CONVERTIR HTML A BLOQUES
 // ============================================
 const convertirHTMLaBloques = (htmlContent: string) => {
   if (!htmlContent) return []
@@ -383,7 +410,6 @@ const convertirHTMLaBloques = (htmlContent: string) => {
     let textoRestante = texto
     let lastIndex = 0
     
-    // Buscar marcadores de VIDEO
     const videoRegex = /\[\[VIDEO:(.*?)\|(.*?)\|(.*?)\]\]/g
     let match
     
@@ -418,7 +444,6 @@ const convertirHTMLaBloques = (htmlContent: string) => {
       lastIndex = match.index + match[0].length
     }
     
-    // Buscar marcadores de CITA - CORREGIDO
     let textoPostVideo = textoRestante.substring(lastIndex)
     const citaRegex = /\[\[CITA:(.*?)\|(.*?)\|(.*?)\]\]/g
     lastIndex = 0
@@ -431,12 +456,10 @@ const convertirHTMLaBloques = (htmlContent: string) => {
         }
       }
       
-      // Extraer y limpiar datos
       let autor = match[1] || 'Senado de Bolivia'
       let cargo = match[2] || 'Cámara de Senadores'
       let texto = match[3] || ''
       
-      // Limpiar saltos de línea y espacios extras
       autor = autor.trim().replace(/\n/g, ' ')
       cargo = cargo.trim().replace(/\n/g, ' ')
       texto = texto.trim().replace(/\n/g, ' ').replace(/\s+/g, ' ')
@@ -453,7 +476,6 @@ const convertirHTMLaBloques = (htmlContent: string) => {
       lastIndex = match.index + match[0].length
     }
     
-    // Texto después del último marcador
     const textoFinal = textoPostVideo.substring(lastIndex).trim()
     if (textoFinal) {
       resultados.push({ type: 'paragraph', content: `<p>${textoFinal}</p>` })
@@ -462,7 +484,6 @@ const convertirHTMLaBloques = (htmlContent: string) => {
     return resultados
   }
   
-  // Procesar cada nodo del HTML
   tempDiv.childNodes.forEach(node => {
     if (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) {
       const resultados = procesarTextoConMarcadores(node.textContent)
@@ -660,6 +681,13 @@ const saveNews = async () => {
     return
   }
   
+  // 🔥 VERIFICAR SI EL SLUG YA EXISTE EN LA BASE DE DATOS
+  const slugExists = await checkSlugExists(form.slug)
+  if (slugExists) {
+    alert(`❌ ERROR: El slug "${form.slug}" ya está siendo usado por otra noticia.\n\nPor favor, cambia el slug (URL amigable) e intenta nuevamente.`)
+    return
+  }
+  
   if (!form.excerpt?.trim()) {
     alert('El extracto/resumen es obligatorio. Aparecerá en Google, redes sociales y listados de noticias.')
     return
@@ -722,7 +750,12 @@ const saveNews = async () => {
     router.push('/admin/noticias')
   } catch (error: any) {
     console.error('Error:', error)
-    alert(error.message || 'Error al crear la noticia')
+    // Manejo de error por si acaso el backend también devuelve error
+    if (error.message?.includes('duplicate key') || error.message?.includes('E11000')) {
+      alert(`❌ ERROR: El slug "${form.slug}" ya está siendo usado por otra noticia.\n\nPor favor, cambia el slug e intenta nuevamente.`)
+    } else {
+      alert(error.message || 'Error al crear la noticia')
+    }
   } finally {
     saving.value = false
   }

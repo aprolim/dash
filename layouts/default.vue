@@ -45,7 +45,13 @@
             >
               Noticias
             </NuxtLink>
-            
+            <NuxtLink 
+              to="/admin/sesiones" 
+              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
+              :class="{ 'text-primary-600 border-b-2 border-primary-600': isActiveRoute('/admin/sesiones') }"
+            >
+              Sesiones
+            </NuxtLink>
             <button 
               @click.prevent="showComingSoon('Contenido')"
               class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium"
