@@ -11,7 +11,7 @@ export interface NewsItem {
   type: 'news' | 'article' | 'announcement' | 'page'
   category: 'noticia' | 'importante'
   tags: string[]
-  status: 'draft' | 'published' | 'archived'
+  status: 'draft' | 'published' | 'archived' | 'scheduled'
   featuredImage?: {
     url: string
     alt: string
@@ -26,6 +26,7 @@ export interface NewsItem {
     order: number
   }[]
   publishedAt?: string
+  scheduledFor?: string
   views: number
   author: {
     _id: string
@@ -47,7 +48,7 @@ export const useNews = () => {
   const getNews = async (params?: {
     page?: number
     limit?: number
-    status?: string
+    status?: 'all' | 'published' | 'draft' | 'archived' | 'scheduled'
     type?: string
     category?: string
     search?: string
@@ -90,7 +91,6 @@ export const useNews = () => {
     return result
   }
 
-  // ✅ CORREGIDO: Acepta 3 parámetros: file, name, alt
   const uploadImage = async (file: File, name?: string, alt?: string) => {
     const formData = new FormData()
     formData.append('image', file)

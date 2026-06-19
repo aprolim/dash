@@ -27,6 +27,7 @@
         <option value="published">✅ Publicadas</option>
         <option value="draft">📝 Borradores</option>
         <option value="archived">📦 Archivadas</option>
+        <option value="scheduled">⏰ Programadas</option>
       </select>
       
       <select 
@@ -94,7 +95,7 @@
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Título</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha/Hora</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visitas</th>
             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
           </tr>
@@ -116,7 +117,17 @@
               </span>
             </td>
             <td class="px-6 py-4 text-sm text-gray-500">
-              {{ item.publishedAt ? new Date(item.publishedAt).toLocaleDateString('es-ES') : '-' }}
+              <div v-if="item.status === 'scheduled' && item.scheduledFor">
+                <span class="text-yellow-600">⏰ Programada:</span>
+                {{ new Date(item.scheduledFor).toLocaleString('es-ES') }}
+              </div>
+              <div v-else-if="item.publishedAt">
+                <span class="text-green-600">📅 Publicada:</span>
+                {{ new Date(item.publishedAt).toLocaleString('es-ES') }}
+              </div>
+              <div v-else>
+                <span class="text-gray-400">Sin fecha</span>
+              </div>
             </td>
             <td class="px-6 py-4 text-sm text-gray-500">{{ item.views || 0 }}</td>
             <td class="px-6 py-4 text-right text-sm font-medium">
@@ -124,9 +135,6 @@
                 <NuxtLink :to="`/admin/noticias/edit/${item._id}`" class="text-primary-600 hover:text-primary-900">
                   Editar
                 </NuxtLink>
-                <!-- <button @click="toggleStatus(item)" class="text-yellow-600 hover:text-yellow-900">
-                  {{ item.status === 'published' ? 'Archivar' : 'Publicar' }}
-                </button> -->
                 <button @click="confirmDelete(item)" class="text-red-600 hover:text-red-900">
                   Eliminar
                 </button>
@@ -189,7 +197,7 @@ definePageMeta({
   middleware: 'auth'
 })
 
-const { getNews, deleteNews: deleteNewsApi, changeStatus } = useNews()
+const { getNews, deleteNews: deleteNewsApi } = useNews()
 
 const newsList = ref<NewsItem[]>([])
 const loading = ref(false)
@@ -198,7 +206,6 @@ const page = ref(1)
 const totalPages = ref(1)
 const total = ref(0)
 
-// 🔥 CORREGIDO: Añadida la propiedad 'category'
 const filters = ref({
   status: 'all',
   type: 'all',
@@ -208,28 +215,24 @@ const filters = ref({
 
 let searchTimeout: NodeJS.Timeout
 
-// 🔥 Función que se llama cuando cambia el filtro de estado
 const onStatusChange = () => {
   console.log('🔽 [onStatusChange] Nuevo status:', filters.value.status)
   page.value = 1
   loadNews()
 }
 
-// 🔥 Función que se llama cuando cambia el filtro de categoría
 const onCategoryChange = () => {
   console.log('🔽 [onCategoryChange] Nueva categoría:', filters.value.category)
   page.value = 1
   loadNews()
 }
 
-// 🔥 Función que se llama cuando cambia el filtro de tipo
 const onTypeChange = () => {
   console.log('🔽 [onTypeChange] Nuevo type:', filters.value.type)
   page.value = 1
   loadNews()
 }
 
-// 🔥 Función para búsqueda con debounce
 const onSearchInput = () => {
   if (searchTimeout) clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
@@ -239,7 +242,6 @@ const onSearchInput = () => {
   }, 500)
 }
 
-// 🔥 Función para limpiar filtros
 const resetFilters = () => {
   console.log('🔄 [Reset] Limpiando filtros')
   filters.value = { status: 'all', type: 'all', category: 'all', search: '' }
@@ -326,19 +328,6 @@ const nextPage = () => {
   }
 }
 
-const toggleStatus = async (item: NewsItem) => {
-  const newStatus = item.status === 'published' ? 'archived' : 'published'
-  console.log('🔄 [ToggleStatus]', item.title, 'de', item.status, 'a', newStatus)
-  try {
-    await changeStatus(item._id, newStatus)
-    await loadNews()
-  } catch (err) {
-    console.error('Error toggling status:', err)
-    alert('Error al cambiar el estado')
-  }
-}
-
-// Delete
 const showDeleteModal = ref(false)
 const newsToDelete = ref<NewsItem | null>(null)
 const deleting = ref(false)
@@ -369,7 +358,8 @@ const statusClass = (status: string) => {
   const classes: Record<string, string> = {
     published: 'bg-green-100 text-green-800',
     draft: 'bg-yellow-100 text-yellow-800',
-    archived: 'bg-gray-100 text-gray-800'
+    archived: 'bg-gray-100 text-gray-800',
+    scheduled: 'bg-blue-100 text-blue-800'
   }
   return classes[status] || 'bg-gray-100 text-gray-800'
 }
@@ -378,7 +368,8 @@ const statusText = (status: string) => {
   const texts: Record<string, string> = {
     published: 'Publicada',
     draft: 'Borrador',
-    archived: 'Archivada'
+    archived: 'Archivada',
+    scheduled: '⏰ Programada'
   }
   return texts[status] || status
 }

@@ -33,7 +33,7 @@
         <p class="text-xs text-gray-500 mt-1">Usa *texto* para palabras en color rojo (ej: *Senado* aprueba ley)</p>
       </div>
 
-      <!-- Slug - EDITABLE CON VALIDACIÓN -->
+      <!-- Slug -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">
           Slug (URL amigable) <span class="text-red-500">*</span>
@@ -70,7 +70,7 @@
         </p>
       </div>
 
-      <!-- Extracto - OBLIGATORIO -->
+      <!-- Extracto -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">
           Extracto / Resumen <span class="text-red-500">*</span>
@@ -90,13 +90,12 @@
             <span v-if="excerptCharCount > 300" class="text-red-500 font-medium"> (¡Máximo excedido!)</span>
           </p>
           <p class="text-xs text-blue-600">
-            📌 Este texto aparecerá en:
-            <span class="font-medium">Listados de noticias | Google | Facebook | Twitter</span>
+            📌 Este texto aparecerá en: <span class="font-medium">Listados de noticias | Google | Facebook | Twitter</span>
           </p>
         </div>
       </div>
 
-      <!-- Contenido con editor -->
+      <!-- Contenido -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">
           Contenido <span class="text-red-500">*</span>
@@ -104,9 +103,7 @@
         <TiptapEditor v-model="form.content" placeholder="Escribe el contenido de la noticia aquí..." />
       </div>
 
-      <!-- ============================================ -->
-      <!-- IMAGEN DESTACADA - OBLIGATORIA -->
-      <!-- ============================================ -->
+      <!-- Imagen Destacada -->
       <div class="border-t pt-6">
         <h3 class="text-lg font-medium text-gray-900 mb-4">📷 Imagen Destacada <span class="text-red-500">*</span></h3>
         <p class="text-sm text-gray-500 mb-3">Esta será la primera imagen que aparecerá en el carrusel de la noticia</p>
@@ -149,7 +146,6 @@
           <p class="text-xs text-blue-600 mt-1">📌 Este texto se mostrará debajo de la imagen en el carrusel del frontend</p>
         </div>
         
-        <!-- VISTA PREVIA -->
         <div v-if="featuredPreviewUrl" class="mt-4 p-4 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300">
           <h4 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
             <span class="text-green-600">✓</span> Vista previa:
@@ -165,9 +161,7 @@
         </div>
       </div>
 
-      <!-- ============================================ -->
-      <!-- GALERÍA DE IMÁGENES - SIMPLIFICADA -->
-      <!-- ============================================ -->
+      <!-- Galería -->
       <div class="border-t pt-6">
         <h3 class="text-lg font-medium text-gray-900 mb-4">🖼️ Galería de Imágenes</h3>
         <p class="text-sm text-gray-500 mb-3">Estas imágenes aparecerán después de la imagen destacada en el carrusel</p>
@@ -202,7 +196,6 @@
               <div class="flex-shrink-0">
                 <img :src="img.url" class="h-20 w-20 object-cover rounded-lg" />
               </div>
-              
               <div class="flex-1">
                 <label class="block text-xs font-medium text-gray-700 mb-1">
                   Texto que aparecerá DEBAJO de la imagen <span class="text-red-500">*</span>
@@ -216,7 +209,6 @@
                 />
                 <p class="text-xs text-blue-600 mt-1">📌 Este texto se mostrará debajo de esta imagen</p>
               </div>
-              
               <button
                 type="button"
                 @click="removeGalleryImage(idx)"
@@ -232,23 +224,212 @@
         </div>
       </div>
 
-      <!-- Categoría y Estado -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-t pt-6">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-          <select v-model="form.category" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-            <option value="noticia">📰 Noticia</option>
-            <option value="importante">⭐ Importante</option>
-          </select>
+      <!-- Categoría, Estado y Programación -->
+      <div class="border-t pt-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+            <select v-model="form.category" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+              <option value="noticia">📰 Noticia</option>
+              <option value="importante">⭐ Importante</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Estado de publicación</label>
+            <select 
+              v-model="form.status" 
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="draft">📝 Borrador</option>
+              <option value="published">✅ Publicar ahora</option>
+              <option value="scheduled">⏰ Programar</option>
+              <option value="archived">📦 Archivado</option>
+            </select>
+            <p class="text-xs text-gray-500 mt-1">
+              "Programar" permite definir fecha y hora de publicación futura
+            </p>
+          </div>
         </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-          <select v-model="form.status" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-            <option value="published">✅ Publicado</option>
-            <option value="draft">📝 Borrador</option>
-            <option value="archived">📦 Archivado</option>
-          </select>
+        <!-- 🔥 ADVERTENCIAS VISUALES SEGÚN ESTADO (igual que en create) -->
+        
+        <!-- Borrador con fecha -->
+        <div v-if="form.status === 'draft' && (form.publishedDate || form.scheduledDate)" 
+             class="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p class="text-sm text-yellow-800">
+            ⚠️ <strong>Nota:</strong> Esta noticia está en <strong>BORRADOR</strong>.
+            La fecha que configures se guardará pero NO se usará para publicación automática.
+            <br>
+            <span class="text-xs text-yellow-600">
+              💡 Cuando cambies a "Publicar ahora", se usará la fecha que tengas configurada.
+            </span>
+          </p>
+        </div>
+        
+        <!-- Publicar ahora con fecha futura (ERROR) -->
+        <div v-if="form.status === 'published' && isFutureDate" 
+             class="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p class="text-sm text-red-800">
+            ❌ <strong>Error:</strong> Para "Publicar ahora", la fecha debe ser ACTUAL o PASADA.
+            <br>
+            <span class="text-xs">
+              Fecha configurada: <strong>{{ form.publishedDate }} {{ form.publishedTime }}</strong>
+              (es FUTURA)
+            </span>
+            <br>
+            <span class="text-xs text-red-600">
+              💡 Si quieres que se publique automáticamente en el futuro, usa <strong>"Programar"</strong>.
+            </span>
+          </p>
+        </div>
+        
+        <!-- Programar con fecha pasada (ERROR) -->
+        <div v-if="form.status === 'scheduled' && isScheduledPastDate" 
+             class="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p class="text-sm text-red-800">
+            ❌ <strong>Error:</strong> Para "Programar", la fecha debe ser FUTURA.
+            <br>
+            <span class="text-xs">
+              Fecha configurada: <strong>{{ form.scheduledDate }} {{ form.scheduledTime }}</strong>
+              (es PASADA)
+            </span>
+            <br>
+            <span class="text-xs text-red-600">
+              💡 Si quieres publicar ahora, usa <strong>"Publicar ahora"</strong>.
+            </span>
+          </p>
+        </div>
+        
+        <!-- Programar sin fecha (ERROR) -->
+        <div v-if="form.status === 'scheduled' && (!form.scheduledDate || !form.scheduledTime)" 
+             class="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p class="text-sm text-red-800">
+            ❌ <strong>Error:</strong> Para programar una noticia, debes especificar <strong>fecha y hora</strong>.
+          </p>
+        </div>
+        
+        <!-- Archivado con fecha (ADVERTENCIA) -->
+        <div v-if="form.status === 'archived' && (form.publishedDate || form.scheduledDate)" 
+             class="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p class="text-sm text-yellow-800">
+            ⚠️ <strong>Nota:</strong> Esta noticia está <strong>ARCHIVADA</strong>.
+            La fecha que configures se guardará pero NO se usará para publicación.
+            <br>
+            <span class="text-xs text-yellow-600">
+              💡 Si quieres volver a publicarla, cambia a "Publicar ahora" o "Programar".
+            </span>
+          </p>
+        </div>
+        
+        <!-- Fecha y hora de programación -->
+        <div v-if="form.status === 'scheduled'" class="mt-4 border-l-4 border-yellow-400 pl-4">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Fecha <span class="text-red-500">*</span>
+              </label>
+              <input
+                v-model="form.scheduledDate"
+                type="date"
+                :min="minDate"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Hora <span class="text-red-500">*</span>
+              </label>
+              <input
+                v-model="form.scheduledTime"
+                type="time"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+          </div>
+          <p class="text-xs text-yellow-600 mt-2">
+            ⏰ La noticia será visible automáticamente el {{ form.scheduledDate || 'YYYY-MM-DD' }} a las {{ form.scheduledTime || 'HH:MM' }}
+          </p>
+          <p class="text-xs text-gray-500 mt-1">
+            💡 Si hoy es lunes y programas para martes 8:00 AM, la noticia aparecerá automáticamente a esa hora
+          </p>
+        </div>
+
+        <!-- Fecha de Publicación (visible para todos los estados) -->
+        <div class="mt-4 border-t border-gray-200 pt-4">
+          <h4 class="text-sm font-medium text-gray-700 mb-3">📅 Fecha de Publicación</h4>
+          <p class="text-xs text-gray-500 mb-2">
+            Por defecto se usa la fecha/hora actual. 
+            <span v-if="form.status === 'draft'" class="text-yellow-600">
+              ⚠️ En borrador, la fecha se guarda pero NO se usa.
+            </span>
+            <span v-if="form.status === 'published'" class="text-green-600">
+              ✅ Se usará esta fecha al publicar.
+            </span>
+            <span v-if="form.status === 'scheduled'" class="text-blue-600">
+              ℹ️ Para programar, usa la sección "Programar" arriba.
+            </span>
+            <span v-if="form.status === 'archived'" class="text-gray-600">
+              📦 En archivado, la fecha se guarda pero NO se usa.
+            </span>
+          </p>
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Fecha
+              </label>
+              <input
+                v-model="form.publishedDate"
+                type="date"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Hora
+              </label>
+              <input
+                v-model="form.publishedTime"
+                type="time"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div class="flex items-end">
+              <button
+                type="button"
+                @click="setNow"
+                class="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+              >
+                📅 Usar ahora
+              </button>
+            </div>
+          </div>
+          
+          <div v-if="form.publishedDate && form.publishedTime" class="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+            <p class="text-sm text-green-700">
+              <span class="font-medium">📝 Fecha configurada:</span> 
+              {{ form.publishedDate }} a las {{ form.publishedTime }}
+            </p>
+            <p v-if="form.status === 'draft'" class="text-xs text-yellow-600 mt-1">
+              ⚠️ Esta fecha se guardará pero NO se usará hasta que cambies el estado a "Publicar ahora".
+            </p>
+            <p v-if="form.status === 'published'" class="text-xs text-green-600 mt-1">
+              ✅ La noticia se publicará con esta fecha.
+            </p>
+            <p v-if="form.status === 'archived'" class="text-xs text-gray-500 mt-1">
+              📦 Esta fecha se guarda pero no se usa porque la noticia está archivada.
+            </p>
+          </div>
+          
+          <div v-if="form.publishedAt && !form.publishedDate" class="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <p class="text-sm text-blue-700">
+              <span class="font-medium">📅 Fecha actual en BD:</span> 
+              {{ new Date(form.publishedAt).toLocaleString('es-ES') }}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -289,8 +470,8 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, reactive, watch, onMounted, computed } from 'vue'
+<script setup>
+import { ref, reactive, watch, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '~/stores/auth'
 import { useNews } from '~/composables/useNews'
@@ -307,25 +488,45 @@ const API_BASE_URL = 'http://demoback.senado.gob.bo/api'
 
 const loading = ref(true)
 const saving = ref(false)
-const error = ref<string | null>(null)
+const error = ref(null)
 
-// Variables para imágenes
-const fileInput = ref<HTMLInputElement>()
-const galleryFileInput = ref<HTMLInputElement>()
+const fileInput = ref(null)
+const galleryFileInput = ref(null)
 const uploadingImage = ref(false)
 const uploadingGalleryImage = ref(false)
 const uploadProgress = ref('')
 const galleryUploadProgress = ref('')
 const featuredPreviewUrl = ref('')
 
-// Contador de caracteres del extracto
 const excerptCharCount = computed(() => form.excerpt?.length || 0)
 
-// ============================================
-// FUNCIONES DE SLUG
-// ============================================
+// Fecha mínima para programación
+const minDate = computed(() => {
+  const today = new Date()
+  return today.toISOString().split('T')[0]
+})
+
+// 🔥 Computed para validar fechas (igual que en create)
+const isFutureDate = computed(() => {
+  if (!form.publishedDate || !form.publishedTime) return false
+  const fechaPub = new Date(`${form.publishedDate}T${form.publishedTime}:00`)
+  return fechaPub > new Date()
+})
+
+const isScheduledPastDate = computed(() => {
+  if (!form.scheduledDate || !form.scheduledTime) return false
+  const fechaProg = new Date(`${form.scheduledDate}T${form.scheduledTime}:00`)
+  return fechaProg <= new Date()
+})
+
+// Slug validation
+const slugValidation = reactive({ 
+  isValid: null, 
+  error: '' 
+})
+
 const slugUtils = {
-  normalizeToSlug: (text: string): string => {
+  normalizeToSlug: (text) => {
     if (!text) return ''
     return text
       .toLowerCase()
@@ -336,14 +537,12 @@ const slugUtils = {
       .replace(/^-+|-+$/g, '')
       .replace(/-+/g, '-')
   },
-  
-  isValidSlug: (slug: string): boolean => {
+  isValidSlug: (slug) => {
     if (!slug) return false
     const slugRegex = /^[a-z0-9]+(-[a-z0-9]+)*$/
     return slugRegex.test(slug) && slug.length >= 3
   },
-  
-  getErrorMessage: (slug: string): string => {
+  getErrorMessage: (slug) => {
     if (!slug) return 'El slug es requerido'
     if (slug.length < 3) return 'El slug debe tener al menos 3 caracteres'
     if (!/^[a-z0-9-]+$/.test(slug)) return 'El slug solo puede contener letras minúsculas, números y guiones'
@@ -352,12 +551,6 @@ const slugUtils = {
     return ''
   }
 }
-
-// Estado de validación del slug
-const slugValidation = reactive({
-  isValid: null as boolean | null,
-  error: ''
-})
 
 const validateSlug = () => {
   const error = slugUtils.getErrorMessage(form.slug)
@@ -373,229 +566,52 @@ const generateSlugFromTitle = () => {
   }
 }
 
-// ============================================
-// VERIFICAR SI SLUG YA EXISTE EN LA BD (excluyendo la actual)
-// ============================================
-const checkSlugExists = async (slug: string, excludeId: string): Promise<boolean> => {
+const validateExcerpt = () => {}
+
+const checkSlugExists = async (slug, excludeId) => {
   if (!slug) return false
-  
   try {
     const response = await fetch(`${API_BASE_URL}/content/slug/${slug}`)
-    
-    if (response.status === 404) {
-      return false
-    }
-    
+    if (response.status === 404) return false
     if (response.ok) {
       const result = await response.json()
       const existingNewsId = result.data?._id
-      // Si existe y no es la noticia actual, está ocupado
       return existingNewsId !== null && existingNewsId !== undefined && existingNewsId !== excludeId
     }
-    
     return false
-  } catch (error) {
-    console.error('Error verificando slug:', error)
+  } catch {
     return false
   }
 }
 
-// ============================================
-// VALIDACIÓN DEL EXTRACTO
-// ============================================
-const validateExcerpt = () => {
-  // Solo validación visual
-}
-
-// ============================================
-// CONVERTIR HTML A BLOQUES
-// ============================================
-const convertirHTMLaBloques = (htmlContent: string) => {
-  if (!htmlContent) return []
-  
-  const bloques: any[] = []
-  const tempDiv = document.createElement('div')
-  tempDiv.innerHTML = htmlContent
-  
-  const procesarTextoConMarcadores = (texto: string) => {
-    if (!texto) return []
-    
-    const resultados: any[] = []
-    let textoRestante = texto
-    let lastIndex = 0
-    
-    const videoRegex = /\[\[VIDEO:(.*?)\|(.*?)\|(.*?)\]\]/g
-    let match
-    
-    while ((match = videoRegex.exec(textoRestante)) !== null) {
-      if (match.index > lastIndex) {
-        const textoAntes = textoRestante.substring(lastIndex, match.index).trim()
-        if (textoAntes) {
-          resultados.push({ type: 'paragraph', content: `<p>${textoAntes}</p>` })
-        }
-      }
-      
-      const url = match[1]
-      const title = match[2] || 'Video'
-      const caption = match[3] || ''
-      
-      let embedUrl = url
-      if (url.includes('youtube.com/watch?v=')) {
-        const videoId = url.split('v=')[1]?.split('&')[0]
-        embedUrl = `https://www.youtube.com/embed/${videoId}`
-      } else if (url.includes('youtu.be/')) {
-        const videoId = url.split('youtu.be/')[1]?.split('?')[0]
-        embedUrl = `https://www.youtube.com/embed/${videoId}`
-      }
-      
-      resultados.push({
-        type: 'video',
-        url: embedUrl,
-        title: title,
-        caption: caption
-      })
-      
-      lastIndex = match.index + match[0].length
-    }
-    
-    let textoPostVideo = textoRestante.substring(lastIndex)
-    const citaRegex = /\[\[CITA:(.*?)\|(.*?)\|(.*?)\]\]/g
-    lastIndex = 0
-    
-    while ((match = citaRegex.exec(textoPostVideo)) !== null) {
-      if (match.index > lastIndex) {
-        const textoAntes = textoPostVideo.substring(lastIndex, match.index).trim()
-        if (textoAntes) {
-          resultados.push({ type: 'paragraph', content: `<p>${textoAntes}</p>` })
-        }
-      }
-      
-      let autor = match[1] || 'Senado de Bolivia'
-      let cargo = match[2] || 'Cámara de Senadores'
-      let texto = match[3] || ''
-      
-      autor = autor.trim().replace(/\n/g, ' ')
-      cargo = cargo.trim().replace(/\n/g, ' ')
-      texto = texto.trim().replace(/\n/g, ' ').replace(/\s+/g, ' ')
-      
-      console.log('📝 Cita detectada en edit:', { autor, cargo, texto: texto.substring(0, 50) + '...' })
-      
-      resultados.push({
-        type: 'quote',
-        content: texto,
-        author: autor,
-        role: cargo
-      })
-      
-      lastIndex = match.index + match[0].length
-    }
-    
-    const textoFinal = textoPostVideo.substring(lastIndex).trim()
-    if (textoFinal) {
-      resultados.push({ type: 'paragraph', content: `<p>${textoFinal}</p>` })
-    }
-    
-    return resultados
-  }
-  
-  tempDiv.childNodes.forEach(node => {
-    if (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) {
-      const resultados = procesarTextoConMarcadores(node.textContent)
-      resultados.forEach(r => bloques.push(r))
-    } else if (node.nodeType === Node.ELEMENT_NODE) {
-      const element = node as HTMLElement
-      const tagName = element.tagName.toLowerCase()
-      
-      if (tagName === 'p') {
-        const innerHtml = element.innerHTML
-        if (innerHtml.includes('[[VIDEO:') || innerHtml.includes('[[CITA:')) {
-          const resultados = procesarTextoConMarcadores(innerHtml)
-          resultados.forEach(r => bloques.push(r))
-        } else {
-          bloques.push({ type: 'paragraph', content: innerHtml })
-        }
-      } 
-      else if (tagName === 'blockquote') {
-        const author = element.getAttribute('data-author') || 'Senado de Bolivia'
-        const role = element.getAttribute('data-role') || 'Cámara de Senadores'
-        const quoteText = element.textContent?.trim() || ''
-        const cleanText = quoteText.replace(/—.*$/, '').trim()
-        
-        bloques.push({
-          type: 'quote',
-          content: cleanText,
-          author: author,
-          role: role
-        })
-      } 
-      else if (tagName === 'div' && element.getAttribute('data-type') === 'video') {
-        const iframe = element.querySelector('iframe')
-        const captionEl = element.querySelector('.video-caption')
-        if (iframe) {
-          bloques.push({
-            type: 'video',
-            url: iframe.getAttribute('src') || '',
-            title: iframe.getAttribute('title') || '',
-            caption: captionEl?.textContent || ''
-          })
-        }
-      } 
-      else if (tagName === 'iframe') {
-        bloques.push({
-          type: 'video',
-          url: element.getAttribute('src') || '',
-          title: element.getAttribute('title') || 'Video institucional',
-          caption: ''
-        })
-      } 
-      else {
-        bloques.push({ type: 'paragraph', content: element.outerHTML })
-      }
-    }
-  })
-  
-  console.log('📦 Bloques generados en edit:', bloques.length)
-  return bloques
-}
-
-// ============================================
-// CONVERTIR BLOQUES A HTML
-// ============================================
-const convertirBloquesAHTML = (blocks: any[]) => {
-  if (!blocks || blocks.length === 0) return ''
-  let html = ''
-  for (const block of blocks) {
-    if (block.type === 'paragraph') {
-      html += `<p>${block.content}</p>`
-    } else if (block.type === 'quote') {
-      const author = (block.author || 'Senado de Bolivia').trim()
-      const role = (block.role || 'Cámara de Senadores').trim()
-      const content = (block.content || '').trim()
-      html += `<p>[[CITA:${author}|${role}|${content}]]</p>`
-    } else if (block.type === 'video') {
-      const url = block.url || ''
-      const title = block.title || 'Video'
-      const caption = block.caption || ''
-      html += `<p>[[VIDEO:${url}|${title}|${caption}]]</p>`
-    }
-  }
-  return html
-}
-
-// ============================================
-// FORMULARIO
-// ============================================
 const form = reactive({
   title: '',
   slug: '',
   excerpt: '',
   content: '',
-  category: 'noticia' as 'noticia' | 'importante',
-  tags: [] as string[],
-  status: 'published' as 'draft' | 'published' | 'archived',
+  category: 'noticia',
+  tags: [],
+  status: 'draft',
+  scheduledDate: '',
+  scheduledTime: '',
+  publishedDate: '',
+  publishedTime: '',
+  publishedAt: null,
   featuredImage: { url: '', alt: '', name: '' },
-  gallery: [] as { url: string; alt: string; name: string }[]
+  gallery: []
 })
+
+const setNow = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  
+  form.publishedDate = `${year}-${month}-${day}`
+  form.publishedTime = `${hours}:${minutes}`
+}
 
 const tagsInput = ref('')
 
@@ -603,19 +619,18 @@ watch(tagsInput, (newVal) => {
   form.tags = newVal.split(',').map(t => t.trim()).filter(t => t)
 })
 
-const removeGalleryImage = (idx: number) => {
+const removeGalleryImage = (idx) => {
   form.gallery.splice(idx, 1)
 }
 
-// Subir imagen destacada
-const handleFileSelect = async (event: Event) => {
+const handleFileSelect = async (event) => {
   if (!authStore.isAuthenticated) {
     alert('Tu sesión expiró. Por favor, inicia sesión nuevamente.')
     router.push('/auth/login')
     return
   }
 
-  const target = event.target as HTMLInputElement
+  const target = event.target
   const file = target.files?.[0]
   if (!file) return
 
@@ -641,7 +656,7 @@ const handleFileSelect = async (event: Event) => {
     featuredPreviewUrl.value = result.url
     uploadProgress.value = '¡Imagen subida con éxito!'
     setTimeout(() => { uploadProgress.value = '' }, 3000)
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error:', error)
     alert(error.message || 'Error al subir la imagen')
     uploadProgress.value = ''
@@ -651,15 +666,14 @@ const handleFileSelect = async (event: Event) => {
   }
 }
 
-// Subir imagen a galería
-const handleGalleryFileSelect = async (event: Event) => {
+const handleGalleryFileSelect = async (event) => {
   if (!authStore.isAuthenticated) {
     alert('Tu sesión expiró. Por favor, inicia sesión nuevamente.')
     router.push('/auth/login')
     return
   }
 
-  const target = event.target as HTMLInputElement
+  const target = event.target
   const file = target.files?.[0]
   if (!file) return
 
@@ -686,7 +700,7 @@ const handleGalleryFileSelect = async (event: Event) => {
     })
     galleryUploadProgress.value = '¡Imagen subida con éxito!'
     setTimeout(() => { galleryUploadProgress.value = '' }, 3000)
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error:', error)
     alert(error.message || 'Error al subir la imagen')
     galleryUploadProgress.value = ''
@@ -696,9 +710,29 @@ const handleGalleryFileSelect = async (event: Event) => {
   }
 }
 
-// Cargar datos de la noticia
+const convertirBloquesAHTML = (blocks) => {
+  if (!blocks || blocks.length === 0) return ''
+  let html = ''
+  for (const block of blocks) {
+    if (block.type === 'paragraph') {
+      html += `<p>${block.content}</p>`
+    } else if (block.type === 'quote') {
+      const author = (block.author || 'Senado de Bolivia').trim()
+      const role = (block.role || 'Cámara de Senadores').trim()
+      const content = (block.content || '').trim()
+      html += `<p>[[CITA:${author}|${role}|${content}]]</p>`
+    } else if (block.type === 'video') {
+      const url = block.url || ''
+      const title = block.title || 'Video'
+      const caption = block.caption || ''
+      html += `<p>[[VIDEO:${url}|${title}|${caption}]]</p>`
+    }
+  }
+  return html
+}
+
 const loadNews = async () => {
-  const id = route.params.id as string
+  const id = route.params.id
   try {
     loading.value = true
     const news = await getNewsById(id)
@@ -715,7 +749,23 @@ const loadNews = async () => {
     
     form.category = news.category || 'noticia'
     form.tags = news.tags || []
-    form.status = news.status || 'published'
+    form.status = news.status || 'draft'
+    form.publishedAt = news.publishedAt || null
+    
+    // Cargar fechas según estado
+    if (news.status === 'scheduled' && news.scheduledFor) {
+      const dateObj = new Date(news.scheduledFor)
+      form.scheduledDate = dateObj.toISOString().split('T')[0]
+      form.scheduledTime = dateObj.toTimeString().slice(0, 5)
+      form.publishedDate = ''
+      form.publishedTime = ''
+    } else if (news.publishedAt) {
+      const dateObj = new Date(news.publishedAt)
+      form.publishedDate = dateObj.toISOString().split('T')[0]
+      form.publishedTime = dateObj.toTimeString().slice(0, 5)
+      form.scheduledDate = ''
+      form.scheduledTime = ''
+    }
     
     if (news.featuredImage) {
       form.featuredImage = {
@@ -737,10 +787,9 @@ const loadNews = async () => {
     }
     
     tagsInput.value = form.tags.join(', ')
-    
     validateSlug()
     
-  } catch (err: any) {
+  } catch (err) {
     console.error('Error cargando noticia:', err)
     error.value = err.message || 'Error al cargar la noticia'
   } finally {
@@ -748,7 +797,9 @@ const loadNews = async () => {
   }
 }
 
-// Guardar cambios
+// ============================================
+// 🔥 FUNCIÓN PRINCIPAL CON VALIDACIONES (igual que en create)
+// ============================================
 const saveNews = async () => {
   if (!authStore.isAuthenticated) {
     alert('Tu sesión expiró. Por favor, inicia sesión nuevamente.')
@@ -756,6 +807,9 @@ const saveNews = async () => {
     return
   }
 
+  // ============================================
+  // VALIDACIONES BÁSICAS
+  // ============================================
   if (!form.title.trim()) {
     alert('El título es requerido')
     return
@@ -770,8 +824,7 @@ const saveNews = async () => {
     return
   }
   
-  // 🔥 VERIFICAR SI EL NUEVO SLUG YA EXISTE EN OTRA NOTICIA
-  const currentId = route.params.id as string
+  const currentId = route.params.id
   const slugExists = await checkSlugExists(form.slug, currentId)
   if (slugExists) {
     alert(`❌ ERROR: El slug "${form.slug}" ya está siendo usado por otra noticia.\n\nPor favor, cambia el slug (URL amigable) e intenta nuevamente.`)
@@ -808,11 +861,101 @@ const saveNews = async () => {
     }
   }
 
-  saving.value = true
-  const id = route.params.id as string
+  // ============================================
+  // 🔥 VALIDACIONES DE ESTADO Y FECHAS (igual que en create)
+  // ============================================
+
+  // 1. Si es BORRADOR, solo advertir (la fecha se guarda pero no se usa)
+  if (form.status === 'draft' && (form.publishedDate || form.scheduledDate)) {
+    if (!confirm(
+      '⚠️ Has configurado una fecha para esta noticia pero está en estado BORRADOR.\n\n' +
+      'La fecha se GUARDARÁ pero NO se usará para publicar automáticamente.\n\n' +
+      'Cuando cambies a "Publicar ahora", se usará la fecha que configuraste.\n\n' +
+      '¿Deseas continuar?'
+    )) {
+      return
+    }
+  }
+
+  // 2. 🔥 Si es PUBLICAR AHORA, SOLO permitir fecha ACTUAL o PASADA
+  if (form.status === 'published') {
+    // Si el usuario configuró una fecha manualmente
+    if (form.publishedDate && form.publishedTime) {
+      const fechaPub = new Date(`${form.publishedDate}T${form.publishedTime}:00`)
+      const ahora = new Date()
+      
+      // Si la fecha es FUTURA, ERROR
+      if (fechaPub > ahora) {
+        alert('❌ Para "Publicar ahora", la fecha debe ser ACTUAL o PASADA.\n\n' +
+              `Fecha configurada: ${fechaPub.toLocaleString('es-ES')}\n` +
+              `Fecha actual: ${ahora.toLocaleString('es-ES')}\n\n` +
+              'Si quieres que se publique automáticamente en el futuro, usa "Programar".')
+        return
+      }
+    }
+    // Si el usuario NO configuró fecha, usar la actual
+    else {
+      setNow() // Establecer fecha actual
+    }
+  }
+
+  // 3. 🔥 Si es PROGRAMAR, SOLO permitir fecha FUTURA
+  if (form.status === 'scheduled') {
+    // Verificar que tenga fecha
+    if (!form.scheduledDate || !form.scheduledTime) {
+      alert('❌ Para programar una noticia, debes especificar fecha y hora.')
+      return
+    }
+    
+    const fechaProg = new Date(`${form.scheduledDate}T${form.scheduledTime}:00`)
+    const ahora = new Date()
+    
+    // Si la fecha NO es futura, ERROR
+    if (fechaProg <= ahora) {
+      alert('❌ Para "Programar", la fecha debe ser FUTURA.\n\n' +
+            `Fecha configurada: ${fechaProg.toLocaleString('es-ES')}\n` +
+            `Fecha actual: ${ahora.toLocaleString('es-ES')}\n\n` +
+            'Si quieres publicar ahora, usa "Publicar ahora".')
+      return
+    }
+  }
+
+  // 4. Si es ARCHIVADO, advertir que la fecha se guarda pero no se usa
+  if (form.status === 'archived' && (form.publishedDate || form.scheduledDate)) {
+    if (!confirm(
+      '⚠️ Has configurado una fecha para esta noticia pero está ARCHIVADA.\n\n' +
+      'La fecha se GUARDARÁ pero NO se usará porque la noticia está archivada.\n\n' +
+      'Cuando cambies a "Publicar ahora", se usará la fecha que configuraste.\n\n' +
+      '¿Deseas continuar?'
+    )) {
+      return
+    }
+  }
+
+  // ============================================
+  // CONSTRUIR DATOS PARA ENVIAR
+  // ============================================
   
-  const bloques = convertirHTMLaBloques(form.content)
-  console.log('📦 Bloques a guardar en edit:', JSON.stringify(bloques, null, 2))
+  saving.value = true
+  const id = route.params.id
+  
+  // Construir fecha de publicación
+  let publishedAt = null
+  if (form.status === 'published' && form.publishedDate && form.publishedTime) {
+    publishedAt = new Date(`${form.publishedDate}T${form.publishedTime}:00`)
+  } else if (form.status === 'draft' && form.publishedDate && form.publishedTime) {
+    // En borrador, guardamos la fecha por si luego se publica
+    publishedAt = new Date(`${form.publishedDate}T${form.publishedTime}:00`)
+  } else if (form.status === 'archived' && form.publishedDate && form.publishedTime) {
+    // En archivado, guardamos la fecha por si luego se publica
+    publishedAt = new Date(`${form.publishedDate}T${form.publishedTime}:00`)
+  }
+  
+  // Construir fecha programada (solo si es 'scheduled')
+  let scheduledFor = null
+  if (form.status === 'scheduled' && form.scheduledDate && form.scheduledTime) {
+    scheduledFor = new Date(`${form.scheduledDate}T${form.scheduledTime}:00`)
+  }
   
   try {
     await updateNews(id, {
@@ -820,10 +963,11 @@ const saveNews = async () => {
       slug: form.slug,
       excerpt: form.excerpt,
       content: form.content,
-      blocks: bloques,
       category: form.category,
       tags: form.tags,
       status: form.status,
+      scheduledFor: scheduledFor,
+      publishedAt: publishedAt,
       featuredImage: {
         url: form.featuredImage.url,
         alt: form.featuredImage.alt || form.title || '',
@@ -839,12 +983,12 @@ const saveNews = async () => {
       }))
     })
     router.push('/admin/noticias')
-  } catch (err: any) {
-    console.error('Error:', err)
-    if (err.message?.includes('duplicate key') || err.message?.includes('E11000')) {
+  } catch (error) {
+    console.error('Error:', error)
+    if (error.message?.includes('duplicate key') || error.message?.includes('E11000')) {
       alert(`❌ ERROR: El slug "${form.slug}" ya está siendo usado por otra noticia.\n\nPor favor, cambia el slug e intenta nuevamente.`)
     } else {
-      alert(err.message || 'Error al guardar los cambios')
+      alert(error.message || 'Error al guardar los cambios')
     }
   } finally {
     saving.value = false
