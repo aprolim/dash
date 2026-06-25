@@ -116,18 +116,26 @@
                 {{ statusText(item.status) }}
               </span>
             </td>
+            <!-- 🔥 SECCIÓN DE FECHA MEJORADA -->
             <td class="px-6 py-4 text-sm text-gray-500">
-              <div v-if="item.status === 'scheduled' && item.scheduledFor">
-                <span class="text-yellow-600">⏰ Programada:</span>
-                {{ new Date(item.scheduledFor).toLocaleString('es-ES') }}
-              </div>
-              <div v-else-if="item.publishedAt">
-                <span class="text-green-600">📅 Publicada:</span>
-                {{ new Date(item.publishedAt).toLocaleString('es-ES') }}
-              </div>
-              <div v-else>
+              <template v-if="item.status === 'scheduled'">
+                <div>
+                  <span class="text-yellow-600">⏰ Programada:</span>
+                  <span v-if="item.scheduledFor">{{ formatearFecha(item.scheduledFor) }}</span>
+                  <span v-else class="text-gray-400">Sin fecha</span>
+                </div>
+              </template>
+              <template v-else-if="item.status === 'published' || item.status === 'archived'">
+                <div>
+                  <span class="text-green-600" v-if="item.status === 'published'">📅 Publicada:</span>
+                  <span class="text-gray-600" v-else>📦 Archivada:</span>
+                  <span v-if="item.publishedAt">{{ formatearFecha(item.publishedAt) }}</span>
+                  <span v-else class="text-gray-400">Sin fecha</span>
+                </div>
+              </template>
+              <template v-else>
                 <span class="text-gray-400">Sin fecha</span>
-              </div>
+              </template>
             </td>
             <td class="px-6 py-4 text-sm text-gray-500">{{ item.views || 0 }}</td>
             <td class="px-6 py-4 text-right text-sm font-medium">
@@ -189,6 +197,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useNews, type NewsItem } from '~/composables/useNews'
 import Modal from '~/components/ui/Modal.vue'
 
@@ -197,6 +206,8 @@ definePageMeta({
   middleware: 'auth'
 })
 
+const route = useRoute()
+const router = useRouter()
 const { getNews, deleteNews: deleteNewsApi } = useNews()
 
 const newsList = ref<NewsItem[]>([])
@@ -214,6 +225,24 @@ const filters = ref({
 })
 
 let searchTimeout: NodeJS.Timeout
+
+// 🔥 NUEVA FUNCIÓN: Formatear fecha de forma robusta
+const formatearFecha = (fecha: string | Date): string => {
+  if (!fecha) return 'Sin fecha'
+  try {
+    const date = new Date(fecha)
+    if (isNaN(date.getTime())) return 'Fecha inválida'
+    return date.toLocaleString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  } catch {
+    return 'Fecha inválida'
+  }
+}
 
 const onStatusChange = () => {
   console.log('🔽 [onStatusChange] Nuevo status:', filters.value.status)
@@ -297,6 +326,16 @@ const loadNews = async () => {
     console.log('   - pages:', result.pages)
     console.log('   - contents length:', result.contents?.length)
     
+    // Mostrar las fechas de las noticias recibidas para debug
+    if (result.contents && result.contents.length > 0) {
+      result.contents.forEach((item: NewsItem, idx: number) => {
+        console.log(`   - Noticia ${idx + 1}: "${item.title}"`)
+        console.log(`     publishedAt: ${item.publishedAt}`)
+        console.log(`     scheduledFor: ${item.scheduledFor}`)
+        console.log(`     status: ${item.status}`)
+      })
+    }
+    
     newsList.value = result.contents || []
     total.value = result.total || 0
     totalPages.value = result.pages || 1
@@ -376,6 +415,13 @@ const statusText = (status: string) => {
 
 onMounted(() => {
   console.log('🚀 [onMounted] Componente montado, cargando noticias...')
+  
+  // 🔥 NUEVO: Si hay parámetro reload, forzar recarga y limpiar URL
+  if (route.query.reload) {
+    console.log('🔄 [onMounted] Recarga forzada por parámetro reload')
+    router.replace({ query: {} }) // Limpiar el parámetro de la URL
+  }
+  
   loadNews()
 })
 </script>

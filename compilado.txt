@@ -122,7 +122,8 @@ package.json
     "dev": "nuxt dev --port 3002",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "start": "node .output/server/index.mjs"
   },
   "dependencies": {
     "@pinia/nuxt": "^0.8.0",
@@ -3198,7 +3199,6 @@ export const useApi = () => {
     get: async <T>(url: string): Promise<T> => {
       console.log(`🔵 [useApi] GET ${url}`)
       const headers = getHeaders()
-      console.log('🔵 [useApi] Headers:', Object.keys(headers))
       const response = await fetch(url, {
         method: 'GET',
         headers,
@@ -3208,6 +3208,7 @@ export const useApi = () => {
 
     post: async <T>(url: string, body: any): Promise<T> => {
       console.log(`🔵 [useApi] POST ${url}`)
+      console.log('🔵 [useApi] Body:', body)
       const headers = getHeaders()
       const response = await fetch(url, {
         method: 'POST',
@@ -3218,14 +3219,48 @@ export const useApi = () => {
     },
 
     put: async <T>(url: string, body: any): Promise<T> => {
-      console.log(`🔵 [useApi] PUT ${url}`)
+      console.log(`🔵 [useApi.put] ========== PUT ==========`)
+      console.log(`🔵 [useApi.put] URL: ${url}`)
+      console.log('🔵 [useApi.put] Body recibido:', body)
+      console.log('🔵 [useApi.put] publishedAt en body:', body.publishedAt)
+      console.log('🔵 [useApi.put] scheduledFor en body:', body.scheduledFor)
+      
       const headers = getHeaders()
+      console.log('🔵 [useApi.put] Headers:', Object.keys(headers))
+      
+      // ✅ Asegurar que las fechas están en formato ISO
+      if (body.publishedAt) {
+        const dateObj = new Date(body.publishedAt)
+        if (!isNaN(dateObj.getTime())) {
+          body.publishedAt = dateObj.toISOString()
+          console.log('🔵 [useApi.put] publishedAt convertido a ISO:', body.publishedAt)
+        }
+      }
+      
+      if (body.scheduledFor) {
+        const dateObj = new Date(body.scheduledFor)
+        if (!isNaN(dateObj.getTime())) {
+          body.scheduledFor = dateObj.toISOString()
+          console.log('🔵 [useApi.put] scheduledFor convertido a ISO:', body.scheduledFor)
+        }
+      }
+      
+      const bodyStr = JSON.stringify(body)
+      console.log('🔵 [useApi.put] Body string:', bodyStr)
+      
       const response = await fetch(url, {
         method: 'PUT',
         headers,
-        body: JSON.stringify(body),
+        body: bodyStr
       })
-      return handleResponse<T>(response, url)
+      
+      console.log(`🔵 [useApi.put] Status: ${response.status}`)
+      
+      const data = await response.json()
+      console.log('🔵 [useApi.put] Respuesta:', data)
+      console.log(`🔵 [useApi.put] ========== FIN PUT ==========`)
+      
+      return data.data || data
     },
 
     del: async <T>(url: string): Promise<T> => {
@@ -3256,7 +3291,7 @@ export interface NewsItem {
   type: 'news' | 'article' | 'announcement' | 'page'
   category: 'noticia' | 'importante'
   tags: string[]
-  status: 'draft' | 'published' | 'archived'
+  status: 'draft' | 'published' | 'archived' | 'scheduled'
   featuredImage?: {
     url: string
     alt: string
@@ -3271,6 +3306,7 @@ export interface NewsItem {
     order: number
   }[]
   publishedAt?: string
+  scheduledFor?: string
   views: number
   author: {
     _id: string
@@ -3292,7 +3328,7 @@ export const useNews = () => {
   const getNews = async (params?: {
     page?: number
     limit?: number
-    status?: string
+    status?: 'all' | 'published' | 'draft' | 'archived' | 'scheduled'
     type?: string
     category?: string
     search?: string
@@ -3335,7 +3371,6 @@ export const useNews = () => {
     return result
   }
 
-  // ✅ CORREGIDO: Acepta 3 parámetros: file, name, alt
   const uploadImage = async (file: File, name?: string, alt?: string) => {
     const formData = new FormData()
     formData.append('image', file)
@@ -4553,12 +4588,67 @@ pages\admin\noticias\create.vue
               <option value="draft">📝 Borrador</option>
               <option value="published">✅ Publicar ahora</option>
               <option value="scheduled">⏰ Programar</option>
-              <option value="archived">📦 Archivado</option>
             </select>
             <p class="text-xs text-gray-500 mt-1">
               "Programar" permite definir fecha y hora de publicación futura
             </p>
           </div>
+        </div>
+
+        <!-- 🔥 ADVERTENCIAS VISUALES SEGÚN ESTADO -->
+        <!-- Borrador con fecha -->
+        <div v-if="form.status === 'draft' && (form.publishedDate || form.scheduledDate)" 
+             class="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p class="text-sm text-yellow-800">
+            ⚠️ <strong>Nota:</strong> Esta noticia está en <strong>BORRADOR</strong>.
+            La fecha que configures se guardará pero NO se usará para publicación automática.
+            <br>
+            <span class="text-xs text-yellow-600">
+              💡 Cuando cambies a "Publicar ahora", se usará la fecha que tengas configurada.
+            </span>
+          </p>
+        </div>
+        
+        <!-- Publicar ahora con fecha futura (ERROR) -->
+        <div v-if="form.status === 'published' && isFutureDate" 
+             class="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p class="text-sm text-red-800">
+            ❌ <strong>Error:</strong> Para "Publicar ahora", la fecha debe ser ACTUAL o PASADA.
+            <br>
+            <span class="text-xs">
+              Fecha configurada: <strong>{{ form.publishedDate }} {{ form.publishedTime }}</strong>
+              (es FUTURA)
+            </span>
+            <br>
+            <span class="text-xs text-red-600">
+              💡 Si quieres que se publique automáticamente en el futuro, usa <strong>"Programar"</strong>.
+            </span>
+          </p>
+        </div>
+        
+        <!-- Programar con fecha pasada (ERROR) -->
+        <div v-if="form.status === 'scheduled' && isScheduledPastDate" 
+             class="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p class="text-sm text-red-800">
+            ❌ <strong>Error:</strong> Para "Programar", la fecha debe ser FUTURA.
+            <br>
+            <span class="text-xs">
+              Fecha configurada: <strong>{{ form.scheduledDate }} {{ form.scheduledTime }}</strong>
+              (es PASADA)
+            </span>
+            <br>
+            <span class="text-xs text-red-600">
+              💡 Si quieres publicar ahora, usa <strong>"Publicar ahora"</strong>.
+            </span>
+          </p>
+        </div>
+        
+        <!-- Programar sin fecha (ERROR) -->
+        <div v-if="form.status === 'scheduled' && (!form.scheduledDate || !form.scheduledTime)" 
+             class="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p class="text-sm text-red-800">
+            ❌ <strong>Error:</strong> Para programar una noticia, debes especificar <strong>fecha y hora</strong>.
+          </p>
         </div>
         
         <!-- Fecha y hora de programación -->
@@ -4594,6 +4684,68 @@ pages\admin\noticias\create.vue
           <p class="text-xs text-gray-500 mt-1">
             💡 Si hoy es lunes y programas para martes 8:00 AM, la noticia aparecerá automáticamente a esa hora
           </p>
+        </div>
+
+        <!-- Fecha de Publicación (visible para todos los estados) -->
+        <div class="mt-4 border-t border-gray-200 pt-4">
+          <h4 class="text-sm font-medium text-gray-700 mb-3">📅 Fecha de Publicación</h4>
+          <p class="text-xs text-gray-500 mb-2">
+            Por defecto se usa la fecha/hora actual. 
+            <span v-if="form.status === 'draft'" class="text-yellow-600">
+              ⚠️ En borrador, la fecha se guarda pero NO se usa.
+            </span>
+            <span v-if="form.status === 'published'" class="text-green-600">
+              ✅ Se usará esta fecha al publicar.
+            </span>
+            <span v-if="form.status === 'scheduled'" class="text-blue-600">
+              ℹ️ Para programar, usa la sección "Programar" arriba.
+            </span>
+          </p>
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Fecha
+              </label>
+              <input
+                v-model="form.publishedDate"
+                type="date"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Hora
+              </label>
+              <input
+                v-model="form.publishedTime"
+                type="time"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div class="flex items-end">
+              <button
+                type="button"
+                @click="setNow"
+                class="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+              >
+                📅 Usar ahora
+              </button>
+            </div>
+          </div>
+          
+          <div v-if="form.publishedDate && form.publishedTime" class="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+            <p class="text-sm text-green-700">
+              <span class="font-medium">📝 Fecha configurada:</span> 
+              {{ form.publishedDate }} a las {{ form.publishedTime }}
+            </p>
+            <p v-if="form.status === 'draft'" class="text-xs text-yellow-600 mt-1">
+              ⚠️ Esta fecha se guardará pero NO se usará hasta que cambies el estado a "Publicar ahora".
+            </p>
+            <p v-if="form.status === 'published'" class="text-xs text-green-600 mt-1">
+              ✅ La noticia se publicará con esta fecha.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -4635,7 +4787,7 @@ pages\admin\noticias\create.vue
 </template>
 
 <script setup>
-import { ref, reactive, watch, computed } from 'vue'
+import { ref, reactive, watch, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '~/stores/auth'
 import { useNews } from '~/composables/useNews'
@@ -4664,6 +4816,19 @@ const excerptCharCount = computed(() => form.excerpt?.length || 0)
 const minDate = computed(() => {
   const today = new Date()
   return today.toISOString().split('T')[0]
+})
+
+// 🔥 Computed para validar fechas
+const isFutureDate = computed(() => {
+  if (!form.publishedDate || !form.publishedTime) return false
+  const fechaPub = new Date(`${form.publishedDate}T${form.publishedTime}:00`)
+  return fechaPub > new Date()
+})
+
+const isScheduledPastDate = computed(() => {
+  if (!form.scheduledDate || !form.scheduledTime) return false
+  const fechaProg = new Date(`${form.scheduledDate}T${form.scheduledTime}:00`)
+  return fechaProg <= new Date()
 })
 
 // Slug validation
@@ -4713,9 +4878,7 @@ const generateSlugFromTitle = () => {
   }
 }
 
-const validateExcerpt = () => {
-  // Solo validación visual
-}
+const validateExcerpt = () => {}
 
 const checkSlugExists = async (slug) => {
   if (!slug) return false
@@ -4742,8 +4905,26 @@ const form = reactive({
   status: 'draft',
   scheduledDate: '',
   scheduledTime: '',
+  publishedDate: '',
+  publishedTime: '',
   featuredImage: { url: '', alt: '', name: '' },
   gallery: []
+})
+
+const setNow = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  
+  form.publishedDate = `${year}-${month}-${day}`
+  form.publishedTime = `${hours}:${minutes}`
+}
+
+onMounted(() => {
+  setNow()
 })
 
 const tagsInput = ref('')
@@ -4988,6 +5169,9 @@ const convertirHTMLaBloques = (htmlContent) => {
   return bloques
 }
 
+// ============================================
+// 🔥 FUNCIÓN PRINCIPAL CON VALIDACIONES CORRECTAS
+// ============================================
 const saveNews = async () => {
   if (!authStore.isAuthenticated) {
     alert('Tu sesión expiró. Por favor, inicia sesión nuevamente.')
@@ -4995,7 +5179,9 @@ const saveNews = async () => {
     return
   }
 
-  // Validaciones
+  // ============================================
+  // VALIDACIONES BÁSICAS
+  // ============================================
   if (!form.title.trim()) {
     alert('El título es requerido')
     return
@@ -5046,17 +5232,94 @@ const saveNews = async () => {
     }
   }
 
+  // ============================================
+  // 🔥 VALIDACIONES DE ESTADO Y FECHAS
+  // ============================================
+  
+  // 1. No permitir crear como 'archived'
+  if (form.status === 'archived') {
+    alert('❌ No se puede crear una noticia directamente como "Archivada".\n\nUsa "Borrador", "Publicar ahora" o "Programar".')
+    return
+  }
+
+  // 2. Si es BORRADOR, solo advertir (la fecha se guarda pero no se usa)
+  if (form.status === 'draft' && (form.publishedDate || form.scheduledDate)) {
+    if (!confirm(
+      '⚠️ Has configurado una fecha para esta noticia pero está en estado BORRADOR.\n\n' +
+      'La fecha se GUARDARÁ pero NO se usará para publicar automáticamente.\n\n' +
+      'Cuando cambies a "Publicar ahora", se usará la fecha que configuraste.\n\n' +
+      '¿Deseas continuar?'
+    )) {
+      return
+    }
+  }
+
+  // 3. 🔥 Si es PUBLICAR AHORA, SOLO permitir fecha ACTUAL o PASADA
+  if (form.status === 'published') {
+    // Si el usuario configuró una fecha manualmente
+    if (form.publishedDate && form.publishedTime) {
+      const fechaPub = new Date(`${form.publishedDate}T${form.publishedTime}:00`)
+      const ahora = new Date()
+      
+      // Si la fecha es FUTURA, ERROR
+      if (fechaPub > ahora) {
+        alert('❌ Para "Publicar ahora", la fecha debe ser ACTUAL o PASADA.\n\n' +
+              `Fecha configurada: ${fechaPub.toLocaleString('es-ES')}\n` +
+              `Fecha actual: ${ahora.toLocaleString('es-ES')}\n\n` +
+              'Si quieres que se publique automáticamente en el futuro, usa "Programar".')
+        return
+      }
+    }
+    // Si el usuario NO configuró fecha, usar la actual
+    else {
+      setNow() // Establecer fecha actual
+    }
+  }
+
+  // 4. 🔥 Si es PROGRAMAR, SOLO permitir fecha FUTURA
+  if (form.status === 'scheduled') {
+    // Verificar que tenga fecha
+    if (!form.scheduledDate || !form.scheduledTime) {
+      alert('❌ Para programar una noticia, debes especificar fecha y hora.')
+      return
+    }
+    
+    const fechaProg = new Date(`${form.scheduledDate}T${form.scheduledTime}:00`)
+    const ahora = new Date()
+    
+    // Si la fecha NO es futura, ERROR
+    if (fechaProg <= ahora) {
+      alert('❌ Para "Programar", la fecha debe ser FUTURA.\n\n' +
+            `Fecha configurada: ${fechaProg.toLocaleString('es-ES')}\n` +
+            `Fecha actual: ${ahora.toLocaleString('es-ES')}\n\n` +
+            'Si quieres publicar ahora, usa "Publicar ahora".')
+      return
+    }
+  }
+
+  // ============================================
+  // CONSTRUIR DATOS PARA ENVIAR
+  // ============================================
+  
   saving.value = true
   
-  // Construir fecha programada
+  // Construir fecha de publicación (solo si es 'published')
+  let publishedAt = null
+  if (form.status === 'published') {
+    if (form.publishedDate && form.publishedTime) {
+      publishedAt = new Date(`${form.publishedDate}T${form.publishedTime}:00`)
+    } else {
+      publishedAt = new Date() // fallback
+    }
+  } else if (form.status === 'draft' && form.publishedDate && form.publishedTime) {
+    // 🔥 En borrador, guardamos la fecha por si luego se publica
+    publishedAt = new Date(`${form.publishedDate}T${form.publishedTime}:00`)
+  }
+  
+  // Construir fecha programada (solo si es 'scheduled')
   let scheduledFor = null
   if (form.status === 'scheduled' && form.scheduledDate && form.scheduledTime) {
     scheduledFor = new Date(`${form.scheduledDate}T${form.scheduledTime}:00`)
-    if (scheduledFor < new Date()) {
-      alert('La fecha programada debe ser futura. Si quieres publicar ahora, usa "Publicar ahora".')
-      saving.value = false
-      return
-    }
   }
   
   const bloques = convertirHTMLaBloques(form.content)
@@ -5072,6 +5335,7 @@ const saveNews = async () => {
       tags: form.tags,
       status: form.status,
       scheduledFor: scheduledFor,
+      publishedAt: publishedAt,
       featuredImage: {
         url: form.featuredImage.url,
         alt: form.featuredImage.alt || form.title || '',
@@ -5132,6 +5396,7 @@ pages\admin\noticias\index.vue
         <option value="published">✅ Publicadas</option>
         <option value="draft">📝 Borradores</option>
         <option value="archived">📦 Archivadas</option>
+        <option value="scheduled">⏰ Programadas</option>
       </select>
       
       <select 
@@ -5199,7 +5464,7 @@ pages\admin\noticias\index.vue
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Título</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha/Hora</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visitas</th>
             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
           </tr>
@@ -5221,7 +5486,17 @@ pages\admin\noticias\index.vue
               </span>
             </td>
             <td class="px-6 py-4 text-sm text-gray-500">
-              {{ item.publishedAt ? new Date(item.publishedAt).toLocaleDateString('es-ES') : '-' }}
+              <div v-if="item.status === 'scheduled' && item.scheduledFor">
+                <span class="text-yellow-600">⏰ Programada:</span>
+                {{ new Date(item.scheduledFor).toLocaleString('es-ES') }}
+              </div>
+              <div v-else-if="item.publishedAt">
+                <span class="text-green-600">📅 Publicada:</span>
+                {{ new Date(item.publishedAt).toLocaleString('es-ES') }}
+              </div>
+              <div v-else>
+                <span class="text-gray-400">Sin fecha</span>
+              </div>
             </td>
             <td class="px-6 py-4 text-sm text-gray-500">{{ item.views || 0 }}</td>
             <td class="px-6 py-4 text-right text-sm font-medium">
@@ -5229,9 +5504,6 @@ pages\admin\noticias\index.vue
                 <NuxtLink :to="`/admin/noticias/edit/${item._id}`" class="text-primary-600 hover:text-primary-900">
                   Editar
                 </NuxtLink>
-                <!-- <button @click="toggleStatus(item)" class="text-yellow-600 hover:text-yellow-900">
-                  {{ item.status === 'published' ? 'Archivar' : 'Publicar' }}
-                </button> -->
                 <button @click="confirmDelete(item)" class="text-red-600 hover:text-red-900">
                   Eliminar
                 </button>
@@ -5294,7 +5566,7 @@ definePageMeta({
   middleware: 'auth'
 })
 
-const { getNews, deleteNews: deleteNewsApi, changeStatus } = useNews()
+const { getNews, deleteNews: deleteNewsApi } = useNews()
 
 const newsList = ref<NewsItem[]>([])
 const loading = ref(false)
@@ -5303,7 +5575,6 @@ const page = ref(1)
 const totalPages = ref(1)
 const total = ref(0)
 
-// 🔥 CORREGIDO: Añadida la propiedad 'category'
 const filters = ref({
   status: 'all',
   type: 'all',
@@ -5313,28 +5584,24 @@ const filters = ref({
 
 let searchTimeout: NodeJS.Timeout
 
-// 🔥 Función que se llama cuando cambia el filtro de estado
 const onStatusChange = () => {
   console.log('🔽 [onStatusChange] Nuevo status:', filters.value.status)
   page.value = 1
   loadNews()
 }
 
-// 🔥 Función que se llama cuando cambia el filtro de categoría
 const onCategoryChange = () => {
   console.log('🔽 [onCategoryChange] Nueva categoría:', filters.value.category)
   page.value = 1
   loadNews()
 }
 
-// 🔥 Función que se llama cuando cambia el filtro de tipo
 const onTypeChange = () => {
   console.log('🔽 [onTypeChange] Nuevo type:', filters.value.type)
   page.value = 1
   loadNews()
 }
 
-// 🔥 Función para búsqueda con debounce
 const onSearchInput = () => {
   if (searchTimeout) clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
@@ -5344,7 +5611,6 @@ const onSearchInput = () => {
   }, 500)
 }
 
-// 🔥 Función para limpiar filtros
 const resetFilters = () => {
   console.log('🔄 [Reset] Limpiando filtros')
   filters.value = { status: 'all', type: 'all', category: 'all', search: '' }
@@ -5431,19 +5697,6 @@ const nextPage = () => {
   }
 }
 
-const toggleStatus = async (item: NewsItem) => {
-  const newStatus = item.status === 'published' ? 'archived' : 'published'
-  console.log('🔄 [ToggleStatus]', item.title, 'de', item.status, 'a', newStatus)
-  try {
-    await changeStatus(item._id, newStatus)
-    await loadNews()
-  } catch (err) {
-    console.error('Error toggling status:', err)
-    alert('Error al cambiar el estado')
-  }
-}
-
-// Delete
 const showDeleteModal = ref(false)
 const newsToDelete = ref<NewsItem | null>(null)
 const deleting = ref(false)
@@ -5474,7 +5727,8 @@ const statusClass = (status: string) => {
   const classes: Record<string, string> = {
     published: 'bg-green-100 text-green-800',
     draft: 'bg-yellow-100 text-yellow-800',
-    archived: 'bg-gray-100 text-gray-800'
+    archived: 'bg-gray-100 text-gray-800',
+    scheduled: 'bg-blue-100 text-blue-800'
   }
   return classes[status] || 'bg-gray-100 text-gray-800'
 }
@@ -5483,7 +5737,8 @@ const statusText = (status: string) => {
   const texts: Record<string, string> = {
     published: 'Publicada',
     draft: 'Borrador',
-    archived: 'Archivada'
+    archived: 'Archivada',
+    scheduled: '⏰ Programada'
   }
   return texts[status] || status
 }
@@ -5741,14 +5996,54 @@ pages\admin\noticias\edit\[id].vue
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
             >
               <option value="draft">📝 Borrador</option>
-              <option value="published">✅ Publicado</option>
-              <option value="scheduled">⏰ Programado</option>
+              <option value="published">✅ Publicar ahora</option>
+              <option value="scheduled">⏰ Programar</option>
               <option value="archived">📦 Archivado</option>
             </select>
             <p class="text-xs text-gray-500 mt-1">
-              "Programado" significa que la noticia se publicará automáticamente en la fecha/hora indicada
+              "Programar" permite definir fecha y hora de publicación futura
             </p>
           </div>
+        </div>
+
+        <!-- Advertencias visuales según estado -->
+        <div v-if="form.status === 'draft' && (form.publishedDate || form.scheduledDate)" 
+             class="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p class="text-sm text-yellow-800">
+            ⚠️ <strong>Nota:</strong> Esta noticia está en <strong>BORRADOR</strong>.
+            La fecha que configures se guardará pero NO se usará para publicación automática.
+          </p>
+        </div>
+        
+        <div v-if="form.status === 'published' && isFutureDate" 
+             class="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p class="text-sm text-red-800">
+            ❌ <strong>Error:</strong> Para "Publicar ahora", la fecha debe ser ACTUAL o PASADA.
+            <br>
+            <span class="text-xs">
+              Fecha configurada: <strong>{{ form.publishedDate }} {{ form.publishedTime }}</strong>
+              (es FUTURA)
+            </span>
+          </p>
+        </div>
+        
+        <div v-if="form.status === 'scheduled' && isScheduledPastDate" 
+             class="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p class="text-sm text-red-800">
+            ❌ <strong>Error:</strong> Para "Programar", la fecha debe ser FUTURA.
+            <br>
+            <span class="text-xs">
+              Fecha configurada: <strong>{{ form.scheduledDate }} {{ form.scheduledTime }}</strong>
+              (es PASADA)
+            </span>
+          </p>
+        </div>
+        
+        <div v-if="form.status === 'scheduled' && (!form.scheduledDate || !form.scheduledTime)" 
+             class="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p class="text-sm text-red-800">
+            ❌ <strong>Error:</strong> Para programar una noticia, debes especificar <strong>fecha y hora</strong>.
+          </p>
         </div>
         
         <!-- Fecha y hora de programación -->
@@ -5779,16 +6074,25 @@ pages\admin\noticias\edit\[id].vue
             </div>
           </div>
           <p class="text-xs text-yellow-600 mt-2">
-            ⏰ Programado para: {{ form.scheduledDate || 'YYYY-MM-DD' }} a las {{ form.scheduledTime || 'HH:MM' }}
-          </p>
-          <p class="text-xs text-gray-500 mt-1">
-            💡 La noticia se publicará automáticamente en esa fecha y hora
+            ⏰ La noticia será visible automáticamente el {{ form.scheduledDate || 'YYYY-MM-DD' }} a las {{ form.scheduledTime || 'HH:MM' }}
           </p>
         </div>
-        
-        <!-- 🔥 NUEVO: FECHA DE PUBLICACIÓN EDITABLE -->
+
+        <!-- Fecha de Publicación -->
         <div class="mt-4 border-t border-gray-200 pt-4">
           <h4 class="text-sm font-medium text-gray-700 mb-3">📅 Fecha de Publicación</h4>
+          <p class="text-xs text-gray-500 mb-2">
+            Por defecto se usa la fecha/hora actual. 
+            <span v-if="form.status === 'draft'" class="text-yellow-600">
+              ⚠️ En borrador, la fecha se guarda pero NO se usa.
+            </span>
+            <span v-if="form.status === 'published'" class="text-green-600">
+              ✅ Se usará esta fecha al publicar.
+            </span>
+            <span v-if="form.status === 'archived'" class="text-gray-600">
+              📦 En archivado, la fecha se guarda pero NO se usa.
+            </span>
+          </p>
           
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -5822,13 +6126,9 @@ pages\admin\noticias\edit\[id].vue
             </div>
           </div>
           
-          <div v-if="form.publishedAt" class="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <p class="text-sm text-blue-700">
-              <span class="font-medium">Publicación actual:</span> 
-              {{ new Date(form.publishedAt).toLocaleString('es-ES') }}
-            </p>
-            <p v-if="form.publishedDate && form.publishedTime" class="text-sm text-green-700 mt-1">
-              <span class="font-medium">📝 Nueva fecha:</span> 
+          <div v-if="form.publishedDate && form.publishedTime" class="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+            <p class="text-sm text-green-700">
+              <span class="font-medium">📝 Fecha configurada:</span> 
               {{ form.publishedDate }} a las {{ form.publishedTime }}
             </p>
           </div>
@@ -5902,9 +6202,23 @@ const featuredPreviewUrl = ref('')
 
 const excerptCharCount = computed(() => form.excerpt?.length || 0)
 
+// Fecha mínima para programación
 const minDate = computed(() => {
   const today = new Date()
   return today.toISOString().split('T')[0]
+})
+
+// Computed para validar fechas
+const isFutureDate = computed(() => {
+  if (!form.publishedDate || !form.publishedTime) return false
+  const fechaPub = new Date(`${form.publishedDate}T${form.publishedTime}:00`)
+  return fechaPub > new Date()
+})
+
+const isScheduledPastDate = computed(() => {
+  if (!form.scheduledDate || !form.scheduledTime) return false
+  const fechaProg = new Date(`${form.scheduledDate}T${form.scheduledTime}:00`)
+  return fechaProg <= new Date()
 })
 
 // Slug validation
@@ -5989,19 +6303,6 @@ const form = reactive({
   gallery: []
 })
 
-const tagsInput = ref('')
-
-watch(tagsInput, (newVal) => {
-  form.tags = newVal.split(',').map(t => t.trim()).filter(t => t)
-})
-
-const removeGalleryImage = (idx) => {
-  form.gallery.splice(idx, 1)
-}
-
-// ============================================
-// FUNCIONES PARA FECHA/HORA
-// ============================================
 const setNow = () => {
   const now = new Date()
   const year = now.getFullYear()
@@ -6012,6 +6313,16 @@ const setNow = () => {
   
   form.publishedDate = `${year}-${month}-${day}`
   form.publishedTime = `${hours}:${minutes}`
+}
+
+const tagsInput = ref('')
+
+watch(tagsInput, (newVal) => {
+  form.tags = newVal.split(',').map(t => t.trim()).filter(t => t)
+})
+
+const removeGalleryImage = (idx) => {
+  form.gallery.splice(idx, 1)
 }
 
 const handleFileSelect = async (event) => {
@@ -6143,16 +6454,19 @@ const loadNews = async () => {
     form.status = news.status || 'draft'
     form.publishedAt = news.publishedAt || null
     
-    if (news.publishedAt) {
-      const dateObj = new Date(news.publishedAt)
-      form.publishedDate = dateObj.toISOString().split('T')[0]
-      form.publishedTime = dateObj.toTimeString().slice(0, 5)
-    }
-    
+    // Cargar fechas según estado
     if (news.status === 'scheduled' && news.scheduledFor) {
       const dateObj = new Date(news.scheduledFor)
       form.scheduledDate = dateObj.toISOString().split('T')[0]
       form.scheduledTime = dateObj.toTimeString().slice(0, 5)
+      form.publishedDate = ''
+      form.publishedTime = ''
+    } else if (news.publishedAt) {
+      const dateObj = new Date(news.publishedAt)
+      form.publishedDate = dateObj.toISOString().split('T')[0]
+      form.publishedTime = dateObj.toTimeString().slice(0, 5)
+      form.scheduledDate = ''
+      form.scheduledTime = ''
     }
     
     if (news.featuredImage) {
@@ -6185,6 +6499,9 @@ const loadNews = async () => {
   }
 }
 
+// ============================================
+// 🔥 FUNCIÓN PRINCIPAL CON VALIDACIONES Y LOGS
+// ============================================
 const saveNews = async () => {
   if (!authStore.isAuthenticated) {
     alert('Tu sesión expiró. Por favor, inicia sesión nuevamente.')
@@ -6192,6 +6509,16 @@ const saveNews = async () => {
     return
   }
 
+  console.log('🔵 [CMS] ========== GUARDAR NOTICIA ==========')
+  console.log('🔵 [CMS] ID:', route.params.id)
+  console.log('🔵 [CMS] Datos del formulario:', form)
+  console.log('🔵 [CMS] publishedAt:', form.publishedAt)
+  console.log('🔵 [CMS] publishedDate:', form.publishedDate)
+  console.log('🔵 [CMS] publishedTime:', form.publishedTime)
+
+  // ============================================
+  // VALIDACIONES BÁSICAS
+  // ============================================
   if (!form.title.trim()) {
     alert('El título es requerido')
     return
@@ -6243,52 +6570,135 @@ const saveNews = async () => {
     }
   }
 
-  saving.value = true
-  const id = route.params.id
-  
-  let publishedAt = null
-  if (form.publishedDate && form.publishedTime) {
-    publishedAt = new Date(`${form.publishedDate}T${form.publishedTime}:00`)
-  }
-  
-  let scheduledFor = null
-  if (form.status === 'scheduled' && form.scheduledDate && form.scheduledTime) {
-    scheduledFor = new Date(`${form.scheduledDate}T${form.scheduledTime}:00`)
-    if (scheduledFor < new Date()) {
-      alert('La fecha programada debe ser futura. Si quieres publicar ahora, usa "Publicar ahora".')
-      saving.value = false
+  // ============================================
+  // 🔥 VALIDACIONES DE ESTADO Y FECHAS
+  // ============================================
+
+  // 1. Si es BORRADOR, solo advertir
+  if (form.status === 'draft' && (form.publishedDate || form.scheduledDate)) {
+    if (!confirm(
+      '⚠️ Has configurado una fecha para esta noticia pero está en estado BORRADOR.\n\n' +
+      'La fecha se GUARDARÁ pero NO se usará para publicar automáticamente.\n\n' +
+      '¿Deseas continuar?'
+    )) {
       return
     }
   }
+
+  // 2. Si es PUBLICAR AHORA, SOLO permitir fecha ACTUAL o PASADA
+  if (form.status === 'published') {
+    if (form.publishedDate && form.publishedTime) {
+      const fechaPub = new Date(`${form.publishedDate}T${form.publishedTime}:00`)
+      const ahora = new Date()
+      if (fechaPub > ahora) {
+        alert('❌ Para "Publicar ahora", la fecha debe ser ACTUAL o PASADA.\n\n' +
+              `Fecha configurada: ${fechaPub.toLocaleString('es-ES')}\n` +
+              `Fecha actual: ${ahora.toLocaleString('es-ES')}\n\n` +
+              'Si quieres que se publique automáticamente en el futuro, usa "Programar".')
+        return
+      }
+    } else {
+      setNow()
+    }
+  }
+
+  // 3. Si es PROGRAMAR, SOLO permitir fecha FUTURA
+  if (form.status === 'scheduled') {
+    if (!form.scheduledDate || !form.scheduledTime) {
+      alert('❌ Para programar una noticia, debes especificar fecha y hora.')
+      return
+    }
+    const fechaProg = new Date(`${form.scheduledDate}T${form.scheduledTime}:00`)
+    const ahora = new Date()
+    if (fechaProg <= ahora) {
+      alert('❌ Para "Programar", la fecha debe ser FUTURA.\n\n' +
+            `Fecha configurada: ${fechaProg.toLocaleString('es-ES')}\n` +
+            `Fecha actual: ${ahora.toLocaleString('es-ES')}\n\n` +
+            'Si quieres publicar ahora, usa "Publicar ahora".')
+      return
+    }
+  }
+
+  // 4. Si es ARCHIVADO, advertir
+  if (form.status === 'archived' && (form.publishedDate || form.scheduledDate)) {
+    if (!confirm(
+      '⚠️ Has configurado una fecha para esta noticia pero está ARCHIVADA.\n\n' +
+      'La fecha se GUARDARÁ pero NO se usará porque la noticia está archivada.\n\n' +
+      '¿Deseas continuar?'
+    )) {
+      return
+    }
+  }
+
+  // ============================================
+  // 🔥 CONSTRUIR PAYLOAD CON FECHA CORRECTA
+  // ============================================
+  
+  saving.value = true
+  const id = route.params.id
+  
+  // ✅ Construir publishedAt correctamente
+  let publishedAt = null
+  
+  // Si el estado es 'published' y tiene fecha configurada
+  if (form.status === 'published' && form.publishedDate && form.publishedTime) {
+    publishedAt = new Date(`${form.publishedDate}T${form.publishedTime}:00`).toISOString()
+    console.log('🔵 [CMS] publishedAt generado para publicado:', publishedAt)
+  } 
+  // Si el estado es 'draft' o 'archived' y tiene fecha configurada (se guarda por si se publica después)
+  else if ((form.status === 'draft' || form.status === 'archived') && form.publishedDate && form.publishedTime) {
+    publishedAt = new Date(`${form.publishedDate}T${form.publishedTime}:00`).toISOString()
+    console.log('🔵 [CMS] publishedAt generado para borrador/archivado:', publishedAt)
+  }
+  // Si tiene publishedAt guardado previamente
+  else if (form.publishedAt) {
+    publishedAt = new Date(form.publishedAt).toISOString()
+    console.log('🔵 [CMS] publishedAt desde form.publishedAt:', publishedAt)
+  }
+  
+  // Construir scheduledFor (solo si es 'scheduled')
+  let scheduledFor = null
+  if (form.status === 'scheduled' && form.scheduledDate && form.scheduledTime) {
+    scheduledFor = new Date(`${form.scheduledDate}T${form.scheduledTime}:00`).toISOString()
+    console.log('🔵 [CMS] scheduledFor generado:', scheduledFor)
+  }
+  
+  // ✅ Construir el payload completo
+  const payload = {
+    title: form.title,
+    slug: form.slug,
+    excerpt: form.excerpt,
+    content: form.content,
+    category: form.category,
+    tags: form.tags,
+    status: form.status,
+    publishedAt: publishedAt,
+    scheduledFor: scheduledFor,
+    featuredImage: {
+      url: form.featuredImage.url,
+      alt: form.featuredImage.alt || form.title || '',
+      name: form.featuredImage.name,
+      caption: form.featuredImage.name
+    },
+    gallery: form.gallery.map((img, idx) => ({
+      url: img.url,
+      alt: img.alt || form.title || '',
+      name: img.name,
+      caption: img.name,
+      order: idx
+    }))
+  }
+  
+  console.log('🔵 [CMS] Payload final:', payload)
+  console.log('🔵 [CMS] publishedAt en payload:', payload.publishedAt)
+  console.log('🔵 [CMS] scheduledFor en payload:', payload.scheduledFor)
   
   try {
-    await updateNews(id, {
-      title: form.title,
-      slug: form.slug,
-      excerpt: form.excerpt,
-      content: form.content,
-      category: form.category,
-      tags: form.tags,
-      status: form.status,
-      scheduledFor: scheduledFor,
-      publishedAt: publishedAt,
-      featuredImage: {
-        url: form.featuredImage.url,
-        alt: form.featuredImage.alt || form.title || '',
-        name: form.featuredImage.name,
-        caption: form.featuredImage.name
-      },
-      gallery: form.gallery.map((img, idx) => ({
-        url: img.url,
-        alt: img.alt || form.title || '',
-        name: img.name,
-        caption: img.name,
-        order: idx
-      }))
-    })
+    const result = await updateNews(id, payload)
+    console.log('🔵 [CMS] Respuesta del servidor:', result)
     router.push('/admin/noticias')
   } catch (error) {
-    console.error('Error:', error)
+    console.error('❌ [CMS] Error:', error)
     if (error.message?.includes('duplicate key') || error.message?.includes('E11000')) {
       alert(`❌ ERROR: El slug "${form.slug}" ya está siendo usado por otra noticia.\n\nPor favor, cambia el slug e intenta nuevamente.`)
     } else {
@@ -6296,6 +6706,7 @@ const saveNews = async () => {
     }
   } finally {
     saving.value = false
+    console.log('🔵 [CMS] ========== FIN GUARDAR ==========')
   }
 }
 
