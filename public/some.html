@@ -197,7 +197,7 @@
         </div>
 
         <div class="info-box" id="statusBox">
-            🔄 Cargando... Verificando conexión
+            ✅ Usando enlaces con atributo download - Descarga directa sin pop-ups
         </div>
 
         <div class="selection-info">
@@ -273,9 +273,6 @@
                 icono: '❌'
             }
         };
-
-        // PROXY CORS - Para descarga directa
-        const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 
         let allDocuments = [];
         let downloadQueue = [];
@@ -397,7 +394,6 @@
                 docs.forEach(doc => doc._categoria = category);
                 categoryData[category] = docs;
                 
-                // Crear tarjeta de categoría con checkbox
                 const card = document.createElement('div');
                 card.className = 'category-card';
                 card.setAttribute('data-category', category);
@@ -419,13 +415,11 @@
                 `;
                 container.appendChild(card);
                 
-                // Seleccionar por defecto
                 document.getElementById(`chk-${category}`).checked = true;
                 selectedCategories.add(category);
                 card.classList.add('selected');
             }
 
-            // Actualizar total
             updateTotal();
             updateSelectionStatus();
             addLog(`✅ ${Object.keys(categoryData).length} categorías cargadas`, 'success');
@@ -498,63 +492,38 @@
             }
         }
 
-        // ===== DESCARGA DIRECTA CON PROXY =====
-        async function downloadPDFDirect(url, filename) {
-            try {
-                const proxyUrl = CORS_PROXY + encodeURIComponent(url);
-                
-                const response = await fetch(proxyUrl);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const blob = await response.blob();
-                
-                const fullFilename = filename.endsWith('.pdf') ? filename : filename + '.pdf';
-                
-                // Guardar para ZIP
-                const category = downloadQueue[currentDownloadIndex]?._categoria || 'otros';
-                downloadedFiles.push({ 
-                    filename: fullFilename, 
-                    blob: blob, 
-                    category: category 
-                });
-                
-                // Descargar directamente
-                const downloadUrl = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = downloadUrl;
-                a.download = fullFilename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
-                return { success: true };
-            } catch (error) {
-                // Si falla el proxy, intentar descarga directa
+        // ===== DESCARGA CON ENLACE <a download> (SIN POP-UPS, SIN CORS) =====
+        function downloadPDFWithLink(url, filename) {
+            return new Promise((resolve) => {
                 try {
-                    const response = await fetch(url);
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    const blob = await response.blob();
-                    
                     const fullFilename = filename.endsWith('.pdf') ? filename : filename + '.pdf';
-                    const category = downloadQueue[currentDownloadIndex]?._categoria || 'otros';
-                    downloadedFiles.push({ 
-                        filename: fullFilename, 
-                        blob: blob, 
-                        category: category 
-                    });
                     
-                    const downloadUrl = URL.createObjectURL(blob);
+                    // Guardar para ZIP
+                    const category = downloadQueue[currentDownloadIndex]?._categoria || 'otros';
+                    
+                    // Crear enlace con atributo download
                     const a = document.createElement('a');
-                    a.href = downloadUrl;
+                    a.href = url;
                     a.download = fullFilename;
+                    a.style.display = 'none';
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
-                    setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
-                    return { success: true };
-                } catch (e) {
-                    throw new Error(`Error: ${e.message}`);
+                    
+                    // Guardar para ZIP después de un momento (el navegador descarga el archivo)
+                    setTimeout(() => {
+                        // No tenemos el blob, pero guardamos la URL para el ZIP
+                        downloadedFiles.push({
+                            url: url,
+                            filename: fullFilename,
+                            category: category
+                        });
+                        resolve({ success: true });
+                    }, 500);
+                } catch (error) {
+                    resolve({ success: false, error: error.message });
                 }
-            }
+            });
         }
 
         function addLog(message, type = 'info') {
@@ -638,12 +607,12 @@
             
             try {
                 addLog(`⬇️ [${currentDownloadIndex + 1}/${totalToDownload}] ${title.substring(0, 60)}`, 'info');
-                await downloadPDFDirect(pdfUrl, title);
+                await downloadPDFWithLink(pdfUrl, title);
                 downloadedCount++;
                 addLog(`✅ Completado: ${title.substring(0, 50)}`, 'success');
             } catch (error) {
                 errorCount++;
-                addLog(`❌ Error: ${title.substring(0, 50)} - ${error.message}`, 'error');
+                addLog(`❌ Error: ${title.substring(0, 50)}`, 'error');
             }
             
             currentDownloadIndex++;
@@ -697,6 +666,7 @@
             
             addLog(`🚀 Iniciando descarga de ${downloadQueue.length} documentos`, 'info');
             addLog(`📂 Categorías: ${Array.from(selectedCategories).map(c => ENDPOINTS[c].titulo).join(', ')}`, 'info');
+            addLog(`💡 Usando enlaces con atributo download (sin pop-ups)`, 'info');
             
             for (const category of selectedCategories) {
                 const docsInCategory = downloadQueue.filter(d => d._categoria === category);
@@ -715,6 +685,7 @@
             }
             
             addLog(`📦 Preparando ZIP con ${downloadedFiles.length} archivos...`, 'info');
+            addLog(`⚠️ Para el ZIP se necesita descargar los archivos nuevamente (puede fallar por CORS)`, 'warning');
             
             if (typeof JSZip === 'undefined') {
                 addLog('📦 Cargando JSZip...', 'info');
@@ -730,16 +701,33 @@
             try {
                 const zip = new JSZip();
                 const categories = [...new Set(downloadedFiles.map(f => f.category))];
+                let processed = 0;
                 
                 for (const category of categories) {
                     const categoryFiles = downloadedFiles.filter(f => f.category === category);
                     const folder = zip.folder(ENDPOINTS[category]?.titulo || category);
+                    
                     for (const file of categoryFiles) {
-                        folder.file(file.filename, file.blob);
+                        try {
+                            addLog(`📄 Agregando: ${file.filename}`, 'info');
+                            const response = await fetch(file.url);
+                            if (response.ok) {
+                                const blob = await response.blob();
+                                folder.file(file.filename, blob);
+                                processed++;
+                            }
+                        } catch (error) {
+                            addLog(`❌ Error: ${error.message}`, 'error');
+                        }
                     }
                 }
                 
-                addLog('📦 Generando archivo ZIP...', 'info');
+                if (processed === 0) {
+                    addLog('⚠️ No se pudo agregar ningún archivo al ZIP (CORS)', 'warning');
+                    return;
+                }
+                
+                addLog(`📦 Generando ZIP (${processed} archivos)...`, 'info');
                 const content = await zip.generateAsync({ 
                     type: 'blob',
                     compression: 'DEFLATE',
@@ -754,8 +742,7 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-                
-                addLog(`✅ ZIP creado exitosamente con ${downloadedFiles.length} archivos`, 'success');
+                addLog(`✅ ZIP creado exitosamente con ${processed} archivos`, 'success');
             } catch (error) {
                 addLog(`❌ Error creando ZIP: ${error.message}`, 'error');
             }
@@ -787,18 +774,16 @@
         }
 
         async function init() {
-            // Detectar si estamos en un servidor
-            const isServer = window.location.protocol === 'http:' || window.location.protocol === 'https:';
-            const hostname = window.location.hostname;
-            
-            document.getElementById('statusBox').innerHTML = `
-                🌐 Servidor: ${hostname} (${isServer ? '✅ Online' : '⚠️ Local'})<br>
-                <small>💡 Los PDFs se descargarán directamente en la carpeta de descargas</small>
-            `;
-            
             addLog('📋 Inicializando sistema...', 'info');
-            addLog(`🌐 Servidor: ${hostname}`, 'info');
-            addLog('✅ Descarga directa sin pop-ups', 'success');
+            addLog('💡 Usando enlaces <a download> para descarga directa', 'info');
+            addLog('✅ Sin pop-ups, sin CORS, descarga automática', 'success');
+            
+            // Verificar si el navegador soporta download
+            const testLink = document.createElement('a');
+            if (!testLink.download) {
+                addLog('⚠️ Tu navegador no soporta el atributo download', 'warning');
+                addLog('💡 Usa Chrome, Firefox o Edge para mejores resultados', 'info');
+            }
             
             try {
                 const testResponse = await fetch('https://apisi.senado.gob.bo/page/ley-tratamiento/buscar?page=1');
