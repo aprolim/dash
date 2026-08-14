@@ -25,6 +25,7 @@ export interface NewsItem {
     caption: string
     order: number
   }[]
+  participantes?: number[] // 🔥 NUEVO: IDs de los senadores participantes
   publishedAt?: string
   scheduledFor?: string
   views: number

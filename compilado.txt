@@ -3198,10 +3198,18 @@ export const useApi = () => {
   return {
     get: async <T>(url: string): Promise<T> => {
       console.log(`🔵 [useApi] GET ${url}`)
+      
+      // 🔥 NUEVO: Agregar parámetro anti-caché
+      const cacheBuster = `_=${Date.now()}`
+      const separator = url.includes('?') ? '&' : '?'
+      const finalUrl = `${url}${separator}${cacheBuster}`
+      console.log(`🔵 [useApi] GET con anti-caché: ${finalUrl}`)
+      
       const headers = getHeaders()
-      const response = await fetch(url, {
+      const response = await fetch(finalUrl, {
         method: 'GET',
         headers,
+        cache: 'no-store', // 🔥 NUEVO: Forzar a no usar caché
       })
       return handleResponse<T>(response, url)
     },
@@ -5485,18 +5493,26 @@ pages\admin\noticias\index.vue
                 {{ statusText(item.status) }}
               </span>
             </td>
+            <!-- 🔥 SECCIÓN DE FECHA MEJORADA -->
             <td class="px-6 py-4 text-sm text-gray-500">
-              <div v-if="item.status === 'scheduled' && item.scheduledFor">
-                <span class="text-yellow-600">⏰ Programada:</span>
-                {{ new Date(item.scheduledFor).toLocaleString('es-ES') }}
-              </div>
-              <div v-else-if="item.publishedAt">
-                <span class="text-green-600">📅 Publicada:</span>
-                {{ new Date(item.publishedAt).toLocaleString('es-ES') }}
-              </div>
-              <div v-else>
+              <template v-if="item.status === 'scheduled'">
+                <div>
+                  <span class="text-yellow-600">⏰ Programada:</span>
+                  <span v-if="item.scheduledFor">{{ formatearFecha(item.scheduledFor) }}</span>
+                  <span v-else class="text-gray-400">Sin fecha</span>
+                </div>
+              </template>
+              <template v-else-if="item.status === 'published' || item.status === 'archived'">
+                <div>
+                  <span class="text-green-600" v-if="item.status === 'published'">📅 Publicada:</span>
+                  <span class="text-gray-600" v-else>📦 Archivada:</span>
+                  <span v-if="item.publishedAt">{{ formatearFecha(item.publishedAt) }}</span>
+                  <span v-else class="text-gray-400">Sin fecha</span>
+                </div>
+              </template>
+              <template v-else>
                 <span class="text-gray-400">Sin fecha</span>
-              </div>
+              </template>
             </td>
             <td class="px-6 py-4 text-sm text-gray-500">{{ item.views || 0 }}</td>
             <td class="px-6 py-4 text-right text-sm font-medium">
@@ -5558,6 +5574,7 @@ pages\admin\noticias\index.vue
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useNews, type NewsItem } from '~/composables/useNews'
 import Modal from '~/components/ui/Modal.vue'
 
@@ -5566,6 +5583,8 @@ definePageMeta({
   middleware: 'auth'
 })
 
+const route = useRoute()
+const router = useRouter()
 const { getNews, deleteNews: deleteNewsApi } = useNews()
 
 const newsList = ref<NewsItem[]>([])
@@ -5583,6 +5602,24 @@ const filters = ref({
 })
 
 let searchTimeout: NodeJS.Timeout
+
+// 🔥 NUEVA FUNCIÓN: Formatear fecha de forma robusta
+const formatearFecha = (fecha: string | Date): string => {
+  if (!fecha) return 'Sin fecha'
+  try {
+    const date = new Date(fecha)
+    if (isNaN(date.getTime())) return 'Fecha inválida'
+    return date.toLocaleString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  } catch {
+    return 'Fecha inválida'
+  }
+}
 
 const onStatusChange = () => {
   console.log('🔽 [onStatusChange] Nuevo status:', filters.value.status)
@@ -5666,6 +5703,16 @@ const loadNews = async () => {
     console.log('   - pages:', result.pages)
     console.log('   - contents length:', result.contents?.length)
     
+    // Mostrar las fechas de las noticias recibidas para debug
+    if (result.contents && result.contents.length > 0) {
+      result.contents.forEach((item: NewsItem, idx: number) => {
+        console.log(`   - Noticia ${idx + 1}: "${item.title}"`)
+        console.log(`     publishedAt: ${item.publishedAt}`)
+        console.log(`     scheduledFor: ${item.scheduledFor}`)
+        console.log(`     status: ${item.status}`)
+      })
+    }
+    
     newsList.value = result.contents || []
     total.value = result.total || 0
     totalPages.value = result.pages || 1
@@ -5745,6 +5792,13 @@ const statusText = (status: string) => {
 
 onMounted(() => {
   console.log('🚀 [onMounted] Componente montado, cargando noticias...')
+  
+  // 🔥 NUEVO: Si hay parámetro reload, forzar recarga y limpiar URL
+  if (route.query.reload) {
+    console.log('🔄 [onMounted] Recarga forzada por parámetro reload')
+    router.replace({ query: {} }) // Limpiar el parámetro de la URL
+  }
+  
   loadNews()
 })
 </script> 
@@ -6696,7 +6750,9 @@ const saveNews = async () => {
   try {
     const result = await updateNews(id, payload)
     console.log('🔵 [CMS] Respuesta del servidor:', result)
-    router.push('/admin/noticias')
+    
+    // 🔥 CAMBIO IMPORTANTE: Redirigir con parámetro para forzar recarga
+    router.push('/admin/noticias?reload=true')
   } catch (error) {
     console.error('❌ [CMS] Error:', error)
     if (error.message?.includes('duplicate key') || error.message?.includes('E11000')) {
@@ -7681,6 +7737,815 @@ onMounted(() => {
 })
 </script> 
 ================================= 
+public\some.html 
+================================= 
+ 
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Descargador Masivo de PDFs - Senado</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #E03636 0%, #8B0000 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2rem; margin-bottom: 10px; }
+        .header p { opacity: 0.9; }
+
+        .controls {
+            padding: 20px 30px;
+            background: #f7f7f7;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        .btn-primary { background: #E03636; color: white; }
+        .btn-primary:hover:not(:disabled) { background: #8B0000; transform: translateY(-2px); }
+        .btn-success { background: #28a745; color: white; }
+        .btn-success:hover:not(:disabled) { background: #1e7e34; transform: translateY(-2px); }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover:not(:disabled) { background: #5a6268; transform: translateY(-2px); }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-danger:hover:not(:disabled) { background: #c82333; transform: translateY(-2px); }
+        .btn-warning { background: #ffc107; color: #333; }
+        .btn-warning:hover:not(:disabled) { background: #e0a800; transform: translateY(-2px); }
+        .btn-info { background: #17a2b8; color: white; }
+        .btn-info:hover:not(:disabled) { background: #138496; transform: translateY(-2px); }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            color: #666;
+            flex-wrap: wrap;
+        }
+        .stat {
+            background: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .progress-container {
+            padding: 20px 30px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .progress-bar {
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            height: 30px;
+            margin-top: 10px;
+        }
+        .progress-fill {
+            background: linear-gradient(90deg, #28a745, #20c997);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .log-container {
+            padding: 20px 30px;
+            max-height: 500px;
+            overflow-y: auto;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .log-entry { padding: 5px; border-bottom: 1px solid #333; }
+        .log-success { color: #4ec9b0; }
+        .log-error { color: #f48771; }
+        .log-info { color: #569cd6; }
+        .log-warning { color: #ffd700; }
+
+        .categories {
+            padding: 20px 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 15px;
+            background: #fafafa;
+        }
+        .category-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .category-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .category-card.selected { border-color: #28a745; background: #f0fff4; }
+        .category-card .checkbox {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            cursor: pointer;
+            accent-color: #28a745;
+        }
+        .category-title { font-weight: bold; color: #E03636; margin-bottom: 10px; font-size: 16px; display: flex; align-items: center; }
+        .category-stats { font-size: 12px; color: #666; margin-bottom: 10px; }
+
+        .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #E03636; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .status-badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+        .status-completed { background: #28a745; color: white; }
+        .status-pending { background: #ffc107; color: #333; }
+        .status-error { background: #dc3545; color: white; }
+        .status-downloading { background: #17a2b8; color: white; }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .info-box {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            margin: 10px 30px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .selection-info {
+            padding: 10px 30px;
+            background: #e8f4fd;
+            border-bottom: 1px solid #b8d4e8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .controls { flex-direction: column; align-items: stretch; }
+            .controls > div { display: flex; flex-wrap: wrap; gap: 10px; }
+            .stats { justify-content: center; }
+            .header h1 { font-size: 1.5rem; }
+            .categories { grid-template-columns: 1fr; }
+            .selection-info { flex-direction: column; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📥 Descargador Masivo de PDFs</h1>
+            <p>Sistema de Descarga de Documentos del Senado</p>
+        </div>
+
+        <div class="info-box" id="statusBox">
+            ✅ Usando enlaces con atributo download - Descarga directa sin pop-ups
+        </div>
+
+        <div class="selection-info">
+            <span id="selectionStatus">📋 Seleccione las categorías que desea descargar</span>
+            <div>
+                <button class="btn btn-info" onclick="selectAll()">✅ Seleccionar Todas</button>
+                <button class="btn btn-secondary" onclick="deselectAll()">⬜ Deseleccionar Todas</button>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div>
+                <button class="btn btn-primary" onclick="startDownload()" id="btnStart">🚀 Descargar Seleccionadas</button>
+                <button class="btn btn-success" onclick="downloadAllAsZip()" id="btnZip" style="display:none;">📦 Descargar ZIP</button>
+                <button class="btn btn-secondary" onclick="clearLogs()">🗑️ Limpiar Logs</button>
+                <button class="btn btn-warning" onclick="reloadData()">🔄 Recargar Datos</button>
+                <button class="btn btn-danger" onclick="stopDownload()" id="btnStop" style="display:none;">⛔ Detener</button>
+            </div>
+            <div class="stats">
+                <div class="stat">📁 Total PDFs: <span id="totalPdfs">0</span></div>
+                <div class="stat">✅ Descargados: <span id="downloadedCount">0</span></div>
+                <div class="stat">❌ Errores: <span id="errorCount">0</span></div>
+            </div>
+        </div>
+
+        <div class="progress-container">
+            <div>Progreso General</div>
+            <div class="progress-bar"><div class="progress-fill" id="progressFill">0%</div></div>
+        </div>
+
+        <div class="categories" id="categoriesContainer">
+            <div class="loading"></div>
+            <span>Cargando categorías...</span>
+        </div>
+
+        <div class="log-container" id="logContainer">
+            <div class="log-entry log-info">📋 Sistema listo. Seleccione categorías y presione "Descargar Seleccionadas"</div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script>
+        // CONFIGURACIÓN
+        const ENDPOINTS = {
+            'proyectos-de-ley-en-tratamiento': {
+                url: 'https://apisi.senado.gob.bo/page/ley-tratamiento/buscar',
+                titulo: 'Proyectos de Ley en Tratamiento',
+                icono: '📋'
+            },
+            'proyectos-de-ley-aprobados': {
+                url: 'https://apisi.senado.gob.bo/page/ley-aprobados/buscar',
+                titulo: 'Proyectos de Ley Aprobados',
+                icono: '✅'
+            },
+            'proyectos-de-ley-sansionados': {
+                url: 'https://apisi.senado.gob.bo/page/ley-sancionada/buscar',
+                titulo: 'Leyes Sancionadas',
+                icono: '⚖️'
+            },
+            'proyectos-de-ley-con-modificaciones': {
+                url: 'https://apisi.senado.gob.bo/page/ley-devuelto/buscar',
+                titulo: 'Proyectos de Ley con Modificaciones',
+                icono: '✏️'
+            },
+            'leyes-promulgadas': {
+                url: 'https://apisi.senado.gob.bo/page/ley-promulgada/buscar',
+                titulo: 'Leyes Promulgadas',
+                icono: '📜'
+            },
+            'proyectos-de-ley-rechazados': {
+                url: 'https://apisi.senado.gob.bo/page/ley-rechazada/buscar',
+                titulo: 'Proyectos de Ley Rechazados',
+                icono: '❌'
+            }
+        };
+
+        let allDocuments = [];
+        let downloadQueue = [];
+        let isDownloading = false;
+        let currentDownloadIndex = 0;
+        let totalToDownload = 0;
+        let downloadedCount = 0;
+        let errorCount = 0;
+        let shouldStop = false;
+        let downloadedFiles = [];
+        let selectedCategories = new Set();
+        let categoryData = {};
+
+        // Función para obtener datos de una página
+        async function fetchPage(endpointKey, page = 1) {
+            const endpoint = ENDPOINTS[endpointKey];
+            const url = `${endpoint.url}?page=${page}`;
+            
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                addLog(`Error obteniendo página ${page} de ${endpoint.titulo}: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        function procesarRespuesta(data) {
+            if (data && data.data && data.data.data) {
+                return data.data.data;
+            }
+            if (data && data.data && Array.isArray(data.data)) {
+                return data.data;
+            }
+            return [];
+        }
+
+        function obtenerTotalPaginas(data) {
+            if (data && data.data && data.data.last_page) {
+                return data.data.last_page;
+            }
+            if (data && data.last_page) {
+                return data.last_page;
+            }
+            return 1;
+        }
+
+        function getPdfUrl(item) {
+            if (item.documento) {
+                if (item.documento.startsWith('http')) return item.documento;
+                return `https://apisi.senado.gob.bo/${item.documento}`;
+            }
+            
+            for (let key in item) {
+                if (typeof item[key] === 'string' && item[key].includes('.pdf')) {
+                    if (item[key].startsWith('http')) return item[key];
+                    return `https://apisi.senado.gob.bo/${item[key]}`;
+                }
+            }
+            return null;
+        }
+
+        function getDocumentTitle(item) {
+            let title = '';
+            if (item.titulo) {
+                title = item.titulo.replace(/[<>:"/\\|?*]/g, '_').substring(0, 100);
+            } else if (item.asunto) {
+                title = item.asunto.replace(/[<>:"/\\|?*]/g, '_').substring(0, 100);
+            } else if (item.numero) {
+                title = `Ley_${item.numero}`;
+            } else {
+                title = `Documento_${item.id || Date.now()}`;
+            }
+            return title || 'documento_sin_titulo';
+        }
+
+        async function getAllDocumentsForCategory(endpointKey) {
+            const endpoint = ENDPOINTS[endpointKey];
+            let allItems = [];
+            
+            const firstPage = await fetchPage(endpointKey, 1);
+            if (!firstPage || !firstPage.data) {
+                addLog(`⚠️ No se pudo obtener datos de ${endpoint.titulo}`, 'error');
+                return [];
+            }
+
+            const totalPages = obtenerTotalPaginas(firstPage);
+            const items = procesarRespuesta(firstPage);
+            allItems.push(...items);
+
+            const promises = [];
+            for (let page = 2; page <= totalPages; page++) {
+                promises.push(fetchPage(endpointKey, page));
+            }
+            
+            const results = await Promise.all(promises);
+            for (const data of results) {
+                if (data && data.data) {
+                    const pageItems = procesarRespuesta(data);
+                    allItems.push(...pageItems);
+                }
+            }
+            
+            return allItems.filter(item => getPdfUrl(item));
+        }
+
+        async function getAllDocuments() {
+            addLog('🚀 Iniciando búsqueda de documentos...', 'info');
+            
+            const categories = Object.keys(ENDPOINTS);
+            const container = document.getElementById('categoriesContainer');
+            container.innerHTML = '';
+
+            for (const category of categories) {
+                addLog(`📂 Obteniendo: ${ENDPOINTS[category].titulo}`, 'info');
+                const docs = await getAllDocumentsForCategory(category);
+                docs.forEach(doc => doc._categoria = category);
+                categoryData[category] = docs;
+                
+                const card = document.createElement('div');
+                card.className = 'category-card';
+                card.setAttribute('data-category', category);
+                card.onclick = function(e) {
+                    if (e.target.type !== 'checkbox') {
+                        const checkbox = this.querySelector('.checkbox');
+                        checkbox.checked = !checkbox.checked;
+                        checkbox.dispatchEvent(new Event('change'));
+                    }
+                };
+                card.innerHTML = `
+                    <div class="category-title">
+                        <input type="checkbox" class="checkbox" id="chk-${category}" 
+                               onchange="toggleCategory('${category}')">
+                        <label for="chk-${category}">${ENDPOINTS[category].icono} ${ENDPOINTS[category].titulo}</label>
+                    </div>
+                    <div class="category-stats">Documentos: ${docs.length}</div>
+                    <div class="status-badge status-pending" id="status-${category}">⏳ Pendiente</div>
+                `;
+                container.appendChild(card);
+                
+                document.getElementById(`chk-${category}`).checked = true;
+                selectedCategories.add(category);
+                card.classList.add('selected');
+            }
+
+            updateTotal();
+            updateSelectionStatus();
+            addLog(`✅ ${Object.keys(categoryData).length} categorías cargadas`, 'success');
+        }
+
+        function toggleCategory(category) {
+            const checkbox = document.getElementById(`chk-${category}`);
+            const card = checkbox.closest('.category-card');
+            
+            if (checkbox.checked) {
+                selectedCategories.add(category);
+                card.classList.add('selected');
+            } else {
+                selectedCategories.delete(category);
+                card.classList.remove('selected');
+            }
+            updateTotal();
+            updateSelectionStatus();
+        }
+
+        function selectAll() {
+            Object.keys(ENDPOINTS).forEach(cat => {
+                const chk = document.getElementById(`chk-${cat}`);
+                if (chk) {
+                    chk.checked = true;
+                    selectedCategories.add(cat);
+                    chk.closest('.category-card').classList.add('selected');
+                }
+            });
+            updateTotal();
+            updateSelectionStatus();
+        }
+
+        function deselectAll() {
+            Object.keys(ENDPOINTS).forEach(cat => {
+                const chk = document.getElementById(`chk-${cat}`);
+                if (chk) {
+                    chk.checked = false;
+                    selectedCategories.delete(cat);
+                    chk.closest('.category-card').classList.remove('selected');
+                }
+            });
+            updateTotal();
+            updateSelectionStatus();
+        }
+
+        function updateTotal() {
+            let total = 0;
+            for (const cat of selectedCategories) {
+                total += (categoryData[cat] || []).length;
+            }
+            document.getElementById('totalPdfs').innerText = total;
+        }
+
+        function updateSelectionStatus() {
+            const total = Object.keys(ENDPOINTS).length;
+            const selected = selectedCategories.size;
+            document.getElementById('selectionStatus').innerHTML = 
+                `📋 Categorías seleccionadas: ${selected}/${total} (${selectedCategories.size > 0 ? '✅ Listo para descargar' : '⚠️ Seleccione al menos una categoría'})`;
+        }
+
+        function updateCategoryStatus(category, status, downloaded = 0, total = 0) {
+            const badge = document.getElementById(`status-${category}`);
+            if (badge) {
+                badge.className = `status-badge status-${status}`;
+                if (status === 'completed') badge.innerHTML = `✅ Completado (${downloaded}/${total})`;
+                else if (status === 'downloading') badge.innerHTML = `⬇️ Descargando (${downloaded}/${total})`;
+                else if (status === 'error') badge.innerHTML = `❌ Error`;
+                else if (status === 'pending') badge.innerHTML = `⏳ Pendiente`;
+            }
+        }
+
+        // ===== DESCARGA CON ENLACE <a download> (SIN POP-UPS, SIN CORS) =====
+        function downloadPDFWithLink(url, filename) {
+            return new Promise((resolve) => {
+                try {
+                    const fullFilename = filename.endsWith('.pdf') ? filename : filename + '.pdf';
+                    
+                    // Guardar para ZIP
+                    const category = downloadQueue[currentDownloadIndex]?._categoria || 'otros';
+                    
+                    // Crear enlace con atributo download
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fullFilename;
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    
+                    // Guardar para ZIP después de un momento (el navegador descarga el archivo)
+                    setTimeout(() => {
+                        // No tenemos el blob, pero guardamos la URL para el ZIP
+                        downloadedFiles.push({
+                            url: url,
+                            filename: fullFilename,
+                            category: category
+                        });
+                        resolve({ success: true });
+                    }, 500);
+                } catch (error) {
+                    resolve({ success: false, error: error.message });
+                }
+            });
+        }
+
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            while (logContainer.children.length > 1000) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+        }
+
+        function updateProgress() {
+            const percent = totalToDownload > 0 ? (downloadedCount / totalToDownload) * 100 : 0;
+            document.getElementById('progressFill').style.width = `${percent}%`;
+            document.getElementById('progressFill').innerHTML = `${Math.round(percent)}%`;
+            document.getElementById('downloadedCount').innerText = downloadedCount;
+            document.getElementById('errorCount').innerText = errorCount;
+        }
+
+        function stopDownload() {
+            shouldStop = true;
+            addLog('⛔ Deteniendo descarga...', 'warning');
+            document.getElementById('btnStop').style.display = 'none';
+        }
+
+        async function processQueue() {
+            if (!isDownloading || shouldStop) {
+                if (shouldStop) {
+                    isDownloading = false;
+                    shouldStop = false;
+                    addLog('⛔ Descarga detenida por el usuario', 'warning');
+                    document.getElementById('btnStart').style.display = 'inline-block';
+                    document.getElementById('btnStart').disabled = false;
+                    document.getElementById('btnStart').innerHTML = '🚀 Descargar Seleccionadas';
+                    document.getElementById('btnStop').style.display = 'none';
+                    if (downloadedFiles.length > 0) {
+                        document.getElementById('btnZip').style.display = 'inline-block';
+                    }
+                }
+                return;
+            }
+            
+            if (currentDownloadIndex >= downloadQueue.length) {
+                isDownloading = false;
+                addLog('🎉 ¡Descarga completada!', 'success');
+                document.getElementById('btnStart').style.display = 'inline-block';
+                document.getElementById('btnStart').disabled = false;
+                document.getElementById('btnStart').innerHTML = '🚀 Descargar Seleccionadas';
+                document.getElementById('btnStop').style.display = 'none';
+                if (downloadedFiles.length > 0) {
+                    document.getElementById('btnZip').style.display = 'inline-block';
+                }
+                
+                const categories = [...new Set(downloadQueue.map(d => d._categoria))];
+                for (const category of categories) {
+                    const docsInCategory = downloadQueue.filter(d => d._categoria === category);
+                    const downloadedInCategory = downloadedFiles.filter(f => f.category === category).length;
+                    updateCategoryStatus(category, 'completed', downloadedInCategory, docsInCategory.length);
+                }
+                return;
+            }
+
+            const item = downloadQueue[currentDownloadIndex];
+            const pdfUrl = getPdfUrl(item);
+            const title = getDocumentTitle(item);
+            const category = item._categoria;
+            
+            if (!pdfUrl) {
+                addLog(`⚠️ Sin PDF: ${title.substring(0, 50)}`, 'error');
+                errorCount++;
+                currentDownloadIndex++;
+                updateProgress();
+                processQueue();
+                return;
+            }
+            
+            try {
+                addLog(`⬇️ [${currentDownloadIndex + 1}/${totalToDownload}] ${title.substring(0, 60)}`, 'info');
+                await downloadPDFWithLink(pdfUrl, title);
+                downloadedCount++;
+                addLog(`✅ Completado: ${title.substring(0, 50)}`, 'success');
+            } catch (error) {
+                errorCount++;
+                addLog(`❌ Error: ${title.substring(0, 50)}`, 'error');
+            }
+            
+            currentDownloadIndex++;
+            updateProgress();
+            
+            const categoryDocs = downloadQueue.filter(d => d._categoria === category);
+            const categoryDownloaded = downloadedFiles.filter(f => f.category === category).length;
+            updateCategoryStatus(category, 'downloading', categoryDownloaded, categoryDocs.length);
+            
+            await new Promise(r => setTimeout(r, 300));
+            processQueue();
+        }
+
+        async function startDownload() {
+            if (isDownloading) {
+                addLog('⚠️ Ya hay una descarga en progreso', 'info');
+                return;
+            }
+            
+            if (selectedCategories.size === 0) {
+                addLog('⚠️ Seleccione al menos una categoría para descargar', 'warning');
+                return;
+            }
+
+            downloadQueue = [];
+            for (const category of selectedCategories) {
+                const docs = categoryData[category] || [];
+                docs.forEach(doc => {
+                    doc._categoria = category;
+                    downloadQueue.push(doc);
+                });
+            }
+
+            if (downloadQueue.length === 0) {
+                addLog('⚠️ No hay documentos en las categorías seleccionadas', 'warning');
+                return;
+            }
+
+            document.getElementById('btnStart').disabled = true;
+            document.getElementById('btnStart').innerHTML = '⏳ Descargando...';
+            document.getElementById('btnStop').style.display = 'inline-block';
+            document.getElementById('btnZip').style.display = 'none';
+            shouldStop = false;
+            
+            isDownloading = true;
+            currentDownloadIndex = 0;
+            downloadedCount = 0;
+            errorCount = 0;
+            downloadedFiles = [];
+            updateProgress();
+            
+            addLog(`🚀 Iniciando descarga de ${downloadQueue.length} documentos`, 'info');
+            addLog(`📂 Categorías: ${Array.from(selectedCategories).map(c => ENDPOINTS[c].titulo).join(', ')}`, 'info');
+            addLog(`💡 Usando enlaces con atributo download (sin pop-ups)`, 'info');
+            
+            for (const category of selectedCategories) {
+                const docsInCategory = downloadQueue.filter(d => d._categoria === category);
+                updateCategoryStatus(category, 'downloading', 0, docsInCategory.length);
+            }
+            
+            totalToDownload = downloadQueue.length;
+            processQueue();
+        }
+
+        // ===== DESCARGA ZIP =====
+        async function downloadAllAsZip() {
+            if (downloadedFiles.length === 0) {
+                addLog('⚠️ No hay archivos descargados para empaquetar', 'info');
+                return;
+            }
+            
+            addLog(`📦 Preparando ZIP con ${downloadedFiles.length} archivos...`, 'info');
+            addLog(`⚠️ Para el ZIP se necesita descargar los archivos nuevamente (puede fallar por CORS)`, 'warning');
+            
+            if (typeof JSZip === 'undefined') {
+                addLog('📦 Cargando JSZip...', 'info');
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+            }
+            
+            try {
+                const zip = new JSZip();
+                const categories = [...new Set(downloadedFiles.map(f => f.category))];
+                let processed = 0;
+                
+                for (const category of categories) {
+                    const categoryFiles = downloadedFiles.filter(f => f.category === category);
+                    const folder = zip.folder(ENDPOINTS[category]?.titulo || category);
+                    
+                    for (const file of categoryFiles) {
+                        try {
+                            addLog(`📄 Agregando: ${file.filename}`, 'info');
+                            const response = await fetch(file.url);
+                            if (response.ok) {
+                                const blob = await response.blob();
+                                folder.file(file.filename, blob);
+                                processed++;
+                            }
+                        } catch (error) {
+                            addLog(`❌ Error: ${error.message}`, 'error');
+                        }
+                    }
+                }
+                
+                if (processed === 0) {
+                    addLog('⚠️ No se pudo agregar ningún archivo al ZIP (CORS)', 'warning');
+                    return;
+                }
+                
+                addLog(`📦 Generando ZIP (${processed} archivos)...`, 'info');
+                const content = await zip.generateAsync({ 
+                    type: 'blob',
+                    compression: 'DEFLATE',
+                    compressionOptions: { level: 6 }
+                });
+                
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `senado_documentos_${new Date().toISOString().slice(0,10)}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                addLog(`✅ ZIP creado exitosamente con ${processed} archivos`, 'success');
+            } catch (error) {
+                addLog(`❌ Error creando ZIP: ${error.message}`, 'error');
+            }
+        }
+
+        function clearLogs() {
+            document.getElementById('logContainer').innerHTML = '<div class="log-entry log-info">📋 Logs limpiados.</div>';
+        }
+
+        async function reloadData() {
+            if (isDownloading) {
+                addLog('⚠️ Espere a que termine la descarga actual', 'warning');
+                return;
+            }
+            categoryData = {};
+            selectedCategories = new Set();
+            downloadedFiles = [];
+            document.getElementById('totalPdfs').innerText = '0';
+            document.getElementById('downloadedCount').innerText = '0';
+            document.getElementById('errorCount').innerText = '0';
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('progressFill').innerHTML = '0%';
+            document.getElementById('btnZip').style.display = 'none';
+            
+            const container = document.getElementById('categoriesContainer');
+            container.innerHTML = '<div class="loading"></div><span>Cargando categorías...</span>';
+            
+            await getAllDocuments();
+        }
+
+        async function init() {
+            addLog('📋 Inicializando sistema...', 'info');
+            addLog('💡 Usando enlaces <a download> para descarga directa', 'info');
+            addLog('✅ Sin pop-ups, sin CORS, descarga automática', 'success');
+            
+            // Verificar si el navegador soporta download
+            const testLink = document.createElement('a');
+            if (!testLink.download) {
+                addLog('⚠️ Tu navegador no soporta el atributo download', 'warning');
+                addLog('💡 Usa Chrome, Firefox o Edge para mejores resultados', 'info');
+            }
+            
+            try {
+                const testResponse = await fetch('https://apisi.senado.gob.bo/page/ley-tratamiento/buscar?page=1');
+                if (testResponse.ok) {
+                    addLog('✅ Conexión con API establecida', 'success');
+                    await getAllDocuments();
+                    addLog('✅ Sistema listo. Seleccione categorías y presione "Descargar Seleccionadas"', 'success');
+                } else {
+                    addLog(`⚠️ API respondió: ${testResponse.status}`, 'error');
+                }
+            } catch (error) {
+                addLog(`⚠️ Error de conexión: ${error.message}`, 'error');
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html> 
+================================= 
 stores\auth.ts 
 ================================= 
  
@@ -7965,4 +8830,4 @@ declare module '~/stores/auth' {
     avatarInitials: string
   }
 } 
-Total archivos: 45 
+Total archivos: 46 

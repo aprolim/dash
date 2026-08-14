@@ -215,6 +215,101 @@
         </div>
       </div>
 
+      <!-- 🔥 SENADORES PARTICIPANTES -->
+      <div class="border-t pt-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">👥 Senadores Participantes</h3>
+        <p class="text-sm text-gray-500 mb-3">
+          Selecciona los senadores que participaron en esta noticia
+        </p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Buscar senador
+            </label>
+            <div class="relative">
+              <input
+                v-model="busquedaSenador"
+                type="text"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                placeholder="Escribe el nombre del senador..."
+                @input="filtrarSenadores"
+              />
+              <div v-if="senadoresFiltrados.length > 0 && busquedaSenador" 
+                   class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                <div
+                  v-for="senador in senadoresFiltrados"
+                  :key="senador.id"
+                  @click="agregarSenador(senador)"
+                  class="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0"
+                >
+                  <img 
+                    :src="senador.foto" 
+                    :alt="senador.name"
+                    class="w-8 h-8 rounded-full object-cover"
+                    @error="(e) => e.target.src = '/images/default-avatar.png'"
+                  />
+                  <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-900">{{ senador.name }}</p>
+                    <p class="text-xs text-gray-500">{{ senador.department }} • {{ senador.partyShort }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Busca por nombre, departamento o partido</p>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Senadores seleccionados ({{ form.participantes.length }})
+            </label>
+            <div class="border border-gray-200 rounded-lg p-3 min-h-[100px] bg-gray-50">
+              <div v-if="form.participantes.length === 0" class="text-center text-gray-400 py-4">
+                No hay senadores seleccionados
+              </div>
+              <div v-else class="flex flex-wrap gap-2">
+                <div
+                  v-for="senador in senadoresSeleccionados"
+                  :key="senador.id"
+                  class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm"
+                >
+                  <img 
+                    :src="senador.foto" 
+                    :alt="senador.name"
+                    class="w-6 h-6 rounded-full object-cover"
+                    @error="(e) => e.target.src = '/images/default-avatar.png'"
+                  />
+                  <span class="text-sm font-medium text-gray-700">{{ senador.name }}</span>
+                  <button
+                    type="button"
+                    @click="removerSenador(senador.id)"
+                    class="text-red-500 hover:text-red-700 text-sm ml-1"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Sugerencias por departamento -->
+        <div class="mt-3">
+          <p class="text-xs text-gray-500 mb-2">Agregar todos los senadores de un departamento:</p>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="dept in departamentos"
+              :key="dept"
+              type="button"
+              @click="agregarSenadoresPorDepartamento(dept)"
+              class="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition"
+            >
+              + {{ dept }}
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Categoría, Estado y Programación -->
       <div class="border-t pt-6">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -242,55 +337,29 @@
           </div>
         </div>
 
-        <!-- 🔥 ADVERTENCIAS VISUALES SEGÚN ESTADO -->
-        <!-- Borrador con fecha -->
+        <!-- Advertencias visuales según estado -->
         <div v-if="form.status === 'draft' && (form.publishedDate || form.scheduledDate)" 
              class="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p class="text-sm text-yellow-800">
             ⚠️ <strong>Nota:</strong> Esta noticia está en <strong>BORRADOR</strong>.
             La fecha que configures se guardará pero NO se usará para publicación automática.
-            <br>
-            <span class="text-xs text-yellow-600">
-              💡 Cuando cambies a "Publicar ahora", se usará la fecha que tengas configurada.
-            </span>
           </p>
         </div>
         
-        <!-- Publicar ahora con fecha futura (ERROR) -->
         <div v-if="form.status === 'published' && isFutureDate" 
              class="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
           <p class="text-sm text-red-800">
             ❌ <strong>Error:</strong> Para "Publicar ahora", la fecha debe ser ACTUAL o PASADA.
-            <br>
-            <span class="text-xs">
-              Fecha configurada: <strong>{{ form.publishedDate }} {{ form.publishedTime }}</strong>
-              (es FUTURA)
-            </span>
-            <br>
-            <span class="text-xs text-red-600">
-              💡 Si quieres que se publique automáticamente en el futuro, usa <strong>"Programar"</strong>.
-            </span>
           </p>
         </div>
         
-        <!-- Programar con fecha pasada (ERROR) -->
         <div v-if="form.status === 'scheduled' && isScheduledPastDate" 
              class="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
           <p class="text-sm text-red-800">
             ❌ <strong>Error:</strong> Para "Programar", la fecha debe ser FUTURA.
-            <br>
-            <span class="text-xs">
-              Fecha configurada: <strong>{{ form.scheduledDate }} {{ form.scheduledTime }}</strong>
-              (es PASADA)
-            </span>
-            <br>
-            <span class="text-xs text-red-600">
-              💡 Si quieres publicar ahora, usa <strong>"Publicar ahora"</strong>.
-            </span>
           </p>
         </div>
         
-        <!-- Programar sin fecha (ERROR) -->
         <div v-if="form.status === 'scheduled' && (!form.scheduledDate || !form.scheduledTime)" 
              class="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
           <p class="text-sm text-red-800">
@@ -328,12 +397,9 @@
           <p class="text-xs text-yellow-600 mt-2">
             ⏰ La noticia será visible automáticamente el {{ form.scheduledDate || 'YYYY-MM-DD' }} a las {{ form.scheduledTime || 'HH:MM' }}
           </p>
-          <p class="text-xs text-gray-500 mt-1">
-            💡 Si hoy es lunes y programas para martes 8:00 AM, la noticia aparecerá automáticamente a esa hora
-          </p>
         </div>
 
-        <!-- Fecha de Publicación (visible para todos los estados) -->
+        <!-- Fecha de Publicación -->
         <div class="mt-4 border-t border-gray-200 pt-4">
           <h4 class="text-sm font-medium text-gray-700 mb-3">📅 Fecha de Publicación</h4>
           <p class="text-xs text-gray-500 mb-2">
@@ -343,9 +409,6 @@
             </span>
             <span v-if="form.status === 'published'" class="text-green-600">
               ✅ Se usará esta fecha al publicar.
-            </span>
-            <span v-if="form.status === 'scheduled'" class="text-blue-600">
-              ℹ️ Para programar, usa la sección "Programar" arriba.
             </span>
           </p>
           
@@ -385,12 +448,6 @@
             <p class="text-sm text-green-700">
               <span class="font-medium">📝 Fecha configurada:</span> 
               {{ form.publishedDate }} a las {{ form.publishedTime }}
-            </p>
-            <p v-if="form.status === 'draft'" class="text-xs text-yellow-600 mt-1">
-              ⚠️ Esta fecha se guardará pero NO se usará hasta que cambies el estado a "Publicar ahora".
-            </p>
-            <p v-if="form.status === 'published'" class="text-xs text-green-600 mt-1">
-              ✅ La noticia se publicará con esta fecha.
             </p>
           </div>
         </div>
@@ -438,6 +495,7 @@ import { ref, reactive, watch, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '~/stores/auth'
 import { useNews } from '~/composables/useNews'
+import { useSenadores } from '~/composables/useSenadores'
 import TiptapEditor from '~/components/admin/TiptapEditor.vue'
 
 definePageMeta({ layout: 'default', middleware: 'auth' })
@@ -445,6 +503,7 @@ definePageMeta({ layout: 'default', middleware: 'auth' })
 const router = useRouter()
 const authStore = useAuthStore()
 const { createNews, uploadImage: uploadImageApi } = useNews()
+const { getSenadoresList, getSenadorById, getSenadoresByDepartment } = useSenadores()
 
 const API_BASE_URL = 'http://demoback.senado.gob.bo/api'
 
@@ -457,15 +516,76 @@ const uploadProgress = ref('')
 const galleryUploadProgress = ref('')
 const featuredPreviewUrl = ref('')
 
+// ============================================
+// SENADORES PARTICIPANTES
+// ============================================
+const busquedaSenador = ref('')
+const senadoresFiltrados = ref([])
+const todosLosSenadores = ref(getSenadoresList())
+
+const departamentos = computed(() => {
+  const depts = new Set()
+  todosLosSenadores.value.forEach(s => depts.add(s.department))
+  return Array.from(depts).sort()
+})
+
+const senadoresSeleccionados = computed(() => {
+  return form.participantes
+    .map(id => getSenadorById(id))
+    .filter(Boolean)
+})
+
+const filtrarSenadores = () => {
+  const query = busquedaSenador.value.toLowerCase().trim()
+  if (!query) {
+    senadoresFiltrados.value = []
+    return
+  }
+  
+  senadoresFiltrados.value = todosLosSenadores.value.filter(s => {
+    if (form.participantes.includes(s.id)) return false
+    
+    const nameMatch = s.name.toLowerCase().includes(query)
+    const deptMatch = s.department.toLowerCase().includes(query)
+    const partyMatch = s.partyShort.toLowerCase().includes(query)
+    const partyFullMatch = s.party.toLowerCase().includes(query)
+    
+    return nameMatch || deptMatch || partyMatch || partyFullMatch
+  }).slice(0, 10)
+}
+
+const agregarSenador = (senador) => {
+  if (!form.participantes.includes(senador.id)) {
+    form.participantes.push(senador.id)
+  }
+  busquedaSenador.value = ''
+  senadoresFiltrados.value = []
+}
+
+const removerSenador = (id) => {
+  form.participantes = form.participantes.filter(p => p !== id)
+}
+
+const agregarSenadoresPorDepartamento = (departamento) => {
+  const senadoresDept = getSenadoresByDepartment(departamento)
+  const ids = senadoresDept.map(s => s.id)
+  const nuevosIds = ids.filter(id => !form.participantes.includes(id))
+  form.participantes.push(...nuevosIds)
+}
+
+// ============================================
+// EXCERPT VALIDATION
+// ============================================
 const excerptCharCount = computed(() => form.excerpt?.length || 0)
 
-// Fecha mínima para programación
+// ============================================
+// FECHA
+// ============================================
 const minDate = computed(() => {
   const today = new Date()
   return today.toISOString().split('T')[0]
 })
 
-// 🔥 Computed para validar fechas
 const isFutureDate = computed(() => {
   if (!form.publishedDate || !form.publishedTime) return false
   const fechaPub = new Date(`${form.publishedDate}T${form.publishedTime}:00`)
@@ -478,7 +598,9 @@ const isScheduledPastDate = computed(() => {
   return fechaProg <= new Date()
 })
 
-// Slug validation
+// ============================================
+// SLUG VALIDATION
+// ============================================
 const slugValidation = reactive({ 
   isValid: null, 
   error: '' 
@@ -542,6 +664,9 @@ const checkSlugExists = async (slug) => {
   }
 }
 
+// ============================================
+// FORM
+// ============================================
 const form = reactive({
   title: '',
   slug: '',
@@ -554,6 +679,7 @@ const form = reactive({
   scheduledTime: '',
   publishedDate: '',
   publishedTime: '',
+  participantes: [], // 🔥 NUEVO: IDs de senadores
   featuredImage: { url: '', alt: '', name: '' },
   gallery: []
 })
@@ -570,16 +696,15 @@ const setNow = () => {
   form.publishedTime = `${hours}:${minutes}`
 }
 
-onMounted(() => {
-  setNow()
-})
-
 const tagsInput = ref('')
 
 watch(tagsInput, (newVal) => {
   form.tags = newVal.split(',').map(t => t.trim()).filter(t => t)
 })
 
+// ============================================
+// IMAGENES
+// ============================================
 const removeGalleryImage = (idx) => {
   form.gallery.splice(idx, 1)
 }
@@ -671,6 +796,9 @@ const handleGalleryFileSelect = async (event) => {
   }
 }
 
+// ============================================
+// CONVERTIR HTML A BLOQUES
+// ============================================
 const convertirHTMLaBloques = (htmlContent) => {
   if (!htmlContent) return []
   
@@ -817,7 +945,7 @@ const convertirHTMLaBloques = (htmlContent) => {
 }
 
 // ============================================
-// 🔥 FUNCIÓN PRINCIPAL CON VALIDACIONES CORRECTAS
+// GUARDAR NOTICIA
 // ============================================
 const saveNews = async () => {
   if (!authStore.isAuthenticated) {
@@ -826,9 +954,7 @@ const saveNews = async () => {
     return
   }
 
-  // ============================================
-  // VALIDACIONES BÁSICAS
-  // ============================================
+  // Validaciones básicas
   if (!form.title.trim()) {
     alert('El título es requerido')
     return
@@ -879,125 +1005,93 @@ const saveNews = async () => {
     }
   }
 
-  // ============================================
-  // 🔥 VALIDACIONES DE ESTADO Y FECHAS
-  // ============================================
-  
-  // 1. No permitir crear como 'archived'
-  if (form.status === 'archived') {
-    alert('❌ No se puede crear una noticia directamente como "Archivada".\n\nUsa "Borrador", "Publicar ahora" o "Programar".')
-    return
-  }
-
-  // 2. Si es BORRADOR, solo advertir (la fecha se guarda pero no se usa)
+  // Validaciones de estado y fechas
   if (form.status === 'draft' && (form.publishedDate || form.scheduledDate)) {
     if (!confirm(
       '⚠️ Has configurado una fecha para esta noticia pero está en estado BORRADOR.\n\n' +
       'La fecha se GUARDARÁ pero NO se usará para publicar automáticamente.\n\n' +
-      'Cuando cambies a "Publicar ahora", se usará la fecha que configuraste.\n\n' +
       '¿Deseas continuar?'
     )) {
       return
     }
   }
 
-  // 3. 🔥 Si es PUBLICAR AHORA, SOLO permitir fecha ACTUAL o PASADA
   if (form.status === 'published') {
-    // Si el usuario configuró una fecha manualmente
     if (form.publishedDate && form.publishedTime) {
       const fechaPub = new Date(`${form.publishedDate}T${form.publishedTime}:00`)
       const ahora = new Date()
-      
-      // Si la fecha es FUTURA, ERROR
       if (fechaPub > ahora) {
         alert('❌ Para "Publicar ahora", la fecha debe ser ACTUAL o PASADA.\n\n' +
-              `Fecha configurada: ${fechaPub.toLocaleString('es-ES')}\n` +
-              `Fecha actual: ${ahora.toLocaleString('es-ES')}\n\n` +
               'Si quieres que se publique automáticamente en el futuro, usa "Programar".')
         return
       }
-    }
-    // Si el usuario NO configuró fecha, usar la actual
-    else {
-      setNow() // Establecer fecha actual
+    } else {
+      setNow()
     }
   }
 
-  // 4. 🔥 Si es PROGRAMAR, SOLO permitir fecha FUTURA
   if (form.status === 'scheduled') {
-    // Verificar que tenga fecha
     if (!form.scheduledDate || !form.scheduledTime) {
       alert('❌ Para programar una noticia, debes especificar fecha y hora.')
       return
     }
-    
     const fechaProg = new Date(`${form.scheduledDate}T${form.scheduledTime}:00`)
     const ahora = new Date()
-    
-    // Si la fecha NO es futura, ERROR
     if (fechaProg <= ahora) {
       alert('❌ Para "Programar", la fecha debe ser FUTURA.\n\n' +
-            `Fecha configurada: ${fechaProg.toLocaleString('es-ES')}\n` +
-            `Fecha actual: ${ahora.toLocaleString('es-ES')}\n\n` +
             'Si quieres publicar ahora, usa "Publicar ahora".')
       return
     }
   }
 
-  // ============================================
-  // CONSTRUIR DATOS PARA ENVIAR
-  // ============================================
-  
   saving.value = true
   
-  // Construir fecha de publicación (solo si es 'published')
+  // Construir fechas
   let publishedAt = null
-  if (form.status === 'published') {
-    if (form.publishedDate && form.publishedTime) {
-      publishedAt = new Date(`${form.publishedDate}T${form.publishedTime}:00`)
-    } else {
-      publishedAt = new Date() // fallback
-    }
-  } else if (form.status === 'draft' && form.publishedDate && form.publishedTime) {
-    // 🔥 En borrador, guardamos la fecha por si luego se publica
-    publishedAt = new Date(`${form.publishedDate}T${form.publishedTime}:00`)
+  if (form.status === 'published' && form.publishedDate && form.publishedTime) {
+    publishedAt = new Date(`${form.publishedDate}T${form.publishedTime}:00`).toISOString()
+  } else if ((form.status === 'draft') && form.publishedDate && form.publishedTime) {
+    publishedAt = new Date(`${form.publishedDate}T${form.publishedTime}:00`).toISOString()
   }
   
-  // Construir fecha programada (solo si es 'scheduled')
   let scheduledFor = null
   if (form.status === 'scheduled' && form.scheduledDate && form.scheduledTime) {
-    scheduledFor = new Date(`${form.scheduledDate}T${form.scheduledTime}:00`)
+    scheduledFor = new Date(`${form.scheduledDate}T${form.scheduledTime}:00`).toISOString()
   }
   
   const bloques = convertirHTMLaBloques(form.content)
   
+  // 🔥 PAYLOAD CON PARTICIPANTES
+  const payload = {
+    title: form.title,
+    slug: form.slug,
+    excerpt: form.excerpt,
+    content: form.content,
+    blocks: bloques,
+    category: form.category,
+    tags: form.tags,
+    status: form.status,
+    participantes: form.participantes, // 🔥 NUEVO
+    scheduledFor: scheduledFor,
+    publishedAt: publishedAt,
+    featuredImage: {
+      url: form.featuredImage.url,
+      alt: form.featuredImage.alt || form.title || '',
+      name: form.featuredImage.name,
+      caption: form.featuredImage.name
+    },
+    gallery: form.gallery.map((img, idx) => ({
+      url: img.url,
+      alt: img.alt || form.title || '',
+      name: img.name,
+      caption: img.name,
+      order: idx
+    }))
+  }
+  
   try {
-    await createNews({
-      title: form.title,
-      slug: form.slug,
-      excerpt: form.excerpt,
-      content: form.content,
-      blocks: bloques,
-      category: form.category,
-      tags: form.tags,
-      status: form.status,
-      scheduledFor: scheduledFor,
-      publishedAt: publishedAt,
-      featuredImage: {
-        url: form.featuredImage.url,
-        alt: form.featuredImage.alt || form.title || '',
-        name: form.featuredImage.name,
-        caption: form.featuredImage.name
-      },
-      gallery: form.gallery.map((img, idx) => ({
-        url: img.url,
-        alt: img.alt || form.title || '',
-        name: img.name,
-        caption: img.name,
-        order: idx
-      }))
-    })
-    router.push('/admin/noticias')
+    await createNews(payload)
+    router.push('/admin/noticias?reload=true')
   } catch (error) {
     console.error('Error:', error)
     if (error.message?.includes('duplicate key') || error.message?.includes('E11000')) {
@@ -1009,4 +1103,8 @@ const saveNews = async () => {
     saving.value = false
   }
 }
+
+onMounted(() => {
+  setNow()
+})
 </script>
