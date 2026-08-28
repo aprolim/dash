@@ -3313,6 +3313,7 @@ export interface NewsItem {
     caption: string
     order: number
   }[]
+  participantes?: number[] // 🔥 NUEVO: IDs de los senadores participantes
   publishedAt?: string
   scheduledFor?: string
   views: number
@@ -3423,6 +3424,81 @@ export const useNews = () => {
     getStats,
     getContentTypes,
     getCategories
+  }
+} 
+================================= 
+composables\useSenadores.ts 
+================================= 
+ 
+// composables/useSenadores.ts
+import { senadores } from '~/data/senadores'
+
+export interface Senador {
+  id: number
+  seatNumber: number
+  name: string
+  slug: string
+  party: string
+  partyShort: string
+  partyColor: string
+  department: string
+  foto: string
+}
+
+export const useSenadores = () => {
+  // Obtener todos los senadores para el select
+  const getSenadoresList = (): Senador[] => {
+    return senadores.map(s => ({
+      id: s.id,
+      seatNumber: s.seatNumber,
+      name: s.name,
+      slug: s.slug,
+      party: s.party,
+      partyShort: s.partyShort,
+      partyColor: s.partyColor,
+      department: s.department,
+      foto: s.foto || '/images/default-avatar.png'
+    }))
+  }
+
+  // Buscar senador por ID
+  const getSenadorById = (id: number): Senador | null => {
+    const senador = senadores.find(s => s.id === id)
+    if (!senador) return null
+    return {
+      id: senador.id,
+      seatNumber: senador.seatNumber,
+      name: senador.name,
+      slug: senador.slug,
+      party: senador.party,
+      partyShort: senador.partyShort,
+      partyColor: senador.partyColor,
+      department: senador.department,
+      foto: senador.foto || '/images/default-avatar.png'
+    }
+  }
+
+  // Buscar senadores por departamento
+  const getSenadoresByDepartment = (department: string): Senador[] => {
+    return senadores
+      .filter(s => s.department === department)
+      .map(s => ({
+        id: s.id,
+        seatNumber: s.seatNumber,
+        name: s.name,
+        slug: s.slug,
+        party: s.party,
+        partyShort: s.partyShort,
+        partyColor: s.partyColor,
+        department: s.department,
+        foto: s.foto || '/images/default-avatar.png'
+      }))
+  }
+
+  return {
+    getSenadoresList,
+    getSenadorById,
+    getSenadoresByDepartment
   }
 } 
 ================================= 
@@ -3671,6 +3747,920 @@ export const useTabsApi = () => {
     },
   }
 } 
+================================= 
+data\senadores.js 
+================================= 
+ 
+// data/senadores.js - TODOS los senadores (Titulares + Suplentes)
+
+const generarSlug = (nombre) => {
+  if (!nombre) return ''
+  return nombre
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/ñ/g, 'n')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+}
+
+export const senadores = [
+  // ============================================
+  // SENADORES TITULARES (36)
+  // ============================================
+  { 
+    id: 1, 
+    seatNumber: 1, 
+    name: "Wilder Véliz Armas", 
+    slug: generarSlug("Wilder Véliz Armas"),
+    tipo: 'titular',
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Cochabamba",
+    foto: "/senadores/titulares/g1/WILDER VELIZ ARMAS.png"
+  },
+  { 
+    id: 2, 
+    seatNumber: 2, 
+    name: "Judith Rosario García Coca", 
+    slug: generarSlug("Judith Rosario García Coca"),
+    tipo: 'titular',
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Cochabamba",
+    foto: "/senadores/titulares/g1/JUDITH ROSARIO GARCIA COCA.png"
+  },
+  { 
+    id: 3, 
+    seatNumber: 3, 
+    name: "Claudia Mallón Vargas", 
+    slug: generarSlug("Claudia Mallón Vargas"),
+    tipo: 'titular',
+    party: "Autonomía para Bolivia Súmate", 
+    partyShort: "APB", 
+    partyColor: "#611789", 
+    department: "Cochabamba",
+    foto: "/senadores/titulares/g1/CLAUDIA MALLON VARGAS.png"
+  },
+  { 
+    id: 4, 
+    seatNumber: 4, 
+    name: "Wanda Ximena Medrano Hervas", 
+    slug: generarSlug("Wanda Ximena Medrano Hervas"),
+    tipo: 'titular',
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "Cochabamba",
+    foto: "/senadores/titulares/g1/WANDA XIMENA MEDRANO HERVAS.png"
+  },
+  { 
+    id: 5, 
+    seatNumber: 5, 
+    name: "José Manuel Ormachea Mendieta", 
+    slug: generarSlug("José Manuel Ormachea Mendieta"),
+    tipo: 'titular',
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "La Paz",
+    foto: "/senadores/titulares/g1/JOSE MANUEL ORMACHEA MENDIETA.png"
+  },
+  { 
+    id: 6, 
+    seatNumber: 6, 
+    name: "Carmen Soledad Chapeton Tancara", 
+    slug: generarSlug("Carmen Soledad Chapeton Tancara"),
+    tipo: 'titular',
+    party: "Unidad", 
+    partyShort: "UNIDAD", 
+    partyColor: "#EFCD04", 
+    department: "La Paz",
+    foto: "/senadores/titulares/g1/CARMEN SOLEDAD CHAPETÓN TANCARA.png"
+  },
+  { 
+    id: 7, 
+    seatNumber: 7, 
+    name: "Nicanor Gonzalo Cochi Condorí", 
+    slug: generarSlug("Nicanor Gonzalo Cochi Condorí"),
+    tipo: 'titular',
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "La Paz",
+    foto: "/senadores/titulares/g1/NICANOR GONZALO COCHI CONDORI.png"
+  },
+  { 
+    id: 8, 
+    seatNumber: 8, 
+    name: "Tomasa Yarhui Jacome", 
+    slug: generarSlug("Tomasa Yarhui Jacome"),
+    tipo: 'titular',
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "Chuquisaca",
+    foto: "/senadores/titulares/g1/TOMASA YARHUI JACOME.png"
+  },
+  { 
+    id: 9, 
+    seatNumber: 9, 
+    name: "Abdon Porcel Arancibia", 
+    slug: generarSlug("Abdon Porcel Arancibia"),
+    tipo: 'titular',
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "Chuquisaca",
+    foto: "/senadores/titulares/g1/ABDON PORCEL ARANCIBIA.png"
+  },
+  { 
+    id: 10, 
+    seatNumber: 10, 
+    name: "Bertha Cartagena Sánchez", 
+    slug: generarSlug("Bertha Cartagena Sánchez"),
+    tipo: 'titular',
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Chuquisaca",
+    foto: "/senadores/titulares/g1/BERTHA CARTAGENA SANCHEZ.png"
+  },
+  { 
+    id: 11, 
+    seatNumber: 11, 
+    name: "Branko Goran Marinković Jovicevic", 
+    slug: generarSlug("Branko Goran Marinković Jovicevic"),
+    tipo: 'titular',
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "Santa Cruz",
+    foto: "/senadores/titulares/g3/BRANKO GORAN MARINKOVIC JOVICEVIC.png"
+  },
+  { 
+    id: 12, 
+    seatNumber: 12, 
+    name: "Kathia Lizbeth Quiroga Fernández", 
+    slug: generarSlug("Kathia Lizbeth Quiroga Fernández"),
+    tipo: 'titular',
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "Santa Cruz",
+    foto: "/senadores/titulares/g3/KATHIA LISBETH QUIROGA FERNÁNDEZ.png"
+  },
+  { 
+    id: 13, 
+    seatNumber: 13, 
+    name: "Rosa Tatiana Áñez Carrasco", 
+    slug: generarSlug("Rosa Tatiana Áñez Carrasco"),
+    tipo: 'titular',
+    party: "Unidad", 
+    partyShort: "UNIDAD", 
+    partyColor: "#EFCD04", 
+    department: "Santa Cruz",
+    foto: "/senadores/titulares/g3/ROSA TATIANA AÑEZ CARRASCO.png"
+  },
+  { 
+    id: 14, 
+    seatNumber: 14, 
+    name: "Paola Limbania López Zeballos", 
+    slug: generarSlug("Paola Limbania López Zeballos"),
+    tipo: 'titular',
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Santa Cruz",
+    foto: "/senadores/titulares/g3/PAOLA LIMBANIA LOPEZ ZEBALLOS.png"
+  },
+  { 
+    id: 15, 
+    seatNumber: 15, 
+    name: "Betty Canaviri Villanueva", 
+    slug: generarSlug("Betty Canaviri Villanueva"),
+    tipo: 'titular',
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "Potosí",
+    foto: "/senadores/titulares/g2/BETTY CANAVIRI VILLANUEVA.png"
+  },
+  { 
+    id: 16, 
+    seatNumber: 16, 
+    name: "Teresa Alarcón Arana", 
+    slug: generarSlug("Teresa Alarcón Arana"),
+    tipo: 'titular',
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Potosí",
+    foto: "/senadores/titulares/g2/TERESA ALARCON ARANA.png"
+  },
+  { 
+    id: 17, 
+    seatNumber: 17, 
+    name: "Marcelino Flores Ordoñez", 
+    slug: generarSlug("Marcelino Flores Ordoñez"),
+    tipo: 'titular',
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Potosí",
+    foto: "/senadores/titulares/g2/MARCELINO FLORES ORDOÑEZ.png"
+  },
+  { 
+    id: 18, 
+    seatNumber: 18, 
+    name: "Bertha Nurmy Gutiérrez Meneces", 
+    slug: generarSlug("Bertha Nurmy Gutiérrez Meneces"),
+    tipo: 'titular',
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Potosí",
+    foto: "/senadores/titulares/g2/BERTHA NURMY GUTIERREZ MENESES.png"
+  },
+  { 
+    id: 19, 
+    seatNumber: 19, 
+    name: "Erick Nelson Soruco Alpire", 
+    slug: generarSlug("Erick Nelson Soruco Alpire"),
+    tipo: 'titular',
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Beni",
+    foto: "/senadores/titulares/g3/ERICK NELSON SORUCO ALPIRE.png"
+  },
+  { 
+    id: 20, 
+    seatNumber: 20, 
+    name: "José Roca Haensel", 
+    slug: generarSlug("José Roca Haensel"),
+    tipo: 'titular',
+    party: "Unidad", 
+    partyShort: "UNIDAD", 
+    partyColor: "#EFCD04", 
+    department: "Beni",
+    foto: "/senadores/titulares/g3/JOSE ROCA HAENSEL.png"
+  },
+  { 
+    id: 21, 
+    seatNumber: 21, 
+    name: "Ana Karina Velasco Añez", 
+    slug: generarSlug("Ana Karina Velasco Añez"),
+    tipo: 'titular',
+    party: "Unidad", 
+    partyShort: "UNIDAD", 
+    partyColor: "#EFCD04", 
+    department: "Beni",
+    foto: "/senadores/titulares/g3/ANA KARINA VELASCO ÁÑEZ.png"
+  },
+  { 
+    id: 22, 
+    seatNumber: 22, 
+    name: "Ernesto Suarez Sattori", 
+    slug: generarSlug("Ernesto Suarez Sattori"),
+    tipo: 'titular',
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "Beni",
+    foto: "/senadores/titulares/g3/ERNESTO SUAREZ SATTORI.png"
+  },
+  { 
+    id: 23, 
+    seatNumber: 23, 
+    name: "Ana María Crispin Choque", 
+    slug: generarSlug("Ana María Crispin Choque"),
+    tipo: 'titular',
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "La Paz",
+    foto: "/senadores/titulares/g1/ANA MARIA CRISPIN CHOQUE.png"
+  },
+  { 
+    id: 24, 
+    seatNumber: 24, 
+    name: "Julio Diego Romaña Galindo", 
+    slug: generarSlug("Julio Diego Romaña Galindo"),
+    tipo: 'titular',
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "Pando",
+    foto: "/senadores/titulares/g3/JULIO DIEGO ROMAÑA GALINDO.png"
+  },
+  { 
+    id: 25, 
+    seatNumber: 25, 
+    name: "Carol Carlo Durán", 
+    slug: generarSlug("Carol Carlo Durán"),
+    tipo: 'titular',
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "Pando",
+    foto: "/senadores/titulares/g3/CAROL CARLO DURAN.png"
+  },
+  { 
+    id: 26, 
+    seatNumber: 26, 
+    name: "Cinthia Mónica Puerta Campos", 
+    slug: generarSlug("Cinthia Mónica Puerta Campos"),
+    tipo: 'titular',
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Pando",
+    foto: "/senadores/titulares/g3/CINTIA MONICA PUERTA CAMPOS.png"
+  },
+  { 
+    id: 27, 
+    seatNumber: 27, 
+    name: "Eliana Rina Acosta Quispe", 
+    slug: generarSlug("Eliana Rina Acosta Quispe"),
+    tipo: 'titular',
+    party: "Unidad", 
+    partyShort: "UNIDAD", 
+    partyColor: "#EFCD04", 
+    department: "Pando",
+    foto: "/senadores/titulares/g3/ELIANA RINA ACOSTA QUISPE.png"
+  },
+  { 
+    id: 28, 
+    seatNumber: 28, 
+    name: "Daniel Antonio Ortiz Velásquez", 
+    slug: generarSlug("Daniel Antonio Ortiz Velásquez"),
+    tipo: 'titular',
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Chuquisaca",
+    foto: "/senadores/titulares/g1/DANIEL ANTONIO ORTIZ VELASQUEZ.png"
+  },
+  { 
+    id: 29, 
+    seatNumber: 29, 
+    name: "María Isabel Moreno Cortez", 
+    slug: generarSlug("María Isabel Moreno Cortez"),
+    tipo: 'titular',
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "Tarija",
+    foto: "/senadores/titulares/g2/MARIA ISABEL MORENO CORTEZ.png"
+  },
+  { 
+    id: 30, 
+    seatNumber: 30, 
+    name: "César Mentasti Padilla", 
+    slug: generarSlug("César Mentasti Padilla"),
+    tipo: 'titular',
+    party: "Unidad", 
+    partyShort: "UNIDAD", 
+    partyColor: "#EFCD04", 
+    department: "Tarija",
+    foto: "/senadores/titulares/g2/CESAR MENTASTI PADILLA.png"
+  },
+  { 
+    id: 31, 
+    seatNumber: 31, 
+    name: "Leonor Rosalva Romero Gutiérrez", 
+    slug: generarSlug("Leonor Rosalva Romero Gutiérrez"),
+    tipo: 'titular',
+    party: "Unidad", 
+    partyShort: "UNIDAD", 
+    partyColor: "#EFCD04", 
+    department: "Tarija",
+    foto: "/senadores/titulares/g2/LEONOR ROSALVA ROMERO GUTIERREZ.png"
+  },
+  { 
+    id: 32, 
+    seatNumber: 32, 
+    name: "Diego Esteban Mateo Ávila Navajas", 
+    slug: generarSlug("Diego Esteban Mateo Ávila Navajas"),
+    tipo: 'titular',
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Tarija",
+    foto: "/senadores/titulares/g2/DIEGO ESTEBAN MATEO ÁVILA NAVAJAS.png"
+  },
+  { 
+    id: 33, 
+    seatNumber: 33, 
+    name: "Yasmín Estivariz Villarroel", 
+    slug: generarSlug("Yasmín Estivariz Villarroel"),
+    tipo: 'titular',
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Oruro",
+    foto: "/senadores/titulares/g2/YASMIN ESTIVARIZ VILLARROEL.png"
+  },
+  { 
+    id: 34, 
+    seatNumber: 34, 
+    name: "Freddy Castillo Chávez", 
+    slug: generarSlug("Freddy Castillo Chávez"),
+    tipo: 'titular',
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Oruro",
+    foto: "/senadores/titulares/g2/FREDDY CASTILLO CHAVEZ.png"
+  },
+  { 
+    id: 35, 
+    seatNumber: 35, 
+    name: "Maria Antonieta Alcón Sánchez", 
+    slug: generarSlug("Maria Antonieta Alcón Sánchez"),
+    tipo: 'titular',
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Oruro",
+    foto: "/senadores/titulares/g2/MARIA ANTONIETA ALCON SANCHEZ.png"
+  },
+  { 
+    id: 36, 
+    seatNumber: 36, 
+    name: "José Sánchez Aguilar", 
+    slug: generarSlug("José Sánchez Aguilar"),
+    tipo: 'titular',
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "Oruro",
+    foto: "/senadores/titulares/g2/JOSE SANCHEZ AGUILAR.png"
+  },
+
+  // ============================================
+  // SENADORES SUPLENTES (35 - los que tienen suplente)
+  // ============================================
+  { 
+    id: 101, 
+    seatNumber: 1, 
+    name: "Lenny Mayra Ayala Justiniano", 
+    slug: generarSlug("Lenny Mayra Ayala Justiniano"),
+    tipo: 'suplente',
+    titular: "Wilder Véliz Armas",
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Cochabamba",
+    foto: "/senadores/suplentes/g1/LENNY MAYRA AYALA JUSTINIANO.png"
+  },
+  { 
+    id: 102, 
+    seatNumber: 2, 
+    name: "Royer Ivan Mamani Garcia", 
+    slug: generarSlug("Royer Ivan Mamani Garcia"),
+    tipo: 'suplente',
+    titular: "Judith Rosario García Coca",
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Cochabamba",
+    foto: "/senadores/suplentes/g1/ROYER IVAN MAMANI GARCIA.png"
+  },
+  { 
+    id: 103, 
+    seatNumber: 3, 
+    name: "Apolinar Rivera Muñoz", 
+    slug: generarSlug("Apolinar Rivera Muñoz"),
+    tipo: 'suplente',
+    titular: "Claudia Mallón Vargas",
+    party: "Autonomía para Bolivia Súmate", 
+    partyShort: "APB", 
+    partyColor: "#611789", 
+    department: "Cochabamba",
+    foto: "/senadores/suplentes/g1/APOLINAR RIVERA MUÑOZ.png"
+  },
+  { 
+    id: 104, 
+    seatNumber: 4, 
+    name: "Aldo Sergio Villegas Mora", 
+    slug: generarSlug("Aldo Sergio Villegas Mora"),
+    tipo: 'suplente',
+    titular: "Wanda Ximena Medrano Hervas",
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "Cochabamba",
+    foto: "/senadores/suplentes/g1/ALDO SERGIO VILLEGAS MORA.png"
+  },
+  { 
+    id: 105, 
+    seatNumber: 5, 
+    name: "Maria Elena Pachacute Ticona", 
+    slug: generarSlug("Maria Elena Pachacute Ticona"),
+    tipo: 'suplente',
+    titular: "José Manuel Ormachea Mendieta",
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "La Paz",
+    foto: "/senadores/suplentes/g1/MARIA ELENA PACHACUTE TICONA.png"
+  },
+  { 
+    id: 106, 
+    seatNumber: 6, 
+    name: "Nilton Condori Alanoca", 
+    slug: generarSlug("Nilton Condori Alanoca"),
+    tipo: 'suplente',
+    titular: "Carmen Soledad Chapeton Tancara",
+    party: "Unidad", 
+    partyShort: "UNIDAD", 
+    partyColor: "#EFCD04", 
+    department: "La Paz",
+    foto: "/senadores/suplentes/g1/NILTON CONDORI ALANOCA.png"
+  },
+  { 
+    id: 107, 
+    seatNumber: 7, 
+    name: "Roxana Mamani Colquehuanca", 
+    slug: generarSlug("Roxana Mamani Colquehuanca"),
+    tipo: 'suplente',
+    titular: "Nicanor Gonzalo Cochi Condorí",
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "La Paz",
+    foto: "/senadores/suplentes/g1/ROXANA MAMANI COLQUEHUANCA.png"
+  },
+  { 
+    id: 108, 
+    seatNumber: 8, 
+    name: "Hugo Marcelo Cortez Calvimontes", 
+    slug: generarSlug("Hugo Marcelo Cortez Calvimontes"),
+    tipo: 'suplente',
+    titular: "Tomasa Yarhui Jacome",
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "Chuquisaca",
+    foto: "/senadores/suplentes/g1/HUGO MARCELO CORTEZ CALVIMONTES.png"
+  },
+  { 
+    id: 109, 
+    seatNumber: 9, 
+    name: "Ilse Fatima Davila Arancibia", 
+    slug: generarSlug("Ilse Fatima Davila Arancibia"),
+    tipo: 'suplente',
+    titular: "Abdon Porcel Arancibia",
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "Chuquisaca",
+    foto: "/senadores/suplentes/g1/ILSE FATIMA DAVILA ARANCIBIA.png"
+  },
+  { 
+    id: 110, 
+    seatNumber: 10, 
+    name: "Manfred Leo Perez Hassenteufel", 
+    slug: generarSlug("Manfred Leo Perez Hassenteufel"),
+    tipo: 'suplente',
+    titular: "Bertha Cartagena Sánchez",
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Chuquisaca",
+    foto: "/senadores/suplentes/g1/MANFRED LEO PEREZ HASSENTEUFEL.png"
+  },
+  { 
+    id: 111, 
+    seatNumber: 11, 
+    name: "Kathia Natalia Miserendino Romero", 
+    slug: generarSlug("Kathia Natalia Miserendino Romero"),
+    tipo: 'suplente',
+    titular: "Branko Goran Marinković Jovicevic",
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "Santa Cruz",
+    foto: "/senadores/suplentes/g3/KATHIA NATALIA MISERENDINO ROMERO.png"
+  },
+  { 
+    id: 112, 
+    seatNumber: 12, 
+    name: "Leonardo Roca Eguez", 
+    slug: generarSlug("Leonardo Roca Eguez"),
+    tipo: 'suplente',
+    titular: "Kathia Lizbeth Quiroga Fernández",
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "Santa Cruz",
+    foto: "/senadores/suplentes/g3/LEONARDO ROCA EGUEZ.png"
+  },
+  { 
+    id: 113, 
+    seatNumber: 13, 
+    name: "Lorgio Fernando Pareja Saucedo", 
+    slug: generarSlug("Lorgio Fernando Pareja Saucedo"),
+    tipo: 'suplente',
+    titular: "Rosa Tatiana Áñez Carrasco",
+    party: "Unidad", 
+    partyShort: "UNIDAD", 
+    partyColor: "#EFCD04", 
+    department: "Santa Cruz",
+    foto: "/senadores/suplentes/g3/LORGIO FERNANDO PAREJA SAUCEDO.png"
+  },
+  { 
+    id: 114, 
+    seatNumber: 14, 
+    name: "Richard Espada Ugarte", 
+    slug: generarSlug("Richard Espada Ugarte"),
+    tipo: 'suplente',
+    titular: "Paola Limbania López Zeballos",
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Santa Cruz",
+    foto: "/senadores/suplentes/g3/RICHARD ESPADA UGARTE.png"
+  },
+  { 
+    id: 115, 
+    seatNumber: 15, 
+    name: "Roger Mamani Coronado", 
+    slug: generarSlug("Roger Mamani Coronado"),
+    tipo: 'suplente',
+    titular: "Betty Canaviri Villanueva",
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "Potosí",
+    foto: "/senadores/suplentes/g2/ROGER MAMANI CORONADO.png"
+  },
+  { 
+    id: 116, 
+    seatNumber: 17, 
+    name: "Susana Gabriela Ruiz Zuleta", 
+    slug: generarSlug("Susana Gabriela Ruiz Zuleta"),
+    tipo: 'suplente',
+    titular: "Marcelino Flores Ordoñez",
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Potosí",
+    foto: "/senadores/suplentes/g2/SUSANA GABRIELA RUIZ ZULETA.png"
+  },
+  { 
+    id: 117, 
+    seatNumber: 18, 
+    name: "Freddy Rioja Melgar", 
+    slug: generarSlug("Freddy Rioja Melgar"),
+    tipo: 'suplente',
+    titular: "Bertha Nurmy Gutiérrez Meneces",
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Potosí",
+    foto: "/senadores/suplentes/g2/FREDDY RIOJA MELGAR.png"
+  },
+  { 
+    id: 118, 
+    seatNumber: 19, 
+    name: "Cesia Roca Escalante", 
+    slug: generarSlug("Cesia Roca Escalante"),
+    tipo: 'suplente',
+    titular: "Erick Nelson Soruco Alpire",
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Beni",
+    foto: "/senadores/suplentes/g3/CESIA ROCA ESCALANTE.png"
+  },
+  { 
+    id: 119, 
+    seatNumber: 20, 
+    name: "Mabel Giordano Sonnenschein", 
+    slug: generarSlug("Mabel Giordano Sonnenschein"),
+    tipo: 'suplente',
+    titular: "José Roca Haensel",
+    party: "Unidad", 
+    partyShort: "UNIDAD", 
+    partyColor: "#EFCD04", 
+    department: "Beni",
+    foto: "/senadores/suplentes/g3/MABEL GIORDANO SONNENSCHEIN.png"
+  },
+  { 
+    id: 120, 
+    seatNumber: 21, 
+    name: "Marcelo Matias Cardona Ibañez", 
+    slug: generarSlug("Marcelo Matias Cardona Ibañez"),
+    tipo: 'suplente',
+    titular: "Ana Karina Velasco Añez",
+    party: "Unidad", 
+    partyShort: "UNIDAD", 
+    partyColor: "#EFCD04", 
+    department: "Beni",
+    foto: "/senadores/suplentes/g3/MARCELO MATIAS CARDONA IBAÑEZ.png"
+  },
+  { 
+    id: 121, 
+    seatNumber: 22, 
+    name: "Claudia Cardenas Velasquez", 
+    slug: generarSlug("Claudia Cardenas Velasquez"),
+    tipo: 'suplente',
+    titular: "Ernesto Suarez Sattori",
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "Beni",
+    foto: "/senadores/suplentes/g3/CLAUDIA CARDENAS VELASQUEZ.png"
+  },
+  { 
+    id: 122, 
+    seatNumber: 23, 
+    name: "Victor Severo Quispe Santander", 
+    slug: generarSlug("Victor Severo Quispe Santander"),
+    tipo: 'suplente',
+    titular: "Ana María Crispin Choque",
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "La Paz",
+    foto: "/senadores/suplentes/g1/VICTOR SEVERO QUISPE SANTANDER.png"
+  },
+  { 
+    id: 123, 
+    seatNumber: 24, 
+    name: "Carolina Giese Urresti", 
+    slug: generarSlug("Carolina Giese Urresti"),
+    tipo: 'suplente',
+    titular: "Julio Diego Romaña Galindo",
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "Pando",
+    foto: "/senadores/suplentes/g3/CAROLINA GIESE URRESTI.png"
+  },
+  { 
+    id: 124, 
+    seatNumber: 25, 
+    name: "Jorge Antonio Quispe Flores", 
+    slug: generarSlug("Jorge Antonio Quispe Flores"),
+    tipo: 'suplente',
+    titular: "Carol Carlo Durán",
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "Pando",
+    foto: "/senadores/suplentes/g3/JORGE ANTONIO QUISPE FLORES.png"
+  },
+  { 
+    id: 125, 
+    seatNumber: 26, 
+    name: "Jesus Humberto Suarez Eguez", 
+    slug: generarSlug("Jesus Humberto Suarez Eguez"),
+    tipo: 'suplente',
+    titular: "Cinthia Mónica Puerta Campos",
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Pando",
+    foto: "/senadores/suplentes/g3/JESUS HUMBERTO SUAREZ EGUEZ.png"
+  },
+  { 
+    id: 126, 
+    seatNumber: 27, 
+    name: "Sichard Hans Soraide Castedo", 
+    slug: generarSlug("Sichard Hans Soraide Castedo"),
+    tipo: 'suplente',
+    titular: "Eliana Rina Acosta Quispe",
+    party: "Unidad", 
+    partyShort: "UNIDAD", 
+    partyColor: "#EFCD04", 
+    department: "Pando",
+    foto: "/senadores/suplentes/g3/SICHARD HANS SORAIDE CASTEDO.png"
+  },
+  { 
+    id: 127, 
+    seatNumber: 28, 
+    name: "Reina Isabel Pallares Morales", 
+    slug: generarSlug("Reina Isabel Pallares Morales"),
+    tipo: 'suplente',
+    titular: "Daniel Antonio Ortiz Velásquez",
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Chuquisaca",
+    foto: "/senadores/suplentes/g1/REINA ISABEL PALLARES MORALES.png"
+  },
+  { 
+    id: 128, 
+    seatNumber: 29, 
+    name: "Rolando Vacaflor Gabriel Arana", 
+    slug: generarSlug("Rolando Vacaflor Gabriel Arana"),
+    tipo: 'suplente',
+    titular: "María Isabel Moreno Cortez",
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "Tarija",
+    foto: "/senadores/suplentes/g2/ROLANDO VACAFLOR GABRIEL ARANA.png"
+  },
+  { 
+    id: 129, 
+    seatNumber: 30, 
+    name: "Marcela Guerrero Vilca", 
+    slug: generarSlug("Marcela Guerrero Vilca"),
+    tipo: 'suplente',
+    titular: "César Mentasti Padilla",
+    party: "Unidad", 
+    partyShort: "UNIDAD", 
+    partyColor: "#EFCD04", 
+    department: "Tarija",
+    foto: "/senadores/suplentes/g2/MARCELA GUERRERO VILCA.png"
+  },
+  { 
+    id: 130, 
+    seatNumber: 31, 
+    name: "Marco Antonio Segovia Vargas", 
+    slug: generarSlug("Marco Antonio Segovia Vargas"),
+    tipo: 'suplente',
+    titular: "Leonor Rosalva Romero Gutiérrez",
+    party: "Unidad", 
+    partyShort: "UNIDAD", 
+    partyColor: "#EFCD04", 
+    department: "Tarija",
+    foto: "/senadores/suplentes/g2/MARCO ANTONIO SEGOVIA VARGAS.png"
+  },
+  { 
+    id: 131, 
+    seatNumber: 32, 
+    name: "Luzmaya Zelaya Vega", 
+    slug: generarSlug("Luzmaya Zelaya Vega"),
+    tipo: 'suplente',
+    titular: "Diego Esteban Mateo Ávila Navajas",
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Tarija",
+    foto: "/senadores/suplentes/g2/LUZMAYA ZELAYA VEGA.png"
+  },
+  { 
+    id: 132, 
+    seatNumber: 33, 
+    name: "Ramiro Mamani Ramirez", 
+    slug: generarSlug("Ramiro Mamani Ramirez"),
+    tipo: 'suplente',
+    titular: "Yasmín Estivariz Villarroel",
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Oruro",
+    foto: "/senadores/suplentes/g2/RAMIRO MAMANI RAMIREZ.png"
+  },
+  { 
+    id: 133, 
+    seatNumber: 34, 
+    name: "Villma Colque Camacho", 
+    slug: generarSlug("Villma Colque Camacho"),
+    tipo: 'suplente',
+    titular: "Freddy Castillo Chávez",
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Oruro",
+    foto: "/senadores/suplentes/g2/VILLMA COLQUE CAMACHO.png"
+  },
+  { 
+    id: 134, 
+    seatNumber: 35, 
+    name: "Edwin Lopez Quiroga", 
+    slug: generarSlug("Edwin Lopez Quiroga"),
+    tipo: 'suplente',
+    titular: "Maria Antonieta Alcón Sánchez",
+    party: "Partido Demócrata Cristiano", 
+    partyShort: "PDC", 
+    partyColor: "#2E7078", 
+    department: "Oruro",
+    foto: "/senadores/suplentes/g2/EDWIN LOPEZ QUIROGA.png"
+  },
+  { 
+    id: 135, 
+    seatNumber: 36, 
+    name: "Cinthya Inga Gutierrez Guzman", 
+    slug: generarSlug("Cinthya Inga Gutierrez Guzman"),
+    tipo: 'suplente',
+    titular: "José Sánchez Aguilar",
+    party: "Libre", 
+    partyShort: "LIBRE", 
+    partyColor: "#DB3737", 
+    department: "Oruro",
+    foto: "/senadores/suplentes/g2/CINTHYA INGA GUTIERREZ GUZMAN.png"
+  }
+] 
 ================================= 
 layouts\auth.vue 
 ================================= 
@@ -4576,6 +5566,101 @@ pages\admin\noticias\create.vue
         </div>
       </div>
 
+      <!-- 🔥 SENADORES PARTICIPANTES -->
+      <div class="border-t pt-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">👥 Senadores Participantes</h3>
+        <p class="text-sm text-gray-500 mb-3">
+          Selecciona los senadores que participaron en esta noticia
+        </p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Buscar senador
+            </label>
+            <div class="relative">
+              <input
+                v-model="busquedaSenador"
+                type="text"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                placeholder="Escribe el nombre del senador..."
+                @input="filtrarSenadores"
+              />
+              <div v-if="senadoresFiltrados.length > 0 && busquedaSenador" 
+                   class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                <div
+                  v-for="senador in senadoresFiltrados"
+                  :key="senador.id"
+                  @click="agregarSenador(senador)"
+                  class="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0"
+                >
+                  <img 
+                    :src="senador.foto" 
+                    :alt="senador.name"
+                    class="w-8 h-8 rounded-full object-cover"
+                    @error="(e) => e.target.src = '/images/default-avatar.png'"
+                  />
+                  <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-900">{{ senador.name }}</p>
+                    <p class="text-xs text-gray-500">{{ senador.department }} • {{ senador.partyShort }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Busca por nombre, departamento o partido</p>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Senadores seleccionados ({{ form.participantes.length }})
+            </label>
+            <div class="border border-gray-200 rounded-lg p-3 min-h-[100px] bg-gray-50">
+              <div v-if="form.participantes.length === 0" class="text-center text-gray-400 py-4">
+                No hay senadores seleccionados
+              </div>
+              <div v-else class="flex flex-wrap gap-2">
+                <div
+                  v-for="senador in senadoresSeleccionados"
+                  :key="senador.id"
+                  class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm"
+                >
+                  <img 
+                    :src="senador.foto" 
+                    :alt="senador.name"
+                    class="w-6 h-6 rounded-full object-cover"
+                    @error="(e) => e.target.src = '/images/default-avatar.png'"
+                  />
+                  <span class="text-sm font-medium text-gray-700">{{ senador.name }}</span>
+                  <button
+                    type="button"
+                    @click="removerSenador(senador.id)"
+                    class="text-red-500 hover:text-red-700 text-sm ml-1"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Sugerencias por departamento -->
+        <div class="mt-3">
+          <p class="text-xs text-gray-500 mb-2">Agregar todos los senadores de un departamento:</p>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="dept in departamentos"
+              :key="dept"
+              type="button"
+              @click="agregarSenadoresPorDepartamento(dept)"
+              class="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition"
+            >
+              + {{ dept }}
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Categoría, Estado y Programación -->
       <div class="border-t pt-6">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -4603,55 +5688,29 @@ pages\admin\noticias\create.vue
           </div>
         </div>
 
-        <!-- 🔥 ADVERTENCIAS VISUALES SEGÚN ESTADO -->
-        <!-- Borrador con fecha -->
+        <!-- Advertencias visuales según estado -->
         <div v-if="form.status === 'draft' && (form.publishedDate || form.scheduledDate)" 
              class="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p class="text-sm text-yellow-800">
             ⚠️ <strong>Nota:</strong> Esta noticia está en <strong>BORRADOR</strong>.
             La fecha que configures se guardará pero NO se usará para publicación automática.
-            <br>
-            <span class="text-xs text-yellow-600">
-              💡 Cuando cambies a "Publicar ahora", se usará la fecha que tengas configurada.
-            </span>
           </p>
         </div>
         
-        <!-- Publicar ahora con fecha futura (ERROR) -->
         <div v-if="form.status === 'published' && isFutureDate" 
              class="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
           <p class="text-sm text-red-800">
             ❌ <strong>Error:</strong> Para "Publicar ahora", la fecha debe ser ACTUAL o PASADA.
-            <br>
-            <span class="text-xs">
-              Fecha configurada: <strong>{{ form.publishedDate }} {{ form.publishedTime }}</strong>
-              (es FUTURA)
-            </span>
-            <br>
-            <span class="text-xs text-red-600">
-              💡 Si quieres que se publique automáticamente en el futuro, usa <strong>"Programar"</strong>.
-            </span>
           </p>
         </div>
         
-        <!-- Programar con fecha pasada (ERROR) -->
         <div v-if="form.status === 'scheduled' && isScheduledPastDate" 
              class="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
           <p class="text-sm text-red-800">
             ❌ <strong>Error:</strong> Para "Programar", la fecha debe ser FUTURA.
-            <br>
-            <span class="text-xs">
-              Fecha configurada: <strong>{{ form.scheduledDate }} {{ form.scheduledTime }}</strong>
-              (es PASADA)
-            </span>
-            <br>
-            <span class="text-xs text-red-600">
-              💡 Si quieres publicar ahora, usa <strong>"Publicar ahora"</strong>.
-            </span>
           </p>
         </div>
         
-        <!-- Programar sin fecha (ERROR) -->
         <div v-if="form.status === 'scheduled' && (!form.scheduledDate || !form.scheduledTime)" 
              class="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
           <p class="text-sm text-red-800">
@@ -4689,12 +5748,9 @@ pages\admin\noticias\create.vue
           <p class="text-xs text-yellow-600 mt-2">
             ⏰ La noticia será visible automáticamente el {{ form.scheduledDate || 'YYYY-MM-DD' }} a las {{ form.scheduledTime || 'HH:MM' }}
           </p>
-          <p class="text-xs text-gray-500 mt-1">
-            💡 Si hoy es lunes y programas para martes 8:00 AM, la noticia aparecerá automáticamente a esa hora
-          </p>
         </div>
 
-        <!-- Fecha de Publicación (visible para todos los estados) -->
+        <!-- Fecha de Publicación -->
         <div class="mt-4 border-t border-gray-200 pt-4">
           <h4 class="text-sm font-medium text-gray-700 mb-3">📅 Fecha de Publicación</h4>
           <p class="text-xs text-gray-500 mb-2">
@@ -4704,9 +5760,6 @@ pages\admin\noticias\create.vue
             </span>
             <span v-if="form.status === 'published'" class="text-green-600">
               ✅ Se usará esta fecha al publicar.
-            </span>
-            <span v-if="form.status === 'scheduled'" class="text-blue-600">
-              ℹ️ Para programar, usa la sección "Programar" arriba.
             </span>
           </p>
           
@@ -4746,12 +5799,6 @@ pages\admin\noticias\create.vue
             <p class="text-sm text-green-700">
               <span class="font-medium">📝 Fecha configurada:</span> 
               {{ form.publishedDate }} a las {{ form.publishedTime }}
-            </p>
-            <p v-if="form.status === 'draft'" class="text-xs text-yellow-600 mt-1">
-              ⚠️ Esta fecha se guardará pero NO se usará hasta que cambies el estado a "Publicar ahora".
-            </p>
-            <p v-if="form.status === 'published'" class="text-xs text-green-600 mt-1">
-              ✅ La noticia se publicará con esta fecha.
             </p>
           </div>
         </div>
@@ -4799,6 +5846,7 @@ import { ref, reactive, watch, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '~/stores/auth'
 import { useNews } from '~/composables/useNews'
+import { useSenadores } from '~/composables/useSenadores'
 import TiptapEditor from '~/components/admin/TiptapEditor.vue'
 
 definePageMeta({ layout: 'default', middleware: 'auth' })
@@ -4806,6 +5854,7 @@ definePageMeta({ layout: 'default', middleware: 'auth' })
 const router = useRouter()
 const authStore = useAuthStore()
 const { createNews, uploadImage: uploadImageApi } = useNews()
+const { getSenadoresList, getSenadorById, getSenadoresByDepartment } = useSenadores()
 
 const API_BASE_URL = 'http://demoback.senado.gob.bo/api'
 
@@ -4818,15 +5867,76 @@ const uploadProgress = ref('')
 const galleryUploadProgress = ref('')
 const featuredPreviewUrl = ref('')
 
+// ============================================
+// SENADORES PARTICIPANTES
+// ============================================
+const busquedaSenador = ref('')
+const senadoresFiltrados = ref([])
+const todosLosSenadores = ref(getSenadoresList())
+
+const departamentos = computed(() => {
+  const depts = new Set()
+  todosLosSenadores.value.forEach(s => depts.add(s.department))
+  return Array.from(depts).sort()
+})
+
+const senadoresSeleccionados = computed(() => {
+  return form.participantes
+    .map(id => getSenadorById(id))
+    .filter(Boolean)
+})
+
+const filtrarSenadores = () => {
+  const query = busquedaSenador.value.toLowerCase().trim()
+  if (!query) {
+    senadoresFiltrados.value = []
+    return
+  }
+  
+  senadoresFiltrados.value = todosLosSenadores.value.filter(s => {
+    if (form.participantes.includes(s.id)) return false
+    
+    const nameMatch = s.name.toLowerCase().includes(query)
+    const deptMatch = s.department.toLowerCase().includes(query)
+    const partyMatch = s.partyShort.toLowerCase().includes(query)
+    const partyFullMatch = s.party.toLowerCase().includes(query)
+    
+    return nameMatch || deptMatch || partyMatch || partyFullMatch
+  }).slice(0, 10)
+}
+
+const agregarSenador = (senador) => {
+  if (!form.participantes.includes(senador.id)) {
+    form.participantes.push(senador.id)
+  }
+  busquedaSenador.value = ''
+  senadoresFiltrados.value = []
+}
+
+const removerSenador = (id) => {
+  form.participantes = form.participantes.filter(p => p !== id)
+}
+
+const agregarSenadoresPorDepartamento = (departamento) => {
+  const senadoresDept = getSenadoresByDepartment(departamento)
+  const ids = senadoresDept.map(s => s.id)
+  const nuevosIds = ids.filter(id => !form.participantes.includes(id))
+  form.participantes.push(...nuevosIds)
+}
+
+// ============================================
+// EXCERPT VALIDATION
+// ============================================
 const excerptCharCount = computed(() => form.excerpt?.length || 0)
 
-// Fecha mínima para programación
+// ============================================
+// FECHA
+// ============================================
 const minDate = computed(() => {
   const today = new Date()
   return today.toISOString().split('T')[0]
 })
 
-// 🔥 Computed para validar fechas
 const isFutureDate = computed(() => {
   if (!form.publishedDate || !form.publishedTime) return false
   const fechaPub = new Date(`${form.publishedDate}T${form.publishedTime}:00`)
@@ -4839,7 +5949,9 @@ const isScheduledPastDate = computed(() => {
   return fechaProg <= new Date()
 })
 
-// Slug validation
+// ============================================
+// SLUG VALIDATION
+// ============================================
 const slugValidation = reactive({ 
   isValid: null, 
   error: '' 
@@ -4903,6 +6015,9 @@ const checkSlugExists = async (slug) => {
   }
 }
 
+// ============================================
+// FORM
+// ============================================
 const form = reactive({
   title: '',
   slug: '',
@@ -4915,6 +6030,7 @@ const form = reactive({
   scheduledTime: '',
   publishedDate: '',
   publishedTime: '',
+  participantes: [], // 🔥 NUEVO: IDs de senadores
   featuredImage: { url: '', alt: '', name: '' },
   gallery: []
 })
@@ -4931,16 +6047,15 @@ const setNow = () => {
   form.publishedTime = `${hours}:${minutes}`
 }
 
-onMounted(() => {
-  setNow()
-})
-
 const tagsInput = ref('')
 
 watch(tagsInput, (newVal) => {
   form.tags = newVal.split(',').map(t => t.trim()).filter(t => t)
 })
 
+// ============================================
+// IMAGENES
+// ============================================
 const removeGalleryImage = (idx) => {
   form.gallery.splice(idx, 1)
 }
@@ -5032,6 +6147,9 @@ const handleGalleryFileSelect = async (event) => {
   }
 }
 
+// ============================================
+// CONVERTIR HTML A BLOQUES
+// ============================================
 const convertirHTMLaBloques = (htmlContent) => {
   if (!htmlContent) return []
   
@@ -5178,7 +6296,7 @@ const convertirHTMLaBloques = (htmlContent) => {
 }
 
 // ============================================
-// 🔥 FUNCIÓN PRINCIPAL CON VALIDACIONES CORRECTAS
+// GUARDAR NOTICIA
 // ============================================
 const saveNews = async () => {
   if (!authStore.isAuthenticated) {
@@ -5187,9 +6305,7 @@ const saveNews = async () => {
     return
   }
 
-  // ============================================
-  // VALIDACIONES BÁSICAS
-  // ============================================
+  // Validaciones básicas
   if (!form.title.trim()) {
     alert('El título es requerido')
     return
@@ -5240,125 +6356,93 @@ const saveNews = async () => {
     }
   }
 
-  // ============================================
-  // 🔥 VALIDACIONES DE ESTADO Y FECHAS
-  // ============================================
-  
-  // 1. No permitir crear como 'archived'
-  if (form.status === 'archived') {
-    alert('❌ No se puede crear una noticia directamente como "Archivada".\n\nUsa "Borrador", "Publicar ahora" o "Programar".')
-    return
-  }
-
-  // 2. Si es BORRADOR, solo advertir (la fecha se guarda pero no se usa)
+  // Validaciones de estado y fechas
   if (form.status === 'draft' && (form.publishedDate || form.scheduledDate)) {
     if (!confirm(
       '⚠️ Has configurado una fecha para esta noticia pero está en estado BORRADOR.\n\n' +
       'La fecha se GUARDARÁ pero NO se usará para publicar automáticamente.\n\n' +
-      'Cuando cambies a "Publicar ahora", se usará la fecha que configuraste.\n\n' +
       '¿Deseas continuar?'
     )) {
       return
     }
   }
 
-  // 3. 🔥 Si es PUBLICAR AHORA, SOLO permitir fecha ACTUAL o PASADA
   if (form.status === 'published') {
-    // Si el usuario configuró una fecha manualmente
     if (form.publishedDate && form.publishedTime) {
       const fechaPub = new Date(`${form.publishedDate}T${form.publishedTime}:00`)
       const ahora = new Date()
-      
-      // Si la fecha es FUTURA, ERROR
       if (fechaPub > ahora) {
         alert('❌ Para "Publicar ahora", la fecha debe ser ACTUAL o PASADA.\n\n' +
-              `Fecha configurada: ${fechaPub.toLocaleString('es-ES')}\n` +
-              `Fecha actual: ${ahora.toLocaleString('es-ES')}\n\n` +
               'Si quieres que se publique automáticamente en el futuro, usa "Programar".')
         return
       }
-    }
-    // Si el usuario NO configuró fecha, usar la actual
-    else {
-      setNow() // Establecer fecha actual
+    } else {
+      setNow()
     }
   }
 
-  // 4. 🔥 Si es PROGRAMAR, SOLO permitir fecha FUTURA
   if (form.status === 'scheduled') {
-    // Verificar que tenga fecha
     if (!form.scheduledDate || !form.scheduledTime) {
       alert('❌ Para programar una noticia, debes especificar fecha y hora.')
       return
     }
-    
     const fechaProg = new Date(`${form.scheduledDate}T${form.scheduledTime}:00`)
     const ahora = new Date()
-    
-    // Si la fecha NO es futura, ERROR
     if (fechaProg <= ahora) {
       alert('❌ Para "Programar", la fecha debe ser FUTURA.\n\n' +
-            `Fecha configurada: ${fechaProg.toLocaleString('es-ES')}\n` +
-            `Fecha actual: ${ahora.toLocaleString('es-ES')}\n\n` +
             'Si quieres publicar ahora, usa "Publicar ahora".')
       return
     }
   }
 
-  // ============================================
-  // CONSTRUIR DATOS PARA ENVIAR
-  // ============================================
-  
   saving.value = true
   
-  // Construir fecha de publicación (solo si es 'published')
+  // Construir fechas
   let publishedAt = null
-  if (form.status === 'published') {
-    if (form.publishedDate && form.publishedTime) {
-      publishedAt = new Date(`${form.publishedDate}T${form.publishedTime}:00`)
-    } else {
-      publishedAt = new Date() // fallback
-    }
-  } else if (form.status === 'draft' && form.publishedDate && form.publishedTime) {
-    // 🔥 En borrador, guardamos la fecha por si luego se publica
-    publishedAt = new Date(`${form.publishedDate}T${form.publishedTime}:00`)
+  if (form.status === 'published' && form.publishedDate && form.publishedTime) {
+    publishedAt = new Date(`${form.publishedDate}T${form.publishedTime}:00`).toISOString()
+  } else if ((form.status === 'draft') && form.publishedDate && form.publishedTime) {
+    publishedAt = new Date(`${form.publishedDate}T${form.publishedTime}:00`).toISOString()
   }
   
-  // Construir fecha programada (solo si es 'scheduled')
   let scheduledFor = null
   if (form.status === 'scheduled' && form.scheduledDate && form.scheduledTime) {
-    scheduledFor = new Date(`${form.scheduledDate}T${form.scheduledTime}:00`)
+    scheduledFor = new Date(`${form.scheduledDate}T${form.scheduledTime}:00`).toISOString()
   }
   
   const bloques = convertirHTMLaBloques(form.content)
   
+  // 🔥 PAYLOAD CON PARTICIPANTES
+  const payload = {
+    title: form.title,
+    slug: form.slug,
+    excerpt: form.excerpt,
+    content: form.content,
+    blocks: bloques,
+    category: form.category,
+    tags: form.tags,
+    status: form.status,
+    participantes: form.participantes, // 🔥 NUEVO
+    scheduledFor: scheduledFor,
+    publishedAt: publishedAt,
+    featuredImage: {
+      url: form.featuredImage.url,
+      alt: form.featuredImage.alt || form.title || '',
+      name: form.featuredImage.name,
+      caption: form.featuredImage.name
+    },
+    gallery: form.gallery.map((img, idx) => ({
+      url: img.url,
+      alt: img.alt || form.title || '',
+      name: img.name,
+      caption: img.name,
+      order: idx
+    }))
+  }
+  
   try {
-    await createNews({
-      title: form.title,
-      slug: form.slug,
-      excerpt: form.excerpt,
-      content: form.content,
-      blocks: bloques,
-      category: form.category,
-      tags: form.tags,
-      status: form.status,
-      scheduledFor: scheduledFor,
-      publishedAt: publishedAt,
-      featuredImage: {
-        url: form.featuredImage.url,
-        alt: form.featuredImage.alt || form.title || '',
-        name: form.featuredImage.name,
-        caption: form.featuredImage.name
-      },
-      gallery: form.gallery.map((img, idx) => ({
-        url: img.url,
-        alt: img.alt || form.title || '',
-        name: img.name,
-        caption: img.name,
-        order: idx
-      }))
-    })
-    router.push('/admin/noticias')
+    await createNews(payload)
+    router.push('/admin/noticias?reload=true')
   } catch (error) {
     console.error('Error:', error)
     if (error.message?.includes('duplicate key') || error.message?.includes('E11000')) {
@@ -5370,6 +6454,10 @@ const saveNews = async () => {
     saving.value = false
   }
 }
+
+onMounted(() => {
+  setNow()
+})
 </script> 
 ================================= 
 pages\admin\noticias\index.vue 
@@ -6032,6 +7120,101 @@ pages\admin\noticias\edit\[id].vue
         </div>
       </div>
 
+      <!-- 🔥 SENADORES PARTICIPANTES -->
+      <div class="border-t pt-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">👥 Senadores Participantes</h3>
+        <p class="text-sm text-gray-500 mb-3">
+          Selecciona los senadores que participaron en esta noticia
+        </p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Buscar senador
+            </label>
+            <div class="relative">
+              <input
+                v-model="busquedaSenador"
+                type="text"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                placeholder="Escribe el nombre del senador..."
+                @input="filtrarSenadores"
+              />
+              <div v-if="senadoresFiltrados.length > 0 && busquedaSenador" 
+                   class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                <div
+                  v-for="senador in senadoresFiltrados"
+                  :key="senador.id"
+                  @click="agregarSenador(senador)"
+                  class="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0"
+                >
+                  <img 
+                    :src="senador.foto" 
+                    :alt="senador.name"
+                    class="w-8 h-8 rounded-full object-cover"
+                    @error="(e) => e.target.src = '/images/default-avatar.png'"
+                  />
+                  <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-900">{{ senador.name }}</p>
+                    <p class="text-xs text-gray-500">{{ senador.department }} • {{ senador.partyShort }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Busca por nombre, departamento o partido</p>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Senadores seleccionados ({{ form.participantes.length }})
+            </label>
+            <div class="border border-gray-200 rounded-lg p-3 min-h-[100px] bg-gray-50">
+              <div v-if="form.participantes.length === 0" class="text-center text-gray-400 py-4">
+                No hay senadores seleccionados
+              </div>
+              <div v-else class="flex flex-wrap gap-2">
+                <div
+                  v-for="senador in senadoresSeleccionados"
+                  :key="senador.id"
+                  class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm"
+                >
+                  <img 
+                    :src="senador.foto" 
+                    :alt="senador.name"
+                    class="w-6 h-6 rounded-full object-cover"
+                    @error="(e) => e.target.src = '/images/default-avatar.png'"
+                  />
+                  <span class="text-sm font-medium text-gray-700">{{ senador.name }}</span>
+                  <button
+                    type="button"
+                    @click="removerSenador(senador.id)"
+                    class="text-red-500 hover:text-red-700 text-sm ml-1"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Sugerencias por departamento -->
+        <div class="mt-3">
+          <p class="text-xs text-gray-500 mb-2">Agregar todos los senadores de un departamento:</p>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="dept in departamentos"
+              :key="dept"
+              type="button"
+              @click="agregarSenadoresPorDepartamento(dept)"
+              class="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition"
+            >
+              + {{ dept }}
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Categoría, Estado y Programación -->
       <div class="border-t pt-6">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -6073,11 +7256,6 @@ pages\admin\noticias\edit\[id].vue
              class="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
           <p class="text-sm text-red-800">
             ❌ <strong>Error:</strong> Para "Publicar ahora", la fecha debe ser ACTUAL o PASADA.
-            <br>
-            <span class="text-xs">
-              Fecha configurada: <strong>{{ form.publishedDate }} {{ form.publishedTime }}</strong>
-              (es FUTURA)
-            </span>
           </p>
         </div>
         
@@ -6085,11 +7263,6 @@ pages\admin\noticias\edit\[id].vue
              class="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
           <p class="text-sm text-red-800">
             ❌ <strong>Error:</strong> Para "Programar", la fecha debe ser FUTURA.
-            <br>
-            <span class="text-xs">
-              Fecha configurada: <strong>{{ form.scheduledDate }} {{ form.scheduledTime }}</strong>
-              (es PASADA)
-            </span>
           </p>
         </div>
         
@@ -6231,6 +7404,7 @@ import { ref, reactive, watch, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '~/stores/auth'
 import { useNews } from '~/composables/useNews'
+import { useSenadores } from '~/composables/useSenadores'
 import TiptapEditor from '~/components/admin/TiptapEditor.vue'
 
 definePageMeta({ layout: 'default', middleware: 'auth' })
@@ -6239,6 +7413,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const { getNewsById, updateNews, uploadImage: uploadImageApi } = useNews()
+const { getSenadoresList, getSenadorById, getSenadoresByDepartment } = useSenadores()
 
 const API_BASE_URL = 'http://demoback.senado.gob.bo/api'
 
@@ -6254,15 +7429,76 @@ const uploadProgress = ref('')
 const galleryUploadProgress = ref('')
 const featuredPreviewUrl = ref('')
 
+// ============================================
+// SENADORES PARTICIPANTES
+// ============================================
+const busquedaSenador = ref('')
+const senadoresFiltrados = ref([])
+const todosLosSenadores = ref(getSenadoresList())
+
+const departamentos = computed(() => {
+  const depts = new Set()
+  todosLosSenadores.value.forEach(s => depts.add(s.department))
+  return Array.from(depts).sort()
+})
+
+const senadoresSeleccionados = computed(() => {
+  return form.participantes
+    .map(id => getSenadorById(id))
+    .filter(Boolean)
+})
+
+const filtrarSenadores = () => {
+  const query = busquedaSenador.value.toLowerCase().trim()
+  if (!query) {
+    senadoresFiltrados.value = []
+    return
+  }
+  
+  senadoresFiltrados.value = todosLosSenadores.value.filter(s => {
+    if (form.participantes.includes(s.id)) return false
+    
+    const nameMatch = s.name.toLowerCase().includes(query)
+    const deptMatch = s.department.toLowerCase().includes(query)
+    const partyMatch = s.partyShort.toLowerCase().includes(query)
+    const partyFullMatch = s.party.toLowerCase().includes(query)
+    
+    return nameMatch || deptMatch || partyMatch || partyFullMatch
+  }).slice(0, 10)
+}
+
+const agregarSenador = (senador) => {
+  if (!form.participantes.includes(senador.id)) {
+    form.participantes.push(senador.id)
+  }
+  busquedaSenador.value = ''
+  senadoresFiltrados.value = []
+}
+
+const removerSenador = (id) => {
+  form.participantes = form.participantes.filter(p => p !== id)
+}
+
+const agregarSenadoresPorDepartamento = (departamento) => {
+  const senadoresDept = getSenadoresByDepartment(departamento)
+  const ids = senadoresDept.map(s => s.id)
+  const nuevosIds = ids.filter(id => !form.participantes.includes(id))
+  form.participantes.push(...nuevosIds)
+}
+
+// ============================================
+// EXCERPT VALIDATION
+// ============================================
 const excerptCharCount = computed(() => form.excerpt?.length || 0)
 
-// Fecha mínima para programación
+// ============================================
+// FECHA
+// ============================================
 const minDate = computed(() => {
   const today = new Date()
   return today.toISOString().split('T')[0]
 })
 
-// Computed para validar fechas
 const isFutureDate = computed(() => {
   if (!form.publishedDate || !form.publishedTime) return false
   const fechaPub = new Date(`${form.publishedDate}T${form.publishedTime}:00`)
@@ -6275,7 +7511,9 @@ const isScheduledPastDate = computed(() => {
   return fechaProg <= new Date()
 })
 
-// Slug validation
+// ============================================
+// SLUG VALIDATION
+// ============================================
 const slugValidation = reactive({ 
   isValid: null, 
   error: '' 
@@ -6340,6 +7578,9 @@ const checkSlugExists = async (slug, excludeId) => {
   }
 }
 
+// ============================================
+// FORM
+// ============================================
 const form = reactive({
   title: '',
   slug: '',
@@ -6353,6 +7594,7 @@ const form = reactive({
   publishedDate: '',
   publishedTime: '',
   publishedAt: null,
+  participantes: [], // 🔥 NUEVO: IDs de senadores
   featuredImage: { url: '', alt: '', name: '' },
   gallery: []
 })
@@ -6375,6 +7617,9 @@ watch(tagsInput, (newVal) => {
   form.tags = newVal.split(',').map(t => t.trim()).filter(t => t)
 })
 
+// ============================================
+// IMAGENES
+// ============================================
 const removeGalleryImage = (idx) => {
   form.gallery.splice(idx, 1)
 }
@@ -6466,6 +7711,9 @@ const handleGalleryFileSelect = async (event) => {
   }
 }
 
+// ============================================
+// CONVERTIR BLOQUES A HTML
+// ============================================
 const convertirBloquesAHTML = (blocks) => {
   if (!blocks || blocks.length === 0) return ''
   let html = ''
@@ -6487,6 +7735,9 @@ const convertirBloquesAHTML = (blocks) => {
   return html
 }
 
+// ============================================
+// CARGAR NOTICIA
+// ============================================
 const loadNews = async () => {
   const id = route.params.id
   try {
@@ -6507,6 +7758,13 @@ const loadNews = async () => {
     form.tags = news.tags || []
     form.status = news.status || 'draft'
     form.publishedAt = news.publishedAt || null
+    
+    // 🔥 Cargar participantes
+    if (news.participantes && Array.isArray(news.participantes)) {
+      form.participantes = news.participantes
+    } else {
+      form.participantes = []
+    }
     
     // Cargar fechas según estado
     if (news.status === 'scheduled' && news.scheduledFor) {
@@ -6554,7 +7812,7 @@ const loadNews = async () => {
 }
 
 // ============================================
-// 🔥 FUNCIÓN PRINCIPAL CON VALIDACIONES Y LOGS
+// GUARDAR NOTICIA
 // ============================================
 const saveNews = async () => {
   if (!authStore.isAuthenticated) {
@@ -6563,16 +7821,7 @@ const saveNews = async () => {
     return
   }
 
-  console.log('🔵 [CMS] ========== GUARDAR NOTICIA ==========')
-  console.log('🔵 [CMS] ID:', route.params.id)
-  console.log('🔵 [CMS] Datos del formulario:', form)
-  console.log('🔵 [CMS] publishedAt:', form.publishedAt)
-  console.log('🔵 [CMS] publishedDate:', form.publishedDate)
-  console.log('🔵 [CMS] publishedTime:', form.publishedTime)
-
-  // ============================================
-  // VALIDACIONES BÁSICAS
-  // ============================================
+  // Validaciones básicas
   if (!form.title.trim()) {
     alert('El título es requerido')
     return
@@ -6624,11 +7873,7 @@ const saveNews = async () => {
     }
   }
 
-  // ============================================
-  // 🔥 VALIDACIONES DE ESTADO Y FECHAS
-  // ============================================
-
-  // 1. Si es BORRADOR, solo advertir
+  // Validaciones de estado y fechas
   if (form.status === 'draft' && (form.publishedDate || form.scheduledDate)) {
     if (!confirm(
       '⚠️ Has configurado una fecha para esta noticia pero está en estado BORRADOR.\n\n' +
@@ -6639,15 +7884,12 @@ const saveNews = async () => {
     }
   }
 
-  // 2. Si es PUBLICAR AHORA, SOLO permitir fecha ACTUAL o PASADA
   if (form.status === 'published') {
     if (form.publishedDate && form.publishedTime) {
       const fechaPub = new Date(`${form.publishedDate}T${form.publishedTime}:00`)
       const ahora = new Date()
       if (fechaPub > ahora) {
         alert('❌ Para "Publicar ahora", la fecha debe ser ACTUAL o PASADA.\n\n' +
-              `Fecha configurada: ${fechaPub.toLocaleString('es-ES')}\n` +
-              `Fecha actual: ${ahora.toLocaleString('es-ES')}\n\n` +
               'Si quieres que se publique automáticamente en el futuro, usa "Programar".')
         return
       }
@@ -6656,7 +7898,6 @@ const saveNews = async () => {
     }
   }
 
-  // 3. Si es PROGRAMAR, SOLO permitir fecha FUTURA
   if (form.status === 'scheduled') {
     if (!form.scheduledDate || !form.scheduledTime) {
       alert('❌ Para programar una noticia, debes especificar fecha y hora.')
@@ -6666,14 +7907,11 @@ const saveNews = async () => {
     const ahora = new Date()
     if (fechaProg <= ahora) {
       alert('❌ Para "Programar", la fecha debe ser FUTURA.\n\n' +
-            `Fecha configurada: ${fechaProg.toLocaleString('es-ES')}\n` +
-            `Fecha actual: ${ahora.toLocaleString('es-ES')}\n\n` +
             'Si quieres publicar ahora, usa "Publicar ahora".')
       return
     }
   }
 
-  // 4. Si es ARCHIVADO, advertir
   if (form.status === 'archived' && (form.publishedDate || form.scheduledDate)) {
     if (!confirm(
       '⚠️ Has configurado una fecha para esta noticia pero está ARCHIVADA.\n\n' +
@@ -6684,40 +7922,25 @@ const saveNews = async () => {
     }
   }
 
-  // ============================================
-  // 🔥 CONSTRUIR PAYLOAD CON FECHA CORRECTA
-  // ============================================
-  
   saving.value = true
   const id = route.params.id
   
-  // ✅ Construir publishedAt correctamente
+  // Construir fechas
   let publishedAt = null
-  
-  // Si el estado es 'published' y tiene fecha configurada
   if (form.status === 'published' && form.publishedDate && form.publishedTime) {
     publishedAt = new Date(`${form.publishedDate}T${form.publishedTime}:00`).toISOString()
-    console.log('🔵 [CMS] publishedAt generado para publicado:', publishedAt)
-  } 
-  // Si el estado es 'draft' o 'archived' y tiene fecha configurada (se guarda por si se publica después)
-  else if ((form.status === 'draft' || form.status === 'archived') && form.publishedDate && form.publishedTime) {
+  } else if ((form.status === 'draft' || form.status === 'archived') && form.publishedDate && form.publishedTime) {
     publishedAt = new Date(`${form.publishedDate}T${form.publishedTime}:00`).toISOString()
-    console.log('🔵 [CMS] publishedAt generado para borrador/archivado:', publishedAt)
-  }
-  // Si tiene publishedAt guardado previamente
-  else if (form.publishedAt) {
+  } else if (form.publishedAt) {
     publishedAt = new Date(form.publishedAt).toISOString()
-    console.log('🔵 [CMS] publishedAt desde form.publishedAt:', publishedAt)
   }
   
-  // Construir scheduledFor (solo si es 'scheduled')
   let scheduledFor = null
   if (form.status === 'scheduled' && form.scheduledDate && form.scheduledTime) {
     scheduledFor = new Date(`${form.scheduledDate}T${form.scheduledTime}:00`).toISOString()
-    console.log('🔵 [CMS] scheduledFor generado:', scheduledFor)
   }
   
-  // ✅ Construir el payload completo
+  // 🔥 PAYLOAD CON PARTICIPANTES
   const payload = {
     title: form.title,
     slug: form.slug,
@@ -6726,6 +7949,7 @@ const saveNews = async () => {
     category: form.category,
     tags: form.tags,
     status: form.status,
+    participantes: form.participantes, // 🔥 NUEVO
     publishedAt: publishedAt,
     scheduledFor: scheduledFor,
     featuredImage: {
@@ -6743,18 +7967,11 @@ const saveNews = async () => {
     }))
   }
   
-  console.log('🔵 [CMS] Payload final:', payload)
-  console.log('🔵 [CMS] publishedAt en payload:', payload.publishedAt)
-  console.log('🔵 [CMS] scheduledFor en payload:', payload.scheduledFor)
-  
   try {
-    const result = await updateNews(id, payload)
-    console.log('🔵 [CMS] Respuesta del servidor:', result)
-    
-    // 🔥 CAMBIO IMPORTANTE: Redirigir con parámetro para forzar recarga
+    await updateNews(id, payload)
     router.push('/admin/noticias?reload=true')
   } catch (error) {
-    console.error('❌ [CMS] Error:', error)
+    console.error('Error:', error)
     if (error.message?.includes('duplicate key') || error.message?.includes('E11000')) {
       alert(`❌ ERROR: El slug "${form.slug}" ya está siendo usado por otra noticia.\n\nPor favor, cambia el slug e intenta nuevamente.`)
     } else {
@@ -6762,7 +7979,6 @@ const saveNews = async () => {
     }
   } finally {
     saving.value = false
-    console.log('🔵 [CMS] ========== FIN GUARDAR ==========')
   }
 }
 
@@ -8546,6 +9762,438 @@ public\some.html
 </body>
 </html> 
 ================================= 
+public\senadores\suplentes\g1\ALDO SERGIO VILLEGAS MORA.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g1\APOLINAR RIVERA MUÑOZ.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g1\HUGO MARCELO CORTEZ CALVIMONTES.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g1\ILSE FATIMA DAVILA ARANCIBIA.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g1\LENNY MAYRA AYALA JUSTINIANO.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g1\MANFRED LEO PEREZ HASSENTEUFEL.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g1\MARIA ELENA PACHACUTE TICONA.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g1\NILTON CONDORI ALANOCA.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g1\REINA ISABEL PALLARES MORALES.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g1\ROXANA MAMANI COLQUEHUANCA.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g1\ROYER IVAN MAMANI GARCIA.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g1\VICTOR SEVERO QUISPE SANTANDER.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g2\CANDIDATO INHABILITADO.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g2\CINTHYA INGA GUTIERREZ GUZMAN.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g2\EDWIN LOPEZ QUIROGA.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g2\FREDDY RIOJA MELGAR.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g2\LUZMAYA ZELAYA VEGA.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g2\MARCELA GUERRERO VILCA.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g2\MARCO ANTONIO SEGOVIA VARGAS.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g2\RAMIRO MAMANI RAMIREZ.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g2\ROGER MAMANI CORONADO.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g2\ROLANDO VACAFLOR GABRIEL ARANA.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g2\SUSANA GABRIELA RUIZ ZULETA.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g2\VILLMA COLQUE CAMACHO.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g3\CAROLINA GIESE URRESTI.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g3\CESIA ROCA ESCALANTE.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g3\CLAUDIA CARDENAS VELASQUEZ.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g3\JESUS HUMBERTO SUAREZ EGUEZ.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g3\JORGE ANTONIO QUISPE FLORES.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g3\KATHIA NATALIA MISERENDINO ROMERO.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g3\LEONARDO ROCA EGUEZ.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g3\LORGIO FERNANDO PAREJA SAUCEDO.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g3\MABEL GIORDANO SONNENSCHEIN.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g3\MARCELO MATIAS CARDONA IBAÑEZ.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g3\RICHARD ESPADA UGARTE.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\suplentes\g3\SICHARD HANS SORAIDE CASTEDO.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g1\ABDON PORCEL ARANCIBIA.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g1\ANA MARIA CRISPIN CHOQUE.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g1\BERTHA CARTAGENA SANCHEZ.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g1\CARMEN SOLEDAD CHAPETÓN TANCARA.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g1\CLAUDIA MALLON VARGAS.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g1\DANIEL ANTONIO ORTIZ VELASQUEZ.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g1\JOSE MANUEL ORMACHEA MENDIETA.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g1\JUDITH ROSARIO GARCIA COCA.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g1\NICANOR GONZALO COCHI CONDORI.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g1\TOMASA YARHUI JACOME.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g1\WANDA XIMENA MEDRANO HERVAS.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g1\WILDER VELIZ ARMAS.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g2\BERTHA NURMY GUTIERREZ MENESES.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g2\BETTY CANAVIRI VILLANUEVA.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g2\CESAR MENTASTI PADILLA.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g2\DIEGO ESTEBAN MATEO ÁVILA NAVAJAS.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g2\FREDDY CASTILLO CHAVEZ.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g2\JOSE SANCHEZ AGUILAR.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g2\LEONOR ROSALVA ROMERO GUTIERREZ.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g2\MARCELINO FLORES ORDOÑEZ.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g2\MARIA ANTONIETA ALCON SANCHEZ.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g2\MARIA ISABEL MORENO CORTEZ.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g2\TERESA ALARCON ARANA.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g2\YASMIN ESTIVARIZ VILLARROEL.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g3\ANA KARINA VELASCO ÁÑEZ.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g3\BRANKO GORAN MARINKOVIC JOVICEVIC.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g3\CAROL CARLO DURAN.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g3\CINTIA MONICA PUERTA CAMPOS.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g3\ELIANA RINA ACOSTA QUISPE.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g3\ERICK NELSON SORUCO ALPIRE.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g3\ERNESTO SUAREZ SATTORI.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g3\JOSE ROCA HAENSEL.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g3\JULIO DIEGO ROMAÑA GALINDO.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g3\KATHIA LISBETH QUIROGA FERNÁNDEZ.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g3\PAOLA LIMBANIA LOPEZ ZEBALLOS.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
+public\senadores\titulares\g3\ROSA TATIANA AÑEZ CARRASCO.png 
+================================= 
+ 
+[ARCHIVO DE IMAGEN - CONTENIDO NO MOSTRADO] 
+ 
+================================= 
 stores\auth.ts 
 ================================= 
  
@@ -8830,4 +10478,4 @@ declare module '~/stores/auth' {
     avatarInitials: string
   }
 } 
-Total archivos: 46 
+Total archivos: 120 
