@@ -161,7 +161,7 @@
 import { ref, onMounted, computed } from 'vue'
 import Modal from '~/components/ui/Modal.vue'
 
-const API_BASE_URL = 'http://demoback.senado.gob.bo/api'
+const API_BASE_URL = 'https://demoback.senado.gob.bo/api'
 
 // Estado
 const fechas = ref<any[]>([])

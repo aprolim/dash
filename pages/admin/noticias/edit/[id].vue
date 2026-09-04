@@ -519,7 +519,7 @@ const authStore = useAuthStore()
 const { getNewsById, updateNews, uploadImage: uploadImageApi } = useNews()
 const { getSenadoresList, getSenadorById, getSenadoresByDepartment } = useSenadores()
 
-const API_BASE_URL = 'http://demoback.senado.gob.bo/api'
+const API_BASE_URL = 'https://demoback.senado.gob.bo/api'
 
 const loading = ref(true)
 const saving = ref(false)

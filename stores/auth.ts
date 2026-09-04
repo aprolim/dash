@@ -61,7 +61,7 @@ export const useAuthStore = defineStore('auth', {
       console.log('🔍 [AuthStore] Verificando token...')
       
       try {
-        const response = await fetch('http://demoback.senado.gob.bo/api/auth/validate', {
+        const response = await fetch('https://demoback.senado.gob.bo/api/auth/validate', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -94,7 +94,7 @@ export const useAuthStore = defineStore('auth', {
       console.log('🔐 [AuthStore] Login con:', email)
       
       try {
-        const response = await fetch('http://demoback.senado.gob.bo/api/auth/login', {
+        const response = await fetch('https://demoback.senado.gob.bo/api/auth/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

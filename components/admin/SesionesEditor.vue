@@ -205,7 +205,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
-const API_BASE_URL = 'http://demoback.senado.gob.bo/api'
+const API_BASE_URL = 'https://demoback.senado.gob.bo/api'
 
 interface SesionVideo {
   position: number
