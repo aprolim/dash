@@ -1,4 +1,4 @@
-<!-- layouts/default.vue - CORREGIDO con detección de rutas -->
+<!-- layouts/default.vue - Agregar enlaces en la navegación -->
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Header -->
@@ -20,7 +20,7 @@
             </div>
           </div>
 
-          <!-- Navegación - AHORA USA EL ROUTER -->
+          <!-- Navegación -->
           <nav class="hidden md:flex space-x-8">
             <NuxtLink 
               to="/dashboard" 
@@ -45,6 +45,7 @@
             >
               Noticias
             </NuxtLink>
+            
             <NuxtLink 
               to="/admin/sesiones" 
               class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
@@ -52,24 +53,23 @@
             >
               Sesiones
             </NuxtLink>
-            <button 
-              @click.prevent="showComingSoon('Contenido')"
-              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium"
+
+            <!-- 🔥 NUEVOS ENLACES -->
+            <NuxtLink 
+              to="/admin/comunicados" 
+              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
+              :class="{ 'text-primary-600 border-b-2 border-primary-600': isActiveRoute('/admin/comunicados') }"
             >
-              Contenido
-            </button>
-            <button 
-              @click.prevent="showComingSoon('Legisladores')"
-              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium"
+              📢 Comunicados
+            </NuxtLink>
+
+            <NuxtLink 
+              to="/admin/avisos" 
+              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
+              :class="{ 'text-primary-600 border-b-2 border-primary-600': isActiveRoute('/admin/avisos') }"
             >
-              Legisladores
-            </button>
-            <button 
-              @click.prevent="showComingSoon('Usuarios')"
-              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium"
-            >
-              Usuarios
-            </button>
+              📌 Avisos
+            </NuxtLink>
           </nav>
 
           <!-- Perfil de usuario -->
@@ -90,7 +90,6 @@
                 <span>▼</span>
               </button>
               
-              <!-- Dropdown menu -->
               <div 
                 v-if="userMenuOpen"
                 class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10"
@@ -120,7 +119,6 @@
       <main class="flex-1">
         <div class="py-6">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <!-- Breadcrumbs -->
             <nav class="flex mb-6" aria-label="Breadcrumb">
               <ol class="flex items-center space-x-2">
                 <li>
@@ -145,12 +143,10 @@
               </ol>
             </nav>
 
-            <!-- Título de página -->
             <h1 class="text-2xl font-semibold text-gray-900 mb-6">
               {{ pageTitle }}
             </h1>
 
-            <!-- Slot para contenido -->
             <div class="bg-white shadow rounded-lg">
               <div class="px-4 py-5 sm:p-6">
                 <slot />
@@ -161,7 +157,6 @@
       </main>
     </div>
 
-    <!-- Footer -->
     <footer class="bg-white border-t border-gray-200">
       <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center">
@@ -185,11 +180,9 @@ import { useRoute } from 'vue-router'
 const authStore = useAuthStore()
 const userMenuOpen = ref(false)
 
-// Usar el router de Vue para la ruta actual
 const route = useRoute()
 const currentRoute = computed(() => route.path)
 
-// Función para verificar si una ruta está activa
 const isActiveRoute = (path: string) => {
   if (path === '/dashboard') {
     return currentRoute.value === '/dashboard'
@@ -204,6 +197,10 @@ const pageTitle = computed(() => {
   const path = currentRoute.value
   if (path === '/dashboard') return 'Dashboard'
   if (path.startsWith('/tabs')) return 'Gestión de Tabs'
+  if (path.includes('/admin/noticias')) return 'Gestión de Noticias'
+  if (path.includes('/admin/sesiones')) return 'Gestión de Sesiones'
+  if (path.includes('/admin/comunicados')) return '📢 Gestión de Comunicados'
+  if (path.includes('/admin/avisos')) return '📌 Gestión de Avisos'
   if (path.includes('/content')) return 'Gestión de Contenido'
   if (path.includes('/legislators')) return 'Legisladores'
   if (path.includes('/users')) return 'Usuarios'
@@ -244,7 +241,6 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
 
-// Opcional: watch para debug
 watch(currentRoute, (newPath) => {
   console.log('Ruta actual:', newPath)
 })
