@@ -52,7 +52,10 @@
                 @change="handleFileSelect"
               />
             </label>
-            <span v-if="uploadingImage" class="text-sm text-gray-500">Subiendo...</span>
+            <span v-if="uploadingImage" class="text-sm text-gray-500 flex items-center gap-2">
+              <div class="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+              Subiendo...
+            </span>
           </div>
         </div>
         
@@ -91,38 +94,117 @@
         </div>
       </div>
 
-      <!-- Programación -->
+      <!-- 🔥 ESTADO Y PROGRAMACIÓN -->
       <div class="border-t pt-6">
         <h3 class="text-lg font-medium text-gray-900 mb-4">⏰ Programación</h3>
-        
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-          <p class="text-sm text-blue-800">
-            💡 El comunicado aparecerá como <strong>modal en la página principal</strong> durante el período configurado.
-            Al finalizar, pasará automáticamente a <strong>Avisos y Comunicados</strong>.
+
+        <!-- Selector de estado (SIN opción inactivo) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div 
+            @click="form.estado = 'programado'"
+            class="cursor-pointer border-2 rounded-lg p-4 transition-all"
+            :class="form.estado === 'programado' ? 'border-yellow-500 bg-yellow-50' : 'border-gray-200 hover:border-gray-300'"
+          >
+            <div class="flex items-start gap-3">
+              <div class="text-2xl">⏰</div>
+              <div class="flex-1">
+                <h4 class="font-semibold text-gray-900">Programado</h4>
+                <p class="text-xs text-gray-600 mt-1">
+                  Aparece y desaparece automáticamente según las fechas
+                </p>
+                <p class="text-xs text-yellow-700 mt-1 font-medium">
+                  ⚠️ Requiere fecha inicio + fin
+                </p>
+              </div>
+              <div v-if="form.estado === 'programado'" class="text-yellow-500 text-xl">✓</div>
+            </div>
+          </div>
+
+          <div 
+            @click="form.estado = 'activo'"
+            class="cursor-pointer border-2 rounded-lg p-4 transition-all"
+            :class="form.estado === 'activo' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'"
+          >
+            <div class="flex items-start gap-3">
+              <div class="text-2xl">🟢</div>
+              <div class="flex-1">
+                <h4 class="font-semibold text-gray-900">Activo</h4>
+                <p class="text-xs text-gray-600 mt-1">
+                  Aparece ahora mismo y se queda hasta inactivarlo
+                </p>
+                <p class="text-xs text-green-700 mt-1 font-medium">
+                  ✓ Fecha fin opcional
+                </p>
+              </div>
+              <div v-if="form.estado === 'activo'" class="text-green-500 text-xl">✓</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fechas -->
+        <div v-if="form.estado === 'programado'" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <p class="text-sm text-yellow-800 mb-3">
+            ⏰ El comunicado aparecerá como modal el <strong>{{ form.fechaActivacion ? formatearFechaLocal(form.fechaActivacion) : 'día de inicio' }}</strong> 
+            y desaparecerá el <strong>{{ form.fechaDesactivacion ? formatearFechaLocal(form.fechaDesactivacion) : 'día de fin' }}</strong>.
           </p>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Fecha de inicio <span class="text-red-500">*</span>
+              </label>
+              <input 
+                v-model="form.fechaActivacion" 
+                type="datetime-local" 
+                required
+                :min="minDate"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500" 
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Fecha de fin <span class="text-red-500">*</span>
+              </label>
+              <input 
+                v-model="form.fechaDesactivacion" 
+                type="datetime-local" 
+                required
+                :min="form.fechaActivacion || minDate"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500" 
+              />
+            </div>
+          </div>
+
+          <div v-if="form.fechaActivacion && form.fechaDesactivacion && form.fechaActivacion >= form.fechaDesactivacion" 
+               class="mt-3 p-2 bg-red-100 border border-red-300 rounded text-sm text-red-700">
+            ❌ La fecha de fin debe ser posterior a la fecha de inicio
+          </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Modo Activo -->
+        <div v-if="form.estado === 'activo'" class="bg-green-50 border border-green-200 rounded-lg p-4">
+          <p class="text-sm text-green-800 mb-3">
+            ✅ El comunicado aparecerá como modal <strong>inmediatamente</strong>. 
+            Se quedará visible hasta que lo inactives manualmente o llegue la fecha de fin (si la especificas).
+          </p>
+          
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Estado Inicial</label>
-            <select v-model="form.estado" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-              <option value="inactivo">⚪ Inactivo</option>
-              <option value="programado">⏰ Programar</option>
-              <option value="activo">🟢 Activar ahora</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Activación</label>
-            <input v-model="form.fechaActivacion" type="datetime-local" class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Desactivación</label>
-            <input v-model="form.fechaDesactivacion" type="datetime-local" class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Fecha de fin (opcional)
+            </label>
+            <input 
+              v-model="form.fechaDesactivacion" 
+              type="datetime-local" 
+              :min="minDate"
+              class="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" 
+            />
+            <p class="text-xs text-gray-600 mt-1">
+              Si la dejas vacía, el comunicado se quedará activo hasta que lo inactives manualmente.
+            </p>
           </div>
         </div>
 
+        <!-- Prioridad -->
         <div class="mt-4">
           <label class="block text-sm font-medium text-gray-700 mb-1">Prioridad (0-10)</label>
           <input v-model.number="form.prioridad" type="number" min="0" max="10" class="w-32 px-3 py-2 border border-gray-300 rounded-lg" />
@@ -130,12 +212,24 @@
         </div>
       </div>
 
+      <!-- Validaciones -->
+      <div v-if="errores.length > 0" class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <p class="font-medium text-red-800 mb-2">Corrige los siguientes errores:</p>
+        <ul class="list-disc list-inside text-sm text-red-700 space-y-1">
+          <li v-for="(err, i) in errores" :key="i">{{ err }}</li>
+        </ul>
+      </div>
+
       <!-- Botones -->
       <div class="flex justify-end space-x-3 pt-4 border-t">
         <NuxtLink to="/admin/comunicados" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
           Cancelar
         </NuxtLink>
-        <button type="submit" :disabled="saving" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50">
+        <button 
+          type="submit" 
+          :disabled="saving || !formularioValido" 
+          class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           {{ saving ? 'Guardando...' : 'Guardar comunicado' }}
         </button>
       </div>
@@ -144,7 +238,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useComunicados } from '~/composables/useComunicados'
 
@@ -164,11 +258,61 @@ const form = reactive({
   contenido: '',
   imagen: { url: '', alt: '', name: '' },
   pdf: { url: null, name: '', size: 0 },
-  estado: 'inactivo',
+  estado: 'programado',   // 🔥 Default: programado
   fechaActivacion: '',
   fechaDesactivacion: '',
   prioridad: 0
 })
+
+const minDate = computed(() => {
+  const now = new Date()
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
+  return now.toISOString().slice(0, 16)
+})
+
+// 🔥 Validación en tiempo real
+const errores = computed(() => {
+  const e = []
+
+  if (!form.titulo.trim()) e.push('El título es requerido')
+  if (!form.contenido.trim()) e.push('El contenido es requerido')
+  if (!form.imagen.url) e.push('La imagen es requerida')
+
+  if (form.estado === 'programado') {
+    if (!form.fechaActivacion) e.push('La fecha de inicio es requerida para programar')
+    if (!form.fechaDesactivacion) e.push('La fecha de fin es requerida para programar')
+    if (form.fechaActivacion && form.fechaDesactivacion) {
+      if (new Date(form.fechaActivacion) >= new Date(form.fechaDesactivacion)) {
+        e.push('La fecha de fin debe ser posterior a la fecha de inicio')
+      }
+      if (new Date(form.fechaActivacion) <= new Date()) {
+        e.push('Para programar, la fecha de inicio debe ser futura. Si quieres que aparezca ahora, usa "Activo".')
+      }
+    }
+  }
+
+  if (form.estado === 'activo' && form.fechaDesactivacion) {
+    if (new Date(form.fechaDesactivacion) <= new Date()) {
+      e.push('La fecha de fin debe ser futura')
+    }
+  }
+
+  return e
+})
+
+const formularioValido = computed(() => errores.value.length === 0)
+
+const formatearFechaLocal = (isoString) => {
+  if (!isoString) return ''
+  const date = new Date(isoString)
+  return date.toLocaleString('es-ES', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
 
 const formatearTamaño = (bytes) => {
   if (!bytes) return '0 B'
@@ -232,18 +376,9 @@ const handlePdfSelect = async (event) => {
 }
 
 const saveComunicado = async () => {
-  if (!form.titulo.trim()) return alert('El título es requerido')
-  if (!form.contenido.trim()) return alert('El contenido es requerido')
-  if (!form.imagen.url) return alert('La imagen es requerida')
-
-  if (form.fechaActivacion && form.fechaDesactivacion) {
-    if (new Date(form.fechaActivacion) > new Date(form.fechaDesactivacion)) {
-      return alert('La fecha de activación debe ser anterior a la de desactivación')
-    }
-  }
-
-  if (form.estado === 'programado' && !form.fechaActivacion) {
-    return alert('Para programar un comunicado, especifica una fecha de activación')
+  if (!formularioValido.value) {
+    alert('Corrige los errores antes de guardar')
+    return
   }
 
   saving.value = true
@@ -254,9 +389,17 @@ const saveComunicado = async () => {
       imagen: form.imagen,
       pdf: form.pdf.url ? form.pdf : null,
       estado: form.estado,
-      fechaActivacion: form.fechaActivacion ? new Date(form.fechaActivacion).toISOString() : null,
-      fechaDesactivacion: form.fechaDesactivacion ? new Date(form.fechaDesactivacion).toISOString() : null,
       prioridad: form.prioridad
+    }
+
+    if (form.estado === 'programado') {
+      payload.fechaActivacion = new Date(form.fechaActivacion).toISOString()
+      payload.fechaDesactivacion = new Date(form.fechaDesactivacion).toISOString()
+    } else if (form.estado === 'activo') {
+      // Sin fecha de activación (se activa ahora)
+      if (form.fechaDesactivacion) {
+        payload.fechaDesactivacion = new Date(form.fechaDesactivacion).toISOString()
+      }
     }
 
     await createComunicado(payload)

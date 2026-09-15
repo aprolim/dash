@@ -44,8 +44,7 @@ export const useComunicados = () => {
   // ============================================
   // 📡 PÚBLICO
   // ============================================
-  
-  // Obtener comunicado activo (para modal)
+
   const getComunicadoActivo = async (): Promise<Comunicado | null> => {
     try {
       const response = await fetch(`${baseUrl}/comunicados/activo`)
@@ -57,7 +56,6 @@ export const useComunicados = () => {
     }
   }
 
-  // Obtener comunicados expirados (para sección de avisos)
   const getComunicadosExpirados = async (): Promise<Comunicado[]> => {
     try {
       const response = await fetch(`${baseUrl}/comunicados/expirados`)
@@ -73,7 +71,6 @@ export const useComunicados = () => {
   // 🔐 ADMIN
   // ============================================
 
-  // Listar comunicados (admin)
   const getComunicados = async (params?: {
     page?: number
     limit?: number
@@ -90,22 +87,22 @@ export const useComunicados = () => {
     return await get<any>(url)
   }
 
-  // Obtener por ID
   const getComunicadoById = async (id: string): Promise<Comunicado> => {
     return await get<Comunicado>(`${baseUrl}/comunicados/${id}`)
   }
 
-  // Crear
   const createComunicado = async (data: Partial<Comunicado>) => {
     return await post<Comunicado>(`${baseUrl}/comunicados`, data)
   }
 
-  // Actualizar
   const updateComunicado = async (id: string, data: Partial<Comunicado>) => {
     return await put<Comunicado>(`${baseUrl}/comunicados/${id}`, data)
   }
 
-  // Cambiar estado
+  /**
+   * 🔥 Cambiar estado con manejo de errores mejorado
+   * El backend valida según las reglas (ej: no puedes activar un programado sin fechas)
+   */
   const changeEstado = async (id: string, estado: string) => {
     const token = localStorage.getItem('auth_token')
     const response = await fetch(`${baseUrl}/comunicados/${id}/estado`, {
@@ -116,27 +113,29 @@ export const useComunicados = () => {
       },
       body: JSON.stringify({ estado })
     })
+
     const result = await response.json()
-    if (!result.success) throw new Error(result.message)
+
+    if (!response.ok || !result.success) {
+      // Lanzar el mensaje real del backend
+      throw new Error(result.message || 'Error al cambiar estado')
+    }
+
     return result.data
   }
 
-  // Eliminar
   const deleteComunicado = async (id: string) => {
     return await del(`${baseUrl}/comunicados/${id}`)
   }
 
-  // Estadísticas
   const getStats = async (): Promise<ComunicadoStats> => {
     return await get<ComunicadoStats>(`${baseUrl}/comunicados/stats`)
   }
 
-  // Forzar actualización de estados
   const forceUpdate = async () => {
     return await post(`${baseUrl}/comunicados/force-update`, {})
   }
 
-  // Subir imagen
   const uploadImage = async (file: File, name?: string): Promise<any> => {
     const formData = new FormData()
     formData.append('imagen', file)
@@ -153,7 +152,6 @@ export const useComunicados = () => {
     return result.data
   }
 
-  // Subir PDF
   const uploadPDF = async (file: File): Promise<any> => {
     const formData = new FormData()
     formData.append('pdf', file)

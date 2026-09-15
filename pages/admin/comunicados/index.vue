@@ -14,6 +14,21 @@
       </NuxtLink>
     </div>
 
+    <!-- Info de reglas -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-sm text-blue-800">
+      <div class="flex items-start gap-3">
+        <span class="text-xl">💡</span>
+        <div>
+          <p class="font-medium mb-1">Reglas de estados:</p>
+          <ul class="list-disc list-inside space-y-0.5 text-xs">
+            <li><strong>Programado</strong>: aparece y desaparece automáticamente (requiere fecha inicio + fin)</li>
+            <li><strong>Activo</strong>: aparece ahora mismo (fecha fin opcional)</li>
+            <li><strong>Inactivo</strong>: no se muestra (solo se llega aquí al expirar o al inactivar manualmente)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
     <!-- Estadísticas -->
     <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
       <div class="bg-white rounded-lg shadow p-4 text-center">
@@ -105,6 +120,7 @@
             </td>
             <td class="px-6 py-4">
               <div class="text-sm font-medium text-gray-900">{{ item.titulo }}</div>
+              <div class="text-xs text-gray-500">{{ (item.contenido || '').substring(0, 60) }}...</div>
             </td>
             <td class="px-6 py-4">
               <span :class="estadoClass(item.estado)" class="px-2 py-1 rounded-full text-xs font-medium">
@@ -119,7 +135,7 @@
                 <span class="text-red-600">⏹</span> {{ formatearFecha(item.fechaDesactivacion) }}
               </div>
               <div v-if="!item.fechaActivacion && !item.fechaDesactivacion" class="italic text-gray-400">
-                Sin programación
+                Sin fecha fin (activo indefinido)
               </div>
             </td>
             <td class="px-6 py-4 text-xs text-gray-500">
@@ -127,20 +143,41 @@
             </td>
             <td class="px-6 py-4 text-right">
               <div class="flex justify-end gap-2">
+                <!-- 🔥 Botón Inactivar destacado cuando está activo -->
                 <button 
-                  @click="cambiarEstado(item)" 
-                  class="text-blue-600 hover:text-blue-900 text-lg"
-                  :title="item.estado === 'activo' ? 'Desactivar' : 'Activar'"
+                  v-if="item.estado === 'activo'"
+                  @click="inactivarComunicado(item)" 
+                  class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 font-medium"
+                  title="Inactivar ahora"
                 >
-                  {{ item.estado === 'activo' ? '⏸' : '▶' }}
+                  ⏹ Inactivar
                 </button>
+
+                <!-- Reactivar si está inactivo -->
+                <button 
+                  v-if="item.estado === 'inactivo'"
+                  @click="reactivarComunicado(item)" 
+                  class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 font-medium"
+                  title="Reactivar"
+                >
+                  ▶ Reactivar
+                </button>
+
+                <!-- Editar siempre -->
                 <NuxtLink 
                   :to="`/admin/comunicados/edit/${item._id}`" 
-                  class="text-primary-600 hover:text-primary-900 text-lg"
+                  class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 font-medium"
+                  title="Editar"
                 >
-                  ✏
+                  ✏ Editar
                 </NuxtLink>
-                <button @click="confirmDelete(item)" class="text-red-600 hover:text-red-900 text-lg">
+
+                <!-- Eliminar siempre -->
+                <button 
+                  @click="confirmDelete(item)" 
+                  class="px-2 py-1 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100 font-medium"
+                  title="Eliminar"
+                >
                   🗑
                 </button>
               </div>
@@ -188,6 +225,14 @@
         </div>
       </div>
     </Modal>
+
+    <!-- Toast -->
+    <div v-if="toast.show" 
+         class="fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 transition-all"
+         :class="toast.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'"
+    >
+      {{ toast.message }}
+    </div>
   </div>
 </template>
 
@@ -222,7 +267,18 @@ const filters = ref({
   search: ''
 })
 
+const toast = ref({
+  show: false,
+  message: '',
+  type: 'success'
+})
+
 let searchTimeout = null
+
+const mostrarToast = (message, type = 'success') => {
+  toast.value = { show: true, message, type }
+  setTimeout(() => { toast.value.show = false }, 3000)
+}
 
 const formatearFecha = (fecha) => {
   if (!fecha) return 'Sin fecha'
@@ -299,6 +355,34 @@ const nextPage = () => {
   }
 }
 
+// 🔥 Inactivar manualmente un comunicado activo
+const inactivarComunicado = async (item) => {
+  if (!confirm(`¿Inactivar el comunicado "${item.titulo}"?\n\nDejará de mostrarse en el modal principal inmediatamente.`)) return
+
+  try {
+    await changeEstado(item._id, 'inactivo')
+    mostrarToast('Comunicado inactivado', 'success')
+    await loadComunicados()
+    await loadStats()
+  } catch (err) {
+    mostrarToast(err.message || 'Error al inactivar', 'error')
+  }
+}
+
+// 🔥 Reactivar un comunicado inactivo (lo vuelve a activo, sin fecha fin)
+const reactivarComunicado = async (item) => {
+  if (!confirm(`¿Reactivar el comunicado "${item.titulo}"?\n\nSe mostrará en el modal principal inmediatamente.`)) return
+
+  try {
+    await changeEstado(item._id, 'activo')
+    mostrarToast('Comunicado reactivado', 'success')
+    await loadComunicados()
+    await loadStats()
+  } catch (err) {
+    mostrarToast(err.message || 'Error al reactivar', 'error')
+  }
+}
+
 const showDeleteModal = ref(false)
 const comunicadoToDelete = ref(null)
 const deleting = ref(false)
@@ -315,38 +399,26 @@ const deleteComunicado = async () => {
   try {
     await deleteComunicadoApi(comunicadoToDelete.value._id)
     showDeleteModal.value = false
+    mostrarToast('Comunicado eliminado', 'success')
     await loadComunicados()
     await loadStats()
   } catch (err) {
     console.error('Error deleting:', err)
-    alert('Error al eliminar el comunicado')
+    mostrarToast('Error al eliminar el comunicado', 'error')
   } finally {
     deleting.value = false
     comunicadoToDelete.value = null
   }
 }
 
-const cambiarEstado = async (item) => {
-  const nuevoEstado = item.estado === 'activo' ? 'inactivo' : 'activo'
-  if (!confirm(`¿Cambiar estado a "${nuevoEstado}"?`)) return
-  
-  try {
-    await changeEstado(item._id, nuevoEstado)
-    await loadComunicados()
-    await loadStats()
-  } catch (err) {
-    alert(err.message || 'Error al cambiar estado')
-  }
-}
-
 const forceUpdateEstados = async () => {
   try {
     const result = await forceUpdate()
-    alert(result.message || 'Estados actualizados')
+    mostrarToast(result.message || 'Estados actualizados', 'success')
     await loadComunicados()
     await loadStats()
   } catch (err) {
-    alert(err.message || 'Error al actualizar estados')
+    mostrarToast(err.message || 'Error al actualizar estados', 'error')
   }
 }
 
