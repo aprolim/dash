@@ -3363,6 +3363,273 @@ export const useApi = () => {
   }
 } 
 ================================= 
+composables\useAuditoria.ts 
+================================= 
+ 
+// composables/useAuditoria.ts
+import { useApi } from '~/composables/useApi'
+
+// ============================================
+// TIPOS
+// ============================================
+
+export type ModuloAuditoria =
+  | 'poa-uai'
+  | 'auditorias-ejecutadas'
+  | 'informes-actividades'
+  | 'otras-actividades'
+
+export type EstadoAuditoria = 'Publicado' | 'En Revisión' | 'Borrador'
+
+export interface AuditoriaCategoria {
+  _id?: string
+  modulo: ModuloAuditoria
+  key: string
+  nombre: string
+  icono: string
+  orden: number
+  activo: boolean
+  documentosCount?: number
+}
+
+export interface AuditoriaDocumento {
+  _id: string
+  modulo: ModuloAuditoria
+  categoria: string
+  titulo: string
+  descripcion: string
+  gestion: number
+  url: string | null
+  estado: EstadoAuditoria
+  activo: boolean
+  orden: number
+  migrado?: boolean
+  urlOriginal?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface AuditoriaPOA {
+  _id: string
+  anio: number
+  titulo: string
+  fecha: string
+  estado: EstadoAuditoria
+  activo: boolean
+  pdfUrl: string | null
+  createdAt?: string
+  updatedAt?: string
+}
+
+// ============================================
+// COMPOSABLE
+// ============================================
+
+export const useAuditoria = () => {
+  const { get, post, put, del, patch } = useApi()
+  const config = useRuntimeConfig()
+  const baseUrl = config.public.apiUrl || 'https://demoback.senado.gob.bo/api'
+
+  // ============================================
+  // 📡 PÚBLICO
+  // ============================================
+
+  const getDocumentosPublicos = async (modulo: ModuloAuditoria) => {
+    const url = `${baseUrl}/auditoria/${modulo}`
+    const response = await fetch(url)
+    const result = await response.json()
+    if (!result.success) throw new Error(result.message)
+    return result.data
+  }
+
+  // ============================================
+  // 🔐 ADMIN - DOCUMENTOS
+  // ============================================
+
+  const getDocumentosAdmin = async (
+    modulo: ModuloAuditoria,
+    params?: {
+      categoria?: string
+      gestion?: number
+      search?: string
+      incluirInactivos?: boolean
+    }
+  ) => {
+    const query = new URLSearchParams()
+    if (params?.categoria) query.append('categoria', params.categoria)
+    if (params?.gestion) query.append('gestion', params.gestion.toString())
+    if (params?.search) query.append('search', params.search)
+    if (params?.incluirInactivos) query.append('incluirInactivos', 'true')
+
+    const url = `${baseUrl}/auditoria/${modulo}/admin?${query.toString()}`
+    return await get<{ documentos: AuditoriaDocumento[]; total: number }>(url)
+  }
+
+  const getDocumentoById = async (
+    modulo: ModuloAuditoria,
+    id: string
+  ): Promise<AuditoriaDocumento> => {
+    return await get<AuditoriaDocumento>(`${baseUrl}/auditoria/${modulo}/${id}`)
+  }
+
+  const createDocumento = async (
+    modulo: ModuloAuditoria,
+    data: Partial<AuditoriaDocumento>
+  ) => {
+    return await post<AuditoriaDocumento>(`${baseUrl}/auditoria/${modulo}`, data)
+  }
+
+  const updateDocumento = async (
+    modulo: ModuloAuditoria,
+    id: string,
+    data: Partial<AuditoriaDocumento>
+  ) => {
+    return await put<AuditoriaDocumento>(`${baseUrl}/auditoria/${modulo}/${id}`, data)
+  }
+
+  const deleteDocumento = async (modulo: ModuloAuditoria, id: string) => {
+    return await del(`${baseUrl}/auditoria/${modulo}/${id}`)
+  }
+
+  // ============================================
+  // 🔐 ADMIN - CATEGORÍAS
+  // ============================================
+
+  const getCategorias = async (
+    modulo: ModuloAuditoria,
+    incluirInactivos = false
+  ): Promise<AuditoriaCategoria[]> => {
+    const url = `${baseUrl}/auditoria/${modulo}/categorias?incluirInactivos=${incluirInactivos}`
+    const result = await get<AuditoriaCategoria[]>(url)
+    return result
+  }
+
+  const createCategoria = async (
+    modulo: ModuloAuditoria,
+    data: Partial<AuditoriaCategoria>
+  ) => {
+    return await post<AuditoriaCategoria>(`${baseUrl}/auditoria/${modulo}/categorias`, data)
+  }
+
+  const updateCategoria = async (
+    modulo: ModuloAuditoria,
+    key: string,
+    data: Partial<AuditoriaCategoria>
+  ) => {
+    return await put<AuditoriaCategoria>(
+      `${baseUrl}/auditoria/${modulo}/categorias/${key}`,
+      data
+    )
+  }
+
+  const deleteCategoria = async (modulo: ModuloAuditoria, key: string) => {
+    return await del(`${baseUrl}/auditoria/${modulo}/categorias/${key}`)
+  }
+
+  // ============================================
+  // 🔐 ADMIN - POA-UAI
+  // ============================================
+
+  const getPOAs = async (): Promise<AuditoriaPOA[]> => {
+    const result = await get<{ documentos: AuditoriaPOA[] }>(
+      `${baseUrl}/auditoria/poa-uai/admin`
+    )
+    return result.documentos || []
+  }
+
+  const getPOAById = async (id: string): Promise<AuditoriaPOA> => {
+    return await get<AuditoriaPOA>(`${baseUrl}/auditoria/poa-uai/${id}`)
+  }
+
+  const createPOA = async (data: Partial<AuditoriaPOA>) => {
+    return await post<AuditoriaPOA>(`${baseUrl}/auditoria/poa-uai`, data)
+  }
+
+  const updatePOA = async (id: string, data: Partial<AuditoriaPOA>) => {
+    return await put<AuditoriaPOA>(`${baseUrl}/auditoria/poa-uai/${id}`, data)
+  }
+
+  const deletePOA = async (id: string) => {
+    return await del(`${baseUrl}/auditoria/poa-uai/${id}`)
+  }
+
+  const togglePOAActivo = async (id: string, activo: boolean) => {
+    return await patch<AuditoriaPOA>(`${baseUrl}/auditoria/poa-uai/${id}/toggle`, { activo })
+  }
+
+  // ============================================
+  // 📤 UPLOADS
+  // ============================================
+
+  const uploadPDF = async (
+    file: File,
+    modulo: ModuloAuditoria
+  ): Promise<{
+    url: string
+    filename: string
+    originalName: string
+    size: number
+  }> => {
+    const formData = new FormData()
+    formData.append('pdf', file)
+
+    const token = localStorage.getItem('auth_token')
+    const response = await fetch(`${baseUrl}/auditoria/${modulo}/upload-pdf`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    })
+    const result = await response.json()
+    if (!result.success) throw new Error(result.message)
+    return result.data
+  }
+
+  // ============================================
+  // 📊 ESTADÍSTICAS
+  // ============================================
+
+  const getStats = async (modulo: ModuloAuditoria) => {
+    return await get<any>(`${baseUrl}/auditoria/${modulo}/stats`)
+  }
+
+  // ============================================
+  // 🚚 MIGRACIÓN
+  // ============================================
+
+  const migrarPDFs = async () => {
+    return await post<any>(`${baseUrl}/auditoria/migrar-pdfs`, {})
+  }
+
+  return {
+    // Público
+    getDocumentosPublicos,
+    // Admin - Documentos
+    getDocumentosAdmin,
+    getDocumentoById,
+    createDocumento,
+    updateDocumento,
+    deleteDocumento,
+    // Admin - Categorías
+    getCategorias,
+    createCategoria,
+    updateCategoria,
+    deleteCategoria,
+    // Admin - POA-UAI
+    getPOAs,
+    getPOAById,
+    createPOA,
+    updatePOA,
+    deletePOA,
+    togglePOAActivo,
+    // Uploads
+    uploadPDF,
+    // Stats
+    getStats,
+    // Migración
+    migrarPDFs,
+  }
+} 
+================================= 
 composables\useAvisos.ts 
 ================================= 
  
@@ -3584,8 +3851,7 @@ export const useComunicados = () => {
   // ============================================
   // 📡 PÚBLICO
   // ============================================
-  
-  // Obtener comunicado activo (para modal)
+
   const getComunicadoActivo = async (): Promise<Comunicado | null> => {
     try {
       const response = await fetch(`${baseUrl}/comunicados/activo`)
@@ -3597,7 +3863,6 @@ export const useComunicados = () => {
     }
   }
 
-  // Obtener comunicados expirados (para sección de avisos)
   const getComunicadosExpirados = async (): Promise<Comunicado[]> => {
     try {
       const response = await fetch(`${baseUrl}/comunicados/expirados`)
@@ -3613,7 +3878,6 @@ export const useComunicados = () => {
   // 🔐 ADMIN
   // ============================================
 
-  // Listar comunicados (admin)
   const getComunicados = async (params?: {
     page?: number
     limit?: number
@@ -3630,22 +3894,22 @@ export const useComunicados = () => {
     return await get<any>(url)
   }
 
-  // Obtener por ID
   const getComunicadoById = async (id: string): Promise<Comunicado> => {
     return await get<Comunicado>(`${baseUrl}/comunicados/${id}`)
   }
 
-  // Crear
   const createComunicado = async (data: Partial<Comunicado>) => {
     return await post<Comunicado>(`${baseUrl}/comunicados`, data)
   }
 
-  // Actualizar
   const updateComunicado = async (id: string, data: Partial<Comunicado>) => {
     return await put<Comunicado>(`${baseUrl}/comunicados/${id}`, data)
   }
 
-  // Cambiar estado
+  /**
+   * 🔥 Cambiar estado con manejo de errores mejorado
+   * El backend valida según las reglas (ej: no puedes activar un programado sin fechas)
+   */
   const changeEstado = async (id: string, estado: string) => {
     const token = localStorage.getItem('auth_token')
     const response = await fetch(`${baseUrl}/comunicados/${id}/estado`, {
@@ -3656,27 +3920,29 @@ export const useComunicados = () => {
       },
       body: JSON.stringify({ estado })
     })
+
     const result = await response.json()
-    if (!result.success) throw new Error(result.message)
+
+    if (!response.ok || !result.success) {
+      // Lanzar el mensaje real del backend
+      throw new Error(result.message || 'Error al cambiar estado')
+    }
+
     return result.data
   }
 
-  // Eliminar
   const deleteComunicado = async (id: string) => {
     return await del(`${baseUrl}/comunicados/${id}`)
   }
 
-  // Estadísticas
   const getStats = async (): Promise<ComunicadoStats> => {
     return await get<ComunicadoStats>(`${baseUrl}/comunicados/stats`)
   }
 
-  // Forzar actualización de estados
   const forceUpdate = async () => {
     return await post(`${baseUrl}/comunicados/force-update`, {})
   }
 
-  // Subir imagen
   const uploadImage = async (file: File, name?: string): Promise<any> => {
     const formData = new FormData()
     formData.append('imagen', file)
@@ -3693,7 +3959,6 @@ export const useComunicados = () => {
     return result.data
   }
 
-  // Subir PDF
   const uploadPDF = async (file: File): Promise<any> => {
     const formData = new FormData()
     formData.append('pdf', file)
@@ -5786,6 +6051,1441 @@ onMounted(() => {
 })
 </script> 
 ================================= 
+pages\admin\auditoria\index.vue 
+================================= 
+ 
+<template>
+  <div>
+    <div class="mb-6">
+      <h1 class="text-2xl font-semibold text-gray-900">🔍 Gestión de Auditoría</h1>
+      <p class="text-gray-600 mt-1">Administra los documentos de la Unidad de Auditoría Interna</p>
+    </div>
+
+    <!-- Tarjetas de módulos -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- POA-UAI -->
+      <NuxtLink
+        to="/admin/auditoria/poa-uai"
+        class="bg-white rounded-lg shadow hover:shadow-lg transition-all border-2 border-gray-100 hover:border-purple-300 p-6 group"
+      >
+        <div class="flex items-start gap-4">
+          <div class="w-14 h-14 rounded-lg bg-purple-100 flex items-center justify-center text-2xl flex-shrink-0">
+            📄
+          </div>
+          <div class="flex-1">
+            <h3 class="text-lg font-semibold text-gray-900 group-hover:text-purple-700 transition-colors">
+              POA - UAI
+            </h3>
+            <p class="text-sm text-gray-600 mt-1">
+              Plan Operativo Anual Individual. Sube y gestiona los PDFs por año.
+            </p>
+            <div class="mt-3 text-xs text-gray-500">
+              <span class="inline-block bg-gray-100 px-2 py-1 rounded">Sin categorías</span>
+              <span class="inline-block bg-gray-100 px-2 py-1 rounded ml-2">Solo PDFs por año</span>
+            </div>
+          </div>
+          <div class="text-gray-400 group-hover:text-purple-500 transition-colors text-2xl">→</div>
+        </div>
+      </NuxtLink>
+
+      <!-- Auditorías Ejecutadas -->
+      <div class="bg-white rounded-lg shadow hover:shadow-lg transition-all border-2 border-gray-100 hover:border-blue-300 p-6 group">
+        <div class="flex items-start gap-4">
+          <div class="w-14 h-14 rounded-lg bg-blue-100 flex items-center justify-center text-2xl flex-shrink-0">
+            📋
+          </div>
+          <div class="flex-1">
+            <h3 class="text-lg font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
+              Auditorías Ejecutadas
+            </h3>
+            <p class="text-sm text-gray-600 mt-1">
+              Documentos organizados por categorías (Cumplimiento, Operativa, Confiabilidad)
+            </p>
+            <div class="mt-4 flex gap-3 flex-wrap">
+              <NuxtLink
+                to="/admin/auditoria/categorias/auditorias-ejecutadas"
+                class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 text-sm font-medium"
+              >
+                📁 Categorías
+              </NuxtLink>
+              <NuxtLink
+                to="/admin/auditoria/documentos/auditorias-ejecutadas"
+                class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+              >
+                📄 Documentos
+              </NuxtLink>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Informes de Actividades -->
+      <div class="bg-white rounded-lg shadow hover:shadow-lg transition-all border-2 border-gray-100 hover:border-green-300 p-6 group">
+        <div class="flex items-start gap-4">
+          <div class="w-14 h-14 rounded-lg bg-green-100 flex items-center justify-center text-2xl flex-shrink-0">
+            📊
+          </div>
+          <div class="flex-1">
+            <h3 class="text-lg font-semibold text-gray-900 group-hover:text-green-700 transition-colors">
+              Informes de Actividades
+            </h3>
+            <p class="text-sm text-gray-600 mt-1">
+              Documentos organizados por categorías (Anuales, Semestrales)
+            </p>
+            <div class="mt-4 flex gap-3 flex-wrap">
+              <NuxtLink
+                to="/admin/auditoria/categorias/informes-actividades"
+                class="inline-flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 text-sm font-medium"
+              >
+                📁 Categorías
+              </NuxtLink>
+              <NuxtLink
+                to="/admin/auditoria/documentos/informes-actividades"
+                class="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
+              >
+                📄 Documentos
+              </NuxtLink>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Otras Actividades -->
+      <div class="bg-white rounded-lg shadow hover:shadow-lg transition-all border-2 border-gray-100 hover:border-yellow-300 p-6 group">
+        <div class="flex items-start gap-4">
+          <div class="w-14 h-14 rounded-lg bg-yellow-100 flex items-center justify-center text-2xl flex-shrink-0">
+            📌
+          </div>
+          <div class="flex-1">
+            <h3 class="text-lg font-semibold text-gray-900 group-hover:text-yellow-700 transition-colors">
+              Otras Actividades
+            </h3>
+            <p class="text-sm text-gray-600 mt-1">
+              Documentos organizados por categorías (Relevamientos, Seguimientos)
+            </p>
+            <div class="mt-4 flex gap-3 flex-wrap">
+              <NuxtLink
+                to="/admin/auditoria/categorias/otras-actividades"
+                class="inline-flex items-center gap-1 px-3 py-1.5 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100 text-sm font-medium"
+              >
+                📁 Categorías
+              </NuxtLink>
+              <NuxtLink
+                to="/admin/auditoria/documentos/otras-actividades"
+                class="inline-flex items-center gap-1 px-3 py-1.5 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 text-sm font-medium"
+              >
+                📄 Documentos
+              </NuxtLink>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info -->
+    <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+      <p class="font-medium mb-1">💡 Cómo funciona:</p>
+      <ul class="list-disc list-inside space-y-1 text-xs">
+        <li><strong>POA-UAI</strong>: Cada año tiene un PDF. Solo puede haber un POA activo a la vez.</li>
+        <li><strong>Auditorías Ejecutadas</strong>: Tiene 3 categorías (Cumplimiento, Operativa, Confiabilidad). Cada categoría tiene documentos con PDFs.</li>
+        <li><strong>Informes de Actividades</strong>: Tiene 2 categorías (Anuales, Semestrales).</li>
+        <li><strong>Otras Actividades</strong>: Tiene 2 categorías (Relevamientos, Seguimientos).</li>
+        <li>Las <strong>categorías</strong> se pueden editar (nombre, icono, orden).</li>
+      </ul>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+definePageMeta({
+  layout: 'default',
+  middleware: 'auth',
+})
+</script> 
+================================= 
+pages\admin\auditoria\documentos\[modulo]\create.vue 
+================================= 
+ 
+<template>
+  <div>
+    <div class="flex items-center gap-4 mb-6">
+      <NuxtLink
+        :to="`/admin/auditoria/documentos/${modulo}`"
+        class="text-gray-400 hover:text-gray-600 text-2xl"
+      >
+        ←
+      </NuxtLink>
+      <h1 class="text-2xl font-semibold text-gray-900">Crear Nuevo Documento</h1>
+    </div>
+
+    <form @submit.prevent="saveDocumento" class="space-y-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Categoría <span class="text-red-500">*</span>
+        </label>
+        <select
+          v-model="form.categoria"
+          required
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+        >
+          <option value="">-- Selecciona una categoría --</option>
+          <option v-for="cat in categorias" :key="cat.key" :value="cat.key">
+            {{ cat.nombre }}
+          </option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Título <span class="text-red-500">*</span>
+        </label>
+        <input
+          v-model="form.titulo"
+          type="text"
+          required
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          placeholder="Ej: INF-UAI-VC-N° 001-2024"
+        />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+        <textarea
+          v-model="form.descripcion"
+          rows="3"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg resize-none"
+          placeholder="Descripción del documento (aparece en el frontend)"
+        ></textarea>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Gestión (año) <span class="text-red-500">*</span>
+        </label>
+        <input
+          v-model.number="form.gestion"
+          type="number"
+          required
+          min="2000"
+          max="2100"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          placeholder="2024"
+        />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+        <select v-model="form.estado" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+          <option value="Publicado">✅ Publicado</option>
+          <option value="En Revisión">⏳ En Revisión</option>
+          <option value="Borrador">📝 Borrador</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Orden</label>
+        <input
+          v-model.number="form.orden"
+          type="number"
+          min="0"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+        />
+        <p class="text-xs text-gray-500 mt-1">Menor número = aparece primero en su categoría</p>
+      </div>
+
+      <div>
+        <label class="flex items-center gap-3">
+          <input v-model="form.activo" type="checkbox" class="w-5 h-5" />
+          <span class="text-sm text-gray-700">Activo (visible en el frontend)</span>
+        </label>
+      </div>
+
+      <div class="border-t pt-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">📄 Archivo PDF</h3>
+
+        <div class="mb-4">
+          <div class="flex gap-3 items-center flex-wrap">
+            <label
+              class="cursor-pointer bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2"
+            >
+              <span>{{ form.url ? 'Cambiar PDF' : 'Subir PDF' }}</span>
+              <input
+                ref="pdfInput"
+                type="file"
+                accept="application/pdf"
+                class="hidden"
+                @change="handlePdfSelect"
+              />
+            </label>
+            <span v-if="uploadingPDF" class="text-sm text-gray-500 flex items-center gap-2">
+              <div class="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+              Subiendo...
+            </span>
+            <span v-if="uploadProgress" class="text-sm text-green-600">{{ uploadProgress }}</span>
+          </div>
+          <p class="text-xs text-gray-500 mt-2">Solo PDF. Máx 50MB</p>
+        </div>
+
+        <div v-if="form.url" class="p-4 bg-gray-100 rounded-lg flex items-center gap-3">
+          <span class="text-3xl">📄</span>
+          <div class="flex-1">
+            <p class="font-medium text-sm">PDF cargado</p>
+            <a :href="form.url" target="_blank" class="text-xs text-primary-600 hover:underline break-all">
+              {{ form.url }}
+            </a>
+          </div>
+          <button
+            type="button"
+            @click="form.url = null"
+            class="text-red-500 hover:text-red-700 text-xl flex-shrink-0"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-3 pt-4 border-t">
+        <NuxtLink
+          :to="`/admin/auditoria/documentos/${modulo}`"
+          class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+        >
+          Cancelar
+        </NuxtLink>
+        <button
+          type="submit"
+          :disabled="saving || !categorias.length"
+          class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center gap-2"
+        >
+          <span
+            v-if="saving"
+            class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+          ></span>
+          {{ saving ? 'Guardando...' : 'Crear Documento' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import {
+  useAuditoria,
+  type AuditoriaCategoria,
+  type EstadoAuditoria,
+  type ModuloAuditoria,
+} from '~/composables/useAuditoria'
+
+definePageMeta({
+  layout: 'default',
+  middleware: 'auth',
+})
+
+const route = useRoute()
+const router = useRouter()
+const modulo = route.params.modulo as ModuloAuditoria
+
+const { createDocumento, uploadPDF, getCategorias } = useAuditoria()
+
+const categorias = ref<AuditoriaCategoria[]>([])
+const saving = ref(false)
+const uploadingPDF = ref(false)
+const uploadProgress = ref('')
+const pdfInput = ref<HTMLInputElement | null>(null)
+
+const form = reactive({
+  categoria: '',
+  titulo: '',
+  descripcion: '',
+  gestion: new Date().getFullYear(),
+  estado: 'Publicado' as EstadoAuditoria,
+  activo: true,
+  orden: 0,
+  url: null as string | null,
+})
+
+const loadCategorias = async () => {
+  try {
+    categorias.value = await getCategorias(modulo, false)
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+const handlePdfSelect = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  if (file.type !== 'application/pdf') {
+    alert('Solo se permiten archivos PDF')
+    return
+  }
+
+  uploadingPDF.value = true
+  uploadProgress.value = 'Subiendo PDF...'
+
+  try {
+    const result = await uploadPDF(file, modulo)
+    form.url = result.url
+    uploadProgress.value = '¡PDF subido con éxito!'
+    setTimeout(() => (uploadProgress.value = ''), 3000)
+  } catch (err: any) {
+    alert(err.message || 'Error al subir el PDF')
+    uploadProgress.value = ''
+  } finally {
+    uploadingPDF.value = false
+    if (pdfInput.value) pdfInput.value.value = ''
+  }
+}
+
+const saveDocumento = async () => {
+  if (!form.categoria) {
+    alert('Selecciona una categoría')
+    return
+  }
+  if (!form.titulo.trim()) {
+    alert('El título es requerido')
+    return
+  }
+  if (!form.gestion) {
+    alert('La gestión es requerida')
+    return
+  }
+
+  saving.value = true
+  try {
+    await createDocumento(modulo, {
+      modulo,
+      categoria: form.categoria,
+      titulo: form.titulo,
+      descripcion: form.descripcion,
+      gestion: form.gestion,
+      estado: form.estado,
+      activo: form.activo,
+      orden: form.orden,
+      url: form.url,
+    })
+    router.push(`/admin/auditoria/documentos/${modulo}`)
+  } catch (err: any) {
+    alert(err.message || 'Error al crear el documento')
+  } finally {
+    saving.value = false
+  }
+}
+
+onMounted(loadCategorias)
+</script> 
+================================= 
+pages\admin\auditoria\documentos\[modulo]\edit\[id].vue 
+================================= 
+ 
+<template>
+  <div>
+    <div class="flex items-center gap-4 mb-6">
+      <NuxtLink
+        :to="`/admin/auditoria/documentos/${modulo}`"
+        class="text-gray-400 hover:text-gray-600 text-2xl"
+      >
+        ←
+      </NuxtLink>
+      <h1 class="text-2xl font-semibold text-gray-900">Editar Documento</h1>
+    </div>
+
+    <div v-if="loading" class="text-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+    </div>
+
+    <div v-else-if="error" class="text-center py-12 text-red-600">{{ error }}</div>
+
+    <form v-else @submit.prevent="saveDocumento" class="space-y-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+        <select
+          v-model="form.categoria"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+        >
+          <option v-for="cat in categorias" :key="cat.key" :value="cat.key">
+            {{ cat.nombre }}
+          </option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Título <span class="text-red-500">*</span>
+        </label>
+        <input
+          v-model="form.titulo"
+          type="text"
+          required
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+        />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+        <textarea
+          v-model="form.descripcion"
+          rows="3"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg resize-none"
+        ></textarea>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Gestión <span class="text-red-500">*</span>
+        </label>
+        <input
+          v-model.number="form.gestion"
+          type="number"
+          required
+          min="2000"
+          max="2100"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+        />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+        <select v-model="form.estado" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+          <option value="Publicado">✅ Publicado</option>
+          <option value="En Revisión">⏳ En Revisión</option>
+          <option value="Borrador">📝 Borrador</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Orden</label>
+        <input
+          v-model.number="form.orden"
+          type="number"
+          min="0"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+        />
+      </div>
+
+      <div>
+        <label class="flex items-center gap-3">
+          <input v-model="form.activo" type="checkbox" class="w-5 h-5" />
+          <span class="text-sm text-gray-700">Activo (visible en el frontend)</span>
+        </label>
+      </div>
+
+      <div class="border-t pt-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">📄 Archivo PDF</h3>
+
+        <div class="mb-4">
+          <div class="flex gap-3 items-center flex-wrap">
+            <label
+              class="cursor-pointer bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2"
+            >
+              <span>{{ form.url ? 'Cambiar PDF' : 'Subir PDF' }}</span>
+              <input
+                ref="pdfInput"
+                type="file"
+                accept="application/pdf"
+                class="hidden"
+                @change="handlePdfSelect"
+              />
+            </label>
+            <span v-if="uploadingPDF" class="text-sm text-gray-500 flex items-center gap-2">
+              <div class="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+              Subiendo...
+            </span>
+            <span v-if="uploadProgress" class="text-sm text-green-600">{{ uploadProgress }}</span>
+          </div>
+        </div>
+
+        <div v-if="form.url" class="p-4 bg-gray-100 rounded-lg flex items-center gap-3">
+          <span class="text-3xl">📄</span>
+          <div class="flex-1">
+            <p class="font-medium text-sm">PDF cargado</p>
+            <a :href="form.url" target="_blank" class="text-xs text-primary-600 hover:underline">
+              Ver PDF actual
+            </a>
+          </div>
+          <button
+            type="button"
+            @click="form.url = null"
+            class="text-red-500 hover:text-red-700 text-xl flex-shrink-0"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-3 pt-4 border-t">
+        <NuxtLink
+          :to="`/admin/auditoria/documentos/${modulo}`"
+          class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+        >
+          Cancelar
+        </NuxtLink>
+        <button
+          type="submit"
+          :disabled="saving"
+          class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center gap-2"
+        >
+          <span
+            v-if="saving"
+            class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+          ></span>
+          {{ saving ? 'Guardando...' : 'Guardar cambios' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import {
+  useAuditoria,
+  type AuditoriaCategoria,
+  type EstadoAuditoria,
+  type ModuloAuditoria,
+} from '~/composables/useAuditoria'
+
+definePageMeta({
+  layout: 'default',
+  middleware: 'auth',
+})
+
+const route = useRoute()
+const router = useRouter()
+const modulo = route.params.modulo as ModuloAuditoria
+
+const { getDocumentoById, updateDocumento, uploadPDF, getCategorias } = useAuditoria()
+
+const loading = ref(true)
+const saving = ref(false)
+const uploadingPDF = ref(false)
+const uploadProgress = ref('')
+const error = ref<string | null>(null)
+const categorias = ref<AuditoriaCategoria[]>([])
+const pdfInput = ref<HTMLInputElement | null>(null)
+
+const form = reactive({
+  categoria: '',
+  titulo: '',
+  descripcion: '',
+  gestion: new Date().getFullYear(),
+  estado: 'Publicado' as EstadoAuditoria,
+  activo: true,
+  orden: 0,
+  url: null as string | null,
+})
+
+const loadDocumento = async () => {
+  try {
+    const id = route.params.id as string
+    const doc = await getDocumentoById(modulo, id)
+    form.categoria = doc.categoria
+    form.titulo = doc.titulo
+    form.descripcion = doc.descripcion
+    form.gestion = doc.gestion
+    form.estado = doc.estado
+    form.activo = doc.activo
+    form.orden = doc.orden
+    form.url = doc.url
+  } catch (err: any) {
+    error.value = err.message
+  } finally {
+    loading.value = false
+  }
+}
+
+const loadCategorias = async () => {
+  try {
+    categorias.value = await getCategorias(modulo, true)
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+const handlePdfSelect = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  if (file.type !== 'application/pdf') {
+    alert('Solo se permiten archivos PDF')
+    return
+  }
+
+  uploadingPDF.value = true
+  uploadProgress.value = 'Subiendo PDF...'
+
+  try {
+    const result = await uploadPDF(file, modulo)
+    form.url = result.url
+    uploadProgress.value = '¡PDF subido con éxito!'
+    setTimeout(() => (uploadProgress.value = ''), 3000)
+  } catch (err: any) {
+    alert(err.message || 'Error al subir el PDF')
+    uploadProgress.value = ''
+  } finally {
+    uploadingPDF.value = false
+    if (pdfInput.value) pdfInput.value.value = ''
+  }
+}
+
+const saveDocumento = async () => {
+  saving.value = true
+  try {
+    const id = route.params.id as string
+    await updateDocumento(modulo, id, {
+      categoria: form.categoria,
+      titulo: form.titulo,
+      descripcion: form.descripcion,
+      gestion: form.gestion,
+      estado: form.estado,
+      activo: form.activo,
+      orden: form.orden,
+      url: form.url,
+    })
+    router.push(`/admin/auditoria/documentos/${modulo}`)
+  } catch (err: any) {
+    alert(err.message || 'Error al guardar')
+  } finally {
+    saving.value = false
+  }
+}
+
+onMounted(() => {
+  loadCategorias()
+  loadDocumento()
+})
+</script> 
+================================= 
+pages\admin\auditoria\poa-uai\create.vue 
+================================= 
+ 
+<template>
+  <div>
+    <div class="flex items-center gap-4 mb-6">
+      <NuxtLink to="/admin/auditoria/poa-uai" class="text-gray-400 hover:text-gray-600 text-2xl">
+        ←
+      </NuxtLink>
+      <h1 class="text-2xl font-semibold text-gray-900">Crear Nuevo POA</h1>
+    </div>
+
+    <form @submit.prevent="savePOA" class="space-y-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Año <span class="text-red-500">*</span>
+        </label>
+        <input
+          v-model.number="form.anio"
+          type="number"
+          required
+          min="2000"
+          max="2100"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          placeholder="2026"
+        />
+        <p class="text-xs text-gray-500 mt-1">Solo puede haber un POA por año</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Título <span class="text-red-500">*</span>
+        </label>
+        <input
+          v-model="form.titulo"
+          type="text"
+          required
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          placeholder="Plan Operativo Anual - UAI 2026"
+        />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+        <input
+          v-model="form.fecha"
+          type="text"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+          placeholder="Ej: 15/01/2026 (por defecto: hoy)"
+        />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+        <select v-model="form.estado" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+          <option value="Publicado">✅ Publicado</option>
+          <option value="En Revisión">⏳ En Revisión</option>
+          <option value="Borrador">📝 Borrador</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="flex items-center gap-3">
+          <input v-model="form.activo" type="checkbox" class="w-5 h-5" />
+          <span class="text-sm text-gray-700">Marcar como POA vigente (se muestra destacado en el frontend)</span>
+        </label>
+        <p class="text-xs text-gray-500 mt-1 ml-8">
+          Si marcas esto, cualquier otro POA activo se desactivará automáticamente
+        </p>
+      </div>
+
+      <!-- PDF -->
+      <div class="border-t pt-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">📄 PDF del POA</h3>
+
+        <div class="mb-4">
+          <div class="flex gap-3 items-center flex-wrap">
+            <label class="cursor-pointer bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+              <span>{{ form.pdfUrl ? 'Cambiar PDF' : 'Subir PDF' }}</span>
+              <input
+                ref="pdfInput"
+                type="file"
+                accept="application/pdf"
+                class="hidden"
+                @change="handlePdfSelect"
+              />
+            </label>
+            <span v-if="uploadingPDF" class="text-sm text-gray-500 flex items-center gap-2">
+              <div class="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+              Subiendo...
+            </span>
+            <span v-if="uploadProgress" class="text-sm text-green-600">{{ uploadProgress }}</span>
+          </div>
+          <p class="text-xs text-gray-500 mt-2">Solo se permiten archivos PDF. Máx 50MB</p>
+        </div>
+
+        <div v-if="form.pdfUrl" class="p-4 bg-gray-100 rounded-lg flex items-center gap-3">
+          <span class="text-3xl">📄</span>
+          <div class="flex-1">
+            <p class="font-medium text-sm">PDF cargado</p>
+            <a :href="form.pdfUrl" target="_blank" class="text-xs text-primary-600 hover:underline break-all">
+              {{ form.pdfUrl }}
+            </a>
+          </div>
+          <button
+            type="button"
+            @click="form.pdfUrl = null"
+            class="text-red-500 hover:text-red-700 text-xl flex-shrink-0"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-3 pt-4 border-t">
+        <NuxtLink
+          to="/admin/auditoria/poa-uai"
+          class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+        >
+          Cancelar
+        </NuxtLink>
+        <button
+          type="submit"
+          :disabled="saving"
+          class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center gap-2"
+        >
+          <span
+            v-if="saving"
+            class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+          ></span>
+          {{ saving ? 'Guardando...' : 'Crear POA' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuditoria, type EstadoAuditoria } from '~/composables/useAuditoria'
+
+definePageMeta({
+  layout: 'default',
+  middleware: 'auth',
+})
+
+const router = useRouter()
+const { createPOA, uploadPDF } = useAuditoria()
+
+const saving = ref(false)
+const uploadingPDF = ref(false)
+const uploadProgress = ref('')
+const pdfInput = ref<HTMLInputElement | null>(null)
+
+const form = reactive({
+  anio: new Date().getFullYear(),
+  titulo: '',
+  fecha: '',
+  estado: 'Publicado' as EstadoAuditoria,
+  activo: false,
+  pdfUrl: null as string | null,
+})
+
+const handlePdfSelect = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  if (file.type !== 'application/pdf') {
+    alert('Solo se permiten archivos PDF')
+    return
+  }
+
+  if (file.size > 50 * 1024 * 1024) {
+    alert('El PDF no puede superar los 50MB')
+    return
+  }
+
+  uploadingPDF.value = true
+  uploadProgress.value = 'Subiendo PDF...'
+
+  try {
+    const result = await uploadPDF(file, 'poa-uai')
+    form.pdfUrl = result.url
+    uploadProgress.value = '¡PDF subido con éxito!'
+    setTimeout(() => (uploadProgress.value = ''), 3000)
+  } catch (err: any) {
+    alert(err.message || 'Error al subir el PDF')
+    uploadProgress.value = ''
+  } finally {
+    uploadingPDF.value = false
+    if (pdfInput.value) pdfInput.value.value = ''
+  }
+}
+
+const savePOA = async () => {
+  if (!form.anio) {
+    alert('El año es requerido')
+    return
+  }
+  if (!form.titulo.trim()) {
+    alert('El título es requerido')
+    return
+  }
+
+  saving.value = true
+  try {
+    const payload = {
+      anio: form.anio,
+      titulo: form.titulo,
+      fecha: form.fecha || new Date().toLocaleDateString('es-ES'),
+      estado: form.estado,
+      activo: form.activo,
+      pdfUrl: form.pdfUrl || undefined,
+    }
+    await createPOA(payload)
+    router.push('/admin/auditoria/poa-uai')
+  } catch (err: any) {
+    alert(err.message || 'Error al crear el POA')
+  } finally {
+    saving.value = false
+  }
+}
+</script> 
+================================= 
+pages\admin\auditoria\poa-uai\index.vue 
+================================= 
+ 
+<template>
+  <div>
+    <div class="flex items-center gap-4 mb-6">
+      <NuxtLink to="/admin/auditoria" class="text-gray-400 hover:text-gray-600 text-2xl">
+        ←
+      </NuxtLink>
+      <div class="flex-1">
+        <h1 class="text-2xl font-semibold text-gray-900">📄 POA - UAI</h1>
+        <p class="text-sm text-gray-500 mt-1">Plan Operativo Anual Individual</p>
+      </div>
+      <NuxtLink
+        to="/admin/auditoria/poa-uai/create"
+        class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+      >
+        <span class="mr-2">+</span>
+        Nuevo POA
+      </NuxtLink>
+    </div>
+
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6 text-sm text-blue-800">
+      💡 <strong>Solo un POA puede estar activo a la vez.</strong> El activo se muestra destacado en el frontend.
+    </div>
+
+    <div v-if="loading" class="text-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+      <p class="mt-4 text-gray-600">Cargando POAs...</p>
+    </div>
+
+    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4">
+      <p class="text-red-800">{{ error }}</p>
+      <button @click="loadPOAs" class="mt-2 px-3 py-1 bg-red-600 text-white rounded text-sm">
+        Reintentar
+      </button>
+    </div>
+
+    <div v-else-if="poas.length === 0" class="bg-white rounded-lg shadow p-12 text-center">
+      <div class="text-4xl mb-3">📭</div>
+      <h3 class="text-lg font-medium text-gray-900 mb-2">No hay POAs registrados</h3>
+      <p class="text-gray-500 mb-4">Crea el primer POA para comenzar</p>
+      <NuxtLink
+        to="/admin/auditoria/poa-uai/create"
+        class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+      >
+        + Crear POA
+      </NuxtLink>
+    </div>
+
+    <div v-else class="bg-white rounded-lg shadow overflow-hidden">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Año</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Título</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Activo</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">PDF</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <tr
+            v-for="poa in poasOrdenados"
+            :key="poa._id"
+            class="hover:bg-gray-50"
+            :class="poa.activo ? 'bg-yellow-50' : ''"
+          >
+            <td class="px-6 py-4">
+              <span class="text-lg font-bold text-senado-primary">{{ poa.anio }}</span>
+            </td>
+            <td class="px-6 py-4 text-sm text-gray-900">{{ poa.titulo }}</td>
+            <td class="px-6 py-4 text-sm text-gray-500">{{ poa.fecha || '-' }}</td>
+            <td class="px-6 py-4">
+              <span :class="estadoClass(poa.estado)" class="px-2 py-1 rounded-full text-xs font-medium">
+                {{ poa.estado }}
+              </span>
+            </td>
+            <td class="px-6 py-4">
+              <span v-if="poa.activo" class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-bold">
+                ⭐ VIGENTE
+              </span>
+              <span v-else class="text-xs text-gray-400">No</span>
+            </td>
+            <td class="px-6 py-4 text-sm">
+              <a
+                v-if="poa.pdfUrl"
+                :href="poa.pdfUrl"
+                target="_blank"
+                class="text-red-600 hover:text-red-800 inline-flex items-center gap-1"
+              >
+                📄 Ver PDF
+              </a>
+              <span v-else class="text-gray-300 text-xs">Sin PDF</span>
+            </td>
+            <td class="px-6 py-4 text-right">
+              <div class="flex justify-end gap-2">
+                <button
+                  v-if="!poa.activo"
+                  @click="activarPOA(poa)"
+                  class="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 font-medium"
+                  title="Marcar como vigente"
+                >
+                  ⭐ Activar
+                </button>
+                <button
+                  v-else
+                  @click="desactivarPOA(poa)"
+                  class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 font-medium"
+                  title="Quitar vigencia"
+                >
+                  Desactivar
+                </button>
+                <NuxtLink
+                  :to="`/admin/auditoria/poa-uai/edit/${poa._id}`"
+                  class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-medium"
+                >
+                  ✏ Editar
+                </NuxtLink>
+                <button
+                  @click="confirmDelete(poa)"
+                  class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 font-medium"
+                >
+                  🗑
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <Modal v-model="showDeleteModal" title="Confirmar eliminación" size="lg">
+      <div class="p-4">
+        <p class="text-gray-700">
+          ¿Eliminar el POA <strong>{{ poaToDelete?.anio }} - {{ poaToDelete?.titulo }}</strong>?
+        </p>
+        <p class="text-red-600 text-sm mt-2">Esta acción no se puede deshacer.</p>
+        <div class="flex justify-end gap-3 mt-6">
+          <button @click="showDeleteModal = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50">
+            Cancelar
+          </button>
+          <button
+            @click="deletePOA"
+            :disabled="deleting"
+            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+          >
+            {{ deleting ? 'Eliminando...' : 'Eliminar' }}
+          </button>
+        </div>
+      </div>
+    </Modal>
+
+    <div
+      v-if="toast.show"
+      class="fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50"
+      :class="toast.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'"
+    >
+      {{ toast.message }}
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useAuditoria, type AuditoriaPOA } from '~/composables/useAuditoria'
+import Modal from '~/components/ui/Modal.vue'
+
+definePageMeta({
+  layout: 'default',
+  middleware: 'auth',
+})
+
+const { getPOAs, deletePOA: deletePOAApi, togglePOAActivo } = useAuditoria()
+
+const poas = ref<AuditoriaPOA[]>([])
+const loading = ref(false)
+const error = ref<string | null>(null)
+
+const showDeleteModal = ref(false)
+const poaToDelete = ref<AuditoriaPOA | null>(null)
+const deleting = ref(false)
+
+const toast = ref({ show: false, message: '', type: 'success' as 'success' | 'error' })
+
+const poasOrdenados = computed(() => [...poas.value].sort((a, b) => b.anio - a.anio))
+
+const mostrarToast = (message: string, type: 'success' | 'error' = 'success') => {
+  toast.value = { show: true, message, type }
+  setTimeout(() => (toast.value.show = false), 3000)
+}
+
+const estadoClass = (estado: string) => {
+  const clases: Record<string, string> = {
+    Publicado: 'bg-green-100 text-green-800',
+    'En Revisión': 'bg-yellow-100 text-yellow-800',
+    Borrador: 'bg-gray-100 text-gray-800',
+  }
+  return clases[estado] || 'bg-gray-100 text-gray-800'
+}
+
+const loadPOAs = async () => {
+  loading.value = true
+  error.value = null
+  try {
+    poas.value = await getPOAs()
+  } catch (err: any) {
+    error.value = err.message
+  } finally {
+    loading.value = false
+  }
+}
+
+const activarPOA = async (poa: AuditoriaPOA) => {
+  try {
+    await togglePOAActivo(poa._id, true)
+    await loadPOAs()
+    mostrarToast(`POA ${poa.anio} marcado como vigente`)
+  } catch (err: any) {
+    mostrarToast(err.message, 'error')
+  }
+}
+
+const desactivarPOA = async (poa: AuditoriaPOA) => {
+  if (
+    !confirm(
+      `¿Quitar la marca de vigente del POA ${poa.anio}?\n\nSi no hay otro POA activo, la página pública mostrará "Sin POA vigente".`
+    )
+  )
+    return
+  try {
+    await togglePOAActivo(poa._id, false)
+    await loadPOAs()
+    mostrarToast('POA desactivado')
+  } catch (err: any) {
+    mostrarToast(err.message, 'error')
+  }
+}
+
+const confirmDelete = (poa: AuditoriaPOA) => {
+  poaToDelete.value = poa
+  showDeleteModal.value = true
+}
+
+const deletePOA = async () => {
+  if (!poaToDelete.value) return
+  deleting.value = true
+  try {
+    await deletePOAApi(poaToDelete.value._id)
+    showDeleteModal.value = false
+    mostrarToast('POA eliminado')
+    await loadPOAs()
+  } catch (err: any) {
+    mostrarToast(err.message, 'error')
+  } finally {
+    deleting.value = false
+    poaToDelete.value = null
+  }
+}
+
+onMounted(loadPOAs)
+</script> 
+================================= 
+pages\admin\auditoria\poa-uai\edit\[id].vue 
+================================= 
+ 
+<template>
+  <div>
+    <div class="flex items-center gap-4 mb-6">
+      <NuxtLink to="/admin/auditoria/poa-uai" class="text-gray-400 hover:text-gray-600 text-2xl">
+        ←
+      </NuxtLink>
+      <h1 class="text-2xl font-semibold text-gray-900">Editar POA</h1>
+    </div>
+
+    <div v-if="loading" class="text-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+      <p class="mt-4 text-gray-600">Cargando POA...</p>
+    </div>
+
+    <div v-else-if="error" class="text-center py-12 text-red-600">{{ error }}</div>
+
+    <form v-else @submit.prevent="savePOA" class="space-y-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Año <span class="text-red-500">*</span>
+        </label>
+        <input
+          v-model.number="form.anio"
+          type="number"
+          required
+          min="2000"
+          max="2100"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+        />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Título <span class="text-red-500">*</span>
+        </label>
+        <input
+          v-model="form.titulo"
+          type="text"
+          required
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+        />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+        <input
+          v-model="form.fecha"
+          type="text"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+        />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+        <select v-model="form.estado" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+          <option value="Publicado">✅ Publicado</option>
+          <option value="En Revisión">⏳ En Revisión</option>
+          <option value="Borrador">📝 Borrador</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="flex items-center gap-3">
+          <input v-model="form.activo" type="checkbox" class="w-5 h-5" />
+          <span class="text-sm text-gray-700">Marcar como POA vigente</span>
+        </label>
+      </div>
+
+      <div class="border-t pt-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">📄 PDF del POA</h3>
+
+        <div class="mb-4">
+          <div class="flex gap-3 items-center flex-wrap">
+            <label
+              class="cursor-pointer bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2"
+            >
+              <span>{{ form.pdfUrl ? 'Cambiar PDF' : 'Subir PDF' }}</span>
+              <input
+                ref="pdfInput"
+                type="file"
+                accept="application/pdf"
+                class="hidden"
+                @change="handlePdfSelect"
+              />
+            </label>
+            <span v-if="uploadingPDF" class="text-sm text-gray-500 flex items-center gap-2">
+              <div class="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+              Subiendo...
+            </span>
+            <span v-if="uploadProgress" class="text-sm text-green-600">{{ uploadProgress }}</span>
+          </div>
+        </div>
+
+        <div v-if="form.pdfUrl" class="p-4 bg-gray-100 rounded-lg flex items-center gap-3">
+          <span class="text-3xl">📄</span>
+          <div class="flex-1">
+            <p class="font-medium text-sm">PDF cargado</p>
+            <a :href="form.pdfUrl" target="_blank" class="text-xs text-primary-600 hover:underline break-all">
+              Ver PDF actual
+            </a>
+          </div>
+          <button
+            type="button"
+            @click="form.pdfUrl = null"
+            class="text-red-500 hover:text-red-700 text-xl flex-shrink-0"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-3 pt-4 border-t">
+        <NuxtLink
+          to="/admin/auditoria/poa-uai"
+          class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+        >
+          Cancelar
+        </NuxtLink>
+        <button
+          type="submit"
+          :disabled="saving"
+          class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center gap-2"
+        >
+          <span
+            v-if="saving"
+            class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+          ></span>
+          {{ saving ? 'Guardando...' : 'Guardar cambios' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuditoria, type EstadoAuditoria } from '~/composables/useAuditoria'
+
+definePageMeta({
+  layout: 'default',
+  middleware: 'auth',
+})
+
+const route = useRoute()
+const router = useRouter()
+const { getPOAById, updatePOA, uploadPDF } = useAuditoria()
+
+const loading = ref(true)
+const saving = ref(false)
+const uploadingPDF = ref(false)
+const uploadProgress = ref('')
+const error = ref<string | null>(null)
+const pdfInput = ref<HTMLInputElement | null>(null)
+
+const form = reactive({
+  anio: new Date().getFullYear(),
+  titulo: '',
+  fecha: '',
+  estado: 'Publicado' as EstadoAuditoria,
+  activo: false,
+  pdfUrl: null as string | null,
+})
+
+const loadPOA = async () => {
+  try {
+    const id = route.params.id as string
+    const poa = await getPOAById(id)
+    form.anio = poa.anio
+    form.titulo = poa.titulo
+    form.fecha = poa.fecha
+    form.estado = poa.estado
+    form.activo = poa.activo
+    form.pdfUrl = poa.pdfUrl
+  } catch (err: any) {
+    error.value = err.message
+  } finally {
+    loading.value = false
+  }
+}
+
+const handlePdfSelect = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  if (file.type !== 'application/pdf') {
+    alert('Solo se permiten archivos PDF')
+    return
+  }
+
+  uploadingPDF.value = true
+  uploadProgress.value = 'Subiendo PDF...'
+
+  try {
+    const result = await uploadPDF(file, 'poa-uai')
+    form.pdfUrl = result.url
+    uploadProgress.value = '¡PDF subido con éxito!'
+    setTimeout(() => (uploadProgress.value = ''), 3000)
+  } catch (err: any) {
+    alert(err.message || 'Error al subir el PDF')
+    uploadProgress.value = ''
+  } finally {
+    uploadingPDF.value = false
+    if (pdfInput.value) pdfInput.value.value = ''
+  }
+}
+
+const savePOA = async () => {
+  saving.value = true
+  try {
+    const id = route.params.id as string
+    await updatePOA(id, {
+      anio: form.anio,
+      titulo: form.titulo,
+      fecha: form.fecha,
+      estado: form.estado,
+      activo: form.activo,
+      pdfUrl: form.pdfUrl || undefined,
+    })
+    router.push('/admin/auditoria/poa-uai')
+  } catch (err: any) {
+    alert(err.message || 'Error al guardar')
+  } finally {
+    saving.value = false
+  }
+}
+
+onMounted(loadPOA)
+</script> 
+================================= 
 pages\admin\avisos\create.vue 
 ================================= 
  
@@ -6716,7 +8416,10 @@ pages\admin\comunicados\create.vue
                 @change="handleFileSelect"
               />
             </label>
-            <span v-if="uploadingImage" class="text-sm text-gray-500">Subiendo...</span>
+            <span v-if="uploadingImage" class="text-sm text-gray-500 flex items-center gap-2">
+              <div class="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+              Subiendo...
+            </span>
           </div>
         </div>
         
@@ -6755,38 +8458,117 @@ pages\admin\comunicados\create.vue
         </div>
       </div>
 
-      <!-- Programación -->
+      <!-- 🔥 ESTADO Y PROGRAMACIÓN -->
       <div class="border-t pt-6">
         <h3 class="text-lg font-medium text-gray-900 mb-4">⏰ Programación</h3>
-        
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-          <p class="text-sm text-blue-800">
-            💡 El comunicado aparecerá como <strong>modal en la página principal</strong> durante el período configurado.
-            Al finalizar, pasará automáticamente a <strong>Avisos y Comunicados</strong>.
+
+        <!-- Selector de estado (SIN opción inactivo) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div 
+            @click="form.estado = 'programado'"
+            class="cursor-pointer border-2 rounded-lg p-4 transition-all"
+            :class="form.estado === 'programado' ? 'border-yellow-500 bg-yellow-50' : 'border-gray-200 hover:border-gray-300'"
+          >
+            <div class="flex items-start gap-3">
+              <div class="text-2xl">⏰</div>
+              <div class="flex-1">
+                <h4 class="font-semibold text-gray-900">Programado</h4>
+                <p class="text-xs text-gray-600 mt-1">
+                  Aparece y desaparece automáticamente según las fechas
+                </p>
+                <p class="text-xs text-yellow-700 mt-1 font-medium">
+                  ⚠️ Requiere fecha inicio + fin
+                </p>
+              </div>
+              <div v-if="form.estado === 'programado'" class="text-yellow-500 text-xl">✓</div>
+            </div>
+          </div>
+
+          <div 
+            @click="form.estado = 'activo'"
+            class="cursor-pointer border-2 rounded-lg p-4 transition-all"
+            :class="form.estado === 'activo' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'"
+          >
+            <div class="flex items-start gap-3">
+              <div class="text-2xl">🟢</div>
+              <div class="flex-1">
+                <h4 class="font-semibold text-gray-900">Activo</h4>
+                <p class="text-xs text-gray-600 mt-1">
+                  Aparece ahora mismo y se queda hasta inactivarlo
+                </p>
+                <p class="text-xs text-green-700 mt-1 font-medium">
+                  ✓ Fecha fin opcional
+                </p>
+              </div>
+              <div v-if="form.estado === 'activo'" class="text-green-500 text-xl">✓</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fechas -->
+        <div v-if="form.estado === 'programado'" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <p class="text-sm text-yellow-800 mb-3">
+            ⏰ El comunicado aparecerá como modal el <strong>{{ form.fechaActivacion ? formatearFechaLocal(form.fechaActivacion) : 'día de inicio' }}</strong> 
+            y desaparecerá el <strong>{{ form.fechaDesactivacion ? formatearFechaLocal(form.fechaDesactivacion) : 'día de fin' }}</strong>.
           </p>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Fecha de inicio <span class="text-red-500">*</span>
+              </label>
+              <input 
+                v-model="form.fechaActivacion" 
+                type="datetime-local" 
+                required
+                :min="minDate"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500" 
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Fecha de fin <span class="text-red-500">*</span>
+              </label>
+              <input 
+                v-model="form.fechaDesactivacion" 
+                type="datetime-local" 
+                required
+                :min="form.fechaActivacion || minDate"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500" 
+              />
+            </div>
+          </div>
+
+          <div v-if="form.fechaActivacion && form.fechaDesactivacion && form.fechaActivacion >= form.fechaDesactivacion" 
+               class="mt-3 p-2 bg-red-100 border border-red-300 rounded text-sm text-red-700">
+            ❌ La fecha de fin debe ser posterior a la fecha de inicio
+          </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Modo Activo -->
+        <div v-if="form.estado === 'activo'" class="bg-green-50 border border-green-200 rounded-lg p-4">
+          <p class="text-sm text-green-800 mb-3">
+            ✅ El comunicado aparecerá como modal <strong>inmediatamente</strong>. 
+            Se quedará visible hasta que lo inactives manualmente o llegue la fecha de fin (si la especificas).
+          </p>
+          
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Estado Inicial</label>
-            <select v-model="form.estado" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-              <option value="inactivo">⚪ Inactivo</option>
-              <option value="programado">⏰ Programar</option>
-              <option value="activo">🟢 Activar ahora</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Activación</label>
-            <input v-model="form.fechaActivacion" type="datetime-local" class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Desactivación</label>
-            <input v-model="form.fechaDesactivacion" type="datetime-local" class="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Fecha de fin (opcional)
+            </label>
+            <input 
+              v-model="form.fechaDesactivacion" 
+              type="datetime-local" 
+              :min="minDate"
+              class="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" 
+            />
+            <p class="text-xs text-gray-600 mt-1">
+              Si la dejas vacía, el comunicado se quedará activo hasta que lo inactives manualmente.
+            </p>
           </div>
         </div>
 
+        <!-- Prioridad -->
         <div class="mt-4">
           <label class="block text-sm font-medium text-gray-700 mb-1">Prioridad (0-10)</label>
           <input v-model.number="form.prioridad" type="number" min="0" max="10" class="w-32 px-3 py-2 border border-gray-300 rounded-lg" />
@@ -6794,12 +8576,24 @@ pages\admin\comunicados\create.vue
         </div>
       </div>
 
+      <!-- Validaciones -->
+      <div v-if="errores.length > 0" class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <p class="font-medium text-red-800 mb-2">Corrige los siguientes errores:</p>
+        <ul class="list-disc list-inside text-sm text-red-700 space-y-1">
+          <li v-for="(err, i) in errores" :key="i">{{ err }}</li>
+        </ul>
+      </div>
+
       <!-- Botones -->
       <div class="flex justify-end space-x-3 pt-4 border-t">
         <NuxtLink to="/admin/comunicados" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
           Cancelar
         </NuxtLink>
-        <button type="submit" :disabled="saving" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50">
+        <button 
+          type="submit" 
+          :disabled="saving || !formularioValido" 
+          class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           {{ saving ? 'Guardando...' : 'Guardar comunicado' }}
         </button>
       </div>
@@ -6808,7 +8602,7 @@ pages\admin\comunicados\create.vue
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useComunicados } from '~/composables/useComunicados'
 
@@ -6828,11 +8622,61 @@ const form = reactive({
   contenido: '',
   imagen: { url: '', alt: '', name: '' },
   pdf: { url: null, name: '', size: 0 },
-  estado: 'inactivo',
+  estado: 'programado',   // 🔥 Default: programado
   fechaActivacion: '',
   fechaDesactivacion: '',
   prioridad: 0
 })
+
+const minDate = computed(() => {
+  const now = new Date()
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
+  return now.toISOString().slice(0, 16)
+})
+
+// 🔥 Validación en tiempo real
+const errores = computed(() => {
+  const e = []
+
+  if (!form.titulo.trim()) e.push('El título es requerido')
+  if (!form.contenido.trim()) e.push('El contenido es requerido')
+  if (!form.imagen.url) e.push('La imagen es requerida')
+
+  if (form.estado === 'programado') {
+    if (!form.fechaActivacion) e.push('La fecha de inicio es requerida para programar')
+    if (!form.fechaDesactivacion) e.push('La fecha de fin es requerida para programar')
+    if (form.fechaActivacion && form.fechaDesactivacion) {
+      if (new Date(form.fechaActivacion) >= new Date(form.fechaDesactivacion)) {
+        e.push('La fecha de fin debe ser posterior a la fecha de inicio')
+      }
+      if (new Date(form.fechaActivacion) <= new Date()) {
+        e.push('Para programar, la fecha de inicio debe ser futura. Si quieres que aparezca ahora, usa "Activo".')
+      }
+    }
+  }
+
+  if (form.estado === 'activo' && form.fechaDesactivacion) {
+    if (new Date(form.fechaDesactivacion) <= new Date()) {
+      e.push('La fecha de fin debe ser futura')
+    }
+  }
+
+  return e
+})
+
+const formularioValido = computed(() => errores.value.length === 0)
+
+const formatearFechaLocal = (isoString) => {
+  if (!isoString) return ''
+  const date = new Date(isoString)
+  return date.toLocaleString('es-ES', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
 
 const formatearTamaño = (bytes) => {
   if (!bytes) return '0 B'
@@ -6896,18 +8740,9 @@ const handlePdfSelect = async (event) => {
 }
 
 const saveComunicado = async () => {
-  if (!form.titulo.trim()) return alert('El título es requerido')
-  if (!form.contenido.trim()) return alert('El contenido es requerido')
-  if (!form.imagen.url) return alert('La imagen es requerida')
-
-  if (form.fechaActivacion && form.fechaDesactivacion) {
-    if (new Date(form.fechaActivacion) > new Date(form.fechaDesactivacion)) {
-      return alert('La fecha de activación debe ser anterior a la de desactivación')
-    }
-  }
-
-  if (form.estado === 'programado' && !form.fechaActivacion) {
-    return alert('Para programar un comunicado, especifica una fecha de activación')
+  if (!formularioValido.value) {
+    alert('Corrige los errores antes de guardar')
+    return
   }
 
   saving.value = true
@@ -6918,9 +8753,17 @@ const saveComunicado = async () => {
       imagen: form.imagen,
       pdf: form.pdf.url ? form.pdf : null,
       estado: form.estado,
-      fechaActivacion: form.fechaActivacion ? new Date(form.fechaActivacion).toISOString() : null,
-      fechaDesactivacion: form.fechaDesactivacion ? new Date(form.fechaDesactivacion).toISOString() : null,
       prioridad: form.prioridad
+    }
+
+    if (form.estado === 'programado') {
+      payload.fechaActivacion = new Date(form.fechaActivacion).toISOString()
+      payload.fechaDesactivacion = new Date(form.fechaDesactivacion).toISOString()
+    } else if (form.estado === 'activo') {
+      // Sin fecha de activación (se activa ahora)
+      if (form.fechaDesactivacion) {
+        payload.fechaDesactivacion = new Date(form.fechaDesactivacion).toISOString()
+      }
     }
 
     await createComunicado(payload)
@@ -6950,6 +8793,21 @@ pages\admin\comunicados\index.vue
         <span class="mr-2">+</span>
         Nuevo Comunicado
       </NuxtLink>
+    </div>
+
+    <!-- Info de reglas -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-sm text-blue-800">
+      <div class="flex items-start gap-3">
+        <span class="text-xl">💡</span>
+        <div>
+          <p class="font-medium mb-1">Reglas de estados:</p>
+          <ul class="list-disc list-inside space-y-0.5 text-xs">
+            <li><strong>Programado</strong>: aparece y desaparece automáticamente (requiere fecha inicio + fin)</li>
+            <li><strong>Activo</strong>: aparece ahora mismo (fecha fin opcional)</li>
+            <li><strong>Inactivo</strong>: no se muestra (solo se llega aquí al expirar o al inactivar manualmente)</li>
+          </ul>
+        </div>
+      </div>
     </div>
 
     <!-- Estadísticas -->
@@ -7043,6 +8901,7 @@ pages\admin\comunicados\index.vue
             </td>
             <td class="px-6 py-4">
               <div class="text-sm font-medium text-gray-900">{{ item.titulo }}</div>
+              <div class="text-xs text-gray-500">{{ (item.contenido || '').substring(0, 60) }}...</div>
             </td>
             <td class="px-6 py-4">
               <span :class="estadoClass(item.estado)" class="px-2 py-1 rounded-full text-xs font-medium">
@@ -7057,7 +8916,7 @@ pages\admin\comunicados\index.vue
                 <span class="text-red-600">⏹</span> {{ formatearFecha(item.fechaDesactivacion) }}
               </div>
               <div v-if="!item.fechaActivacion && !item.fechaDesactivacion" class="italic text-gray-400">
-                Sin programación
+                Sin fecha fin (activo indefinido)
               </div>
             </td>
             <td class="px-6 py-4 text-xs text-gray-500">
@@ -7065,20 +8924,41 @@ pages\admin\comunicados\index.vue
             </td>
             <td class="px-6 py-4 text-right">
               <div class="flex justify-end gap-2">
+                <!-- 🔥 Botón Inactivar destacado cuando está activo -->
                 <button 
-                  @click="cambiarEstado(item)" 
-                  class="text-blue-600 hover:text-blue-900 text-lg"
-                  :title="item.estado === 'activo' ? 'Desactivar' : 'Activar'"
+                  v-if="item.estado === 'activo'"
+                  @click="inactivarComunicado(item)" 
+                  class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 font-medium"
+                  title="Inactivar ahora"
                 >
-                  {{ item.estado === 'activo' ? '⏸' : '▶' }}
+                  ⏹ Inactivar
                 </button>
+
+                <!-- Reactivar si está inactivo -->
+                <button 
+                  v-if="item.estado === 'inactivo'"
+                  @click="reactivarComunicado(item)" 
+                  class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 font-medium"
+                  title="Reactivar"
+                >
+                  ▶ Reactivar
+                </button>
+
+                <!-- Editar siempre -->
                 <NuxtLink 
                   :to="`/admin/comunicados/edit/${item._id}`" 
-                  class="text-primary-600 hover:text-primary-900 text-lg"
+                  class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 font-medium"
+                  title="Editar"
                 >
-                  ✏
+                  ✏ Editar
                 </NuxtLink>
-                <button @click="confirmDelete(item)" class="text-red-600 hover:text-red-900 text-lg">
+
+                <!-- Eliminar siempre -->
+                <button 
+                  @click="confirmDelete(item)" 
+                  class="px-2 py-1 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100 font-medium"
+                  title="Eliminar"
+                >
                   🗑
                 </button>
               </div>
@@ -7126,6 +9006,14 @@ pages\admin\comunicados\index.vue
         </div>
       </div>
     </Modal>
+
+    <!-- Toast -->
+    <div v-if="toast.show" 
+         class="fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 transition-all"
+         :class="toast.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'"
+    >
+      {{ toast.message }}
+    </div>
   </div>
 </template>
 
@@ -7160,7 +9048,18 @@ const filters = ref({
   search: ''
 })
 
+const toast = ref({
+  show: false,
+  message: '',
+  type: 'success'
+})
+
 let searchTimeout = null
+
+const mostrarToast = (message, type = 'success') => {
+  toast.value = { show: true, message, type }
+  setTimeout(() => { toast.value.show = false }, 3000)
+}
 
 const formatearFecha = (fecha) => {
   if (!fecha) return 'Sin fecha'
@@ -7237,6 +9136,34 @@ const nextPage = () => {
   }
 }
 
+// 🔥 Inactivar manualmente un comunicado activo
+const inactivarComunicado = async (item) => {
+  if (!confirm(`¿Inactivar el comunicado "${item.titulo}"?\n\nDejará de mostrarse en el modal principal inmediatamente.`)) return
+
+  try {
+    await changeEstado(item._id, 'inactivo')
+    mostrarToast('Comunicado inactivado', 'success')
+    await loadComunicados()
+    await loadStats()
+  } catch (err) {
+    mostrarToast(err.message || 'Error al inactivar', 'error')
+  }
+}
+
+// 🔥 Reactivar un comunicado inactivo (lo vuelve a activo, sin fecha fin)
+const reactivarComunicado = async (item) => {
+  if (!confirm(`¿Reactivar el comunicado "${item.titulo}"?\n\nSe mostrará en el modal principal inmediatamente.`)) return
+
+  try {
+    await changeEstado(item._id, 'activo')
+    mostrarToast('Comunicado reactivado', 'success')
+    await loadComunicados()
+    await loadStats()
+  } catch (err) {
+    mostrarToast(err.message || 'Error al reactivar', 'error')
+  }
+}
+
 const showDeleteModal = ref(false)
 const comunicadoToDelete = ref(null)
 const deleting = ref(false)
@@ -7253,38 +9180,26 @@ const deleteComunicado = async () => {
   try {
     await deleteComunicadoApi(comunicadoToDelete.value._id)
     showDeleteModal.value = false
+    mostrarToast('Comunicado eliminado', 'success')
     await loadComunicados()
     await loadStats()
   } catch (err) {
     console.error('Error deleting:', err)
-    alert('Error al eliminar el comunicado')
+    mostrarToast('Error al eliminar el comunicado', 'error')
   } finally {
     deleting.value = false
     comunicadoToDelete.value = null
   }
 }
 
-const cambiarEstado = async (item) => {
-  const nuevoEstado = item.estado === 'activo' ? 'inactivo' : 'activo'
-  if (!confirm(`¿Cambiar estado a "${nuevoEstado}"?`)) return
-  
-  try {
-    await changeEstado(item._id, nuevoEstado)
-    await loadComunicados()
-    await loadStats()
-  } catch (err) {
-    alert(err.message || 'Error al cambiar estado')
-  }
-}
-
 const forceUpdateEstados = async () => {
   try {
     const result = await forceUpdate()
-    alert(result.message || 'Estados actualizados')
+    mostrarToast(result.message || 'Estados actualizados', 'success')
     await loadComunicados()
     await loadStats()
   } catch (err) {
-    alert(err.message || 'Error al actualizar estados')
+    mostrarToast(err.message || 'Error al actualizar estados', 'error')
   }
 }
 
@@ -7321,7 +9236,10 @@ pages\admin\comunicados\edit\[id].vue
       <NuxtLink to="/admin/comunicados" class="text-gray-400 hover:text-gray-600 text-2xl">
         ←
       </NuxtLink>
-      <h1 class="text-2xl font-semibold text-gray-900">Editar Comunicado</h1>
+      <div>
+        <h1 class="text-2xl font-semibold text-gray-900">Editar Comunicado</h1>
+        <p class="text-sm text-gray-500">Modifica el contenido y la programación</p>
+      </div>
     </div>
 
     <div v-if="loading" class="text-center py-12">
@@ -7334,33 +9252,73 @@ pages\admin\comunicados\edit\[id].vue
     </div>
 
     <form v-else @submit.prevent="saveComunicado" class="space-y-6">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Título <span class="text-red-500">*</span></label>
-        <input v-model="form.titulo" type="text" required class="w-full px-4 py-2 border rounded-lg" />
+      <!-- Info del estado actual -->
+      <div :class="estadoInfoClass" class="border rounded-lg p-4">
+        <p class="text-sm">
+          <strong>Estado actual:</strong> {{ estadoText(form.estado) }}
+          <span v-if="form.estado === 'programado' && form.fechaActivacion && form.fechaDesactivacion">
+            — Se mostrará desde {{ formatearFechaLocal(form.fechaActivacion) }} hasta {{ formatearFechaLocal(form.fechaDesactivacion) }}
+          </span>
+          <span v-else-if="form.estado === 'activo' && !form.fechaDesactivacion">
+            — Visible ahora, sin fecha de fin
+          </span>
+          <span v-else-if="form.estado === 'activo' && form.fechaDesactivacion">
+            — Visible hasta {{ formatearFechaLocal(form.fechaDesactivacion) }}
+          </span>
+        </p>
       </div>
 
+      <!-- Título -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Contenido <span class="text-red-500">*</span></label>
-        <textarea v-model="form.contenido" rows="5" required class="w-full px-4 py-2 border rounded-lg resize-none"></textarea>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Título <span class="text-red-500">*</span>
+        </label>
+        <input
+          v-model="form.titulo"
+          type="text"
+          required
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+        />
       </div>
 
+      <!-- Contenido -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Contenido <span class="text-red-500">*</span>
+        </label>
+        <textarea
+          v-model="form.contenido"
+          rows="5"
+          required
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-primary-500"
+        ></textarea>
+      </div>
+
+      <!-- Imagen -->
       <div class="border-t pt-6">
         <h3 class="text-lg font-medium text-gray-900 mb-4">📷 Imagen</h3>
-        <label class="cursor-pointer bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg inline-flex mb-4">
-          Cambiar imagen
-          <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFileSelect" />
-        </label>
+        <div class="mb-4">
+          <label class="cursor-pointer bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg inline-flex transition">
+            Cambiar imagen
+            <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFileSelect" />
+          </label>
+          <span v-if="uploadingImage" class="ml-3 text-sm text-gray-500">Subiendo...</span>
+        </div>
         <div v-if="form.imagen.url" class="p-4 bg-gray-100 rounded-lg">
           <img :src="form.imagen.url" class="w-full max-w-md h-64 object-cover mx-auto rounded-lg" />
         </div>
       </div>
 
+      <!-- PDF -->
       <div class="border-t pt-6">
         <h3 class="text-lg font-medium text-gray-900 mb-4">📄 PDF</h3>
-        <label class="cursor-pointer bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg inline-flex mb-4">
-          Subir PDF
-          <input ref="pdfInput" type="file" accept="application/pdf" class="hidden" @change="handlePdfSelect" />
-        </label>
+        <div class="mb-4">
+          <label class="cursor-pointer bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg inline-flex transition">
+            {{ form.pdf.url ? 'Cambiar PDF' : 'Subir PDF' }}
+            <input ref="pdfInput" type="file" accept="application/pdf" class="hidden" @change="handlePdfSelect" />
+          </label>
+          <span v-if="uploadingPDF" class="ml-3 text-sm text-gray-500">Subiendo...</span>
+        </div>
         <div v-if="form.pdf.url" class="p-4 bg-gray-100 rounded-lg flex items-center gap-3">
           <span class="text-3xl">📄</span>
           <div>
@@ -7370,44 +9328,171 @@ pages\admin\comunicados\edit\[id].vue
         </div>
       </div>
 
+      <!-- 🔥 ESTADO Y PROGRAMACIÓN -->
       <div class="border-t pt-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">⏰ Programación</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-            <select v-model="form.estado" class="w-full px-4 py-2 border rounded-lg">
-              <option value="inactivo">⚪ Inactivo</option>
-              <option value="programado">⏰ Programado</option>
-              <option value="activo">🟢 Activo</option>
-            </select>
+        <h3 class="text-lg font-medium text-gray-900 mb-4">⏰ Estado y Programación</h3>
+
+        <!-- Selector de estado (3 opciones en edición) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+          <div 
+            @click="form.estado = 'programado'"
+            class="cursor-pointer border-2 rounded-lg p-4 transition-all"
+            :class="form.estado === 'programado' ? 'border-yellow-500 bg-yellow-50' : 'border-gray-200 hover:border-gray-300'"
+          >
+            <div class="flex items-start gap-3">
+              <div class="text-2xl">⏰</div>
+              <div class="flex-1">
+                <h4 class="font-semibold text-gray-900 text-sm">Programado</h4>
+                <p class="text-xs text-gray-600 mt-1">Aparece y desaparece solo</p>
+              </div>
+              <div v-if="form.estado === 'programado'" class="text-yellow-500 text-xl">✓</div>
+            </div>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Activación</label>
-            <input v-model="form.fechaActivacion" type="datetime-local" class="w-full px-3 py-2 border rounded-lg" />
+
+          <div 
+            @click="form.estado = 'activo'"
+            class="cursor-pointer border-2 rounded-lg p-4 transition-all"
+            :class="form.estado === 'activo' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'"
+          >
+            <div class="flex items-start gap-3">
+              <div class="text-2xl">🟢</div>
+              <div class="flex-1">
+                <h4 class="font-semibold text-gray-900 text-sm">Activo</h4>
+                <p class="text-xs text-gray-600 mt-1">Visible ahora</p>
+              </div>
+              <div v-if="form.estado === 'activo'" class="text-green-500 text-xl">✓</div>
+            </div>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Desactivación</label>
-            <input v-model="form.fechaDesactivacion" type="datetime-local" class="w-full px-3 py-2 border rounded-lg" />
+
+          <div 
+            @click="form.estado = 'inactivo'"
+            class="cursor-pointer border-2 rounded-lg p-4 transition-all"
+            :class="form.estado === 'inactivo' ? 'border-gray-500 bg-gray-100' : 'border-gray-200 hover:border-gray-300'"
+          >
+            <div class="flex items-start gap-3">
+              <div class="text-2xl">⚪</div>
+              <div class="flex-1">
+                <h4 class="font-semibold text-gray-900 text-sm">Inactivo</h4>
+                <p class="text-xs text-gray-600 mt-1">No se muestra</p>
+              </div>
+              <div v-if="form.estado === 'inactivo'" class="text-gray-500 text-xl">✓</div>
+            </div>
           </div>
         </div>
+
+        <!-- Info contextual según estado -->
+        <div v-if="form.estado === 'programado'" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <p class="text-sm text-yellow-800 mb-3">
+            ⏰ El comunicado se mostrará automáticamente el <strong>{{ form.fechaActivacion ? formatearFechaLocal(form.fechaActivacion) : 'día de inicio' }}</strong>
+            y desaparecerá el <strong>{{ form.fechaDesactivacion ? formatearFechaLocal(form.fechaDesactivacion) : 'día de fin' }}</strong>.
+          </p>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Fecha de inicio <span class="text-red-500">*</span>
+              </label>
+              <input 
+                v-model="form.fechaActivacion" 
+                type="datetime-local" 
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500" 
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Fecha de fin <span class="text-red-500">*</span>
+              </label>
+              <input 
+                v-model="form.fechaDesactivacion" 
+                type="datetime-local" 
+                required
+                :min="form.fechaActivacion"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500" 
+              />
+            </div>
+          </div>
+
+          <div v-if="form.fechaActivacion && form.fechaDesactivacion && form.fechaActivacion >= form.fechaDesactivacion" 
+               class="mt-3 p-2 bg-red-100 border border-red-300 rounded text-sm text-red-700">
+            ❌ La fecha de fin debe ser posterior a la fecha de inicio
+          </div>
+        </div>
+
+        <div v-if="form.estado === 'activo'" class="bg-green-50 border border-green-200 rounded-lg p-4">
+          <p class="text-sm text-green-800 mb-3">
+            ✅ El comunicado está/se mostrará <strong>inmediatamente</strong> en el modal principal.
+          </p>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Fecha de fin (opcional)
+            </label>
+            <input 
+              v-model="form.fechaDesactivacion" 
+              type="datetime-local" 
+              class="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" 
+            />
+            <p class="text-xs text-gray-600 mt-1">
+              Si la dejas vacía, el comunicado se quedará activo hasta que lo inactives manualmente.
+            </p>
+          </div>
+        </div>
+
+        <div v-if="form.estado === 'inactivo'" class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <p class="text-sm text-gray-700">
+            ⚪ El comunicado NO se mostrará en el modal principal.
+            Si lo inactivas aquí, desaparecerá inmediatamente de la vista pública.
+          </p>
+        </div>
+
+        <!-- Prioridad -->
         <div class="mt-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Prioridad</label>
-          <input v-model.number="form.prioridad" type="number" min="0" max="10" class="w-32 px-3 py-2 border rounded-lg" />
+          <label class="block text-sm font-medium text-gray-700 mb-1">Prioridad (0-10)</label>
+          <input v-model.number="form.prioridad" type="number" min="0" max="10" class="w-32 px-3 py-2 border border-gray-300 rounded-lg" />
         </div>
       </div>
 
-      <div class="flex justify-end space-x-3 pt-4 border-t">
-        <NuxtLink to="/admin/comunicados" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancelar</NuxtLink>
-        <button type="submit" :disabled="saving" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50">
-          {{ saving ? 'Guardando...' : 'Guardar cambios' }}
-        </button>
+      <!-- Errores de validación -->
+      <div v-if="errores.length > 0" class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <p class="font-medium text-red-800 mb-2">Corrige los siguientes errores:</p>
+        <ul class="list-disc list-inside text-sm text-red-700 space-y-1">
+          <li v-for="(err, i) in errores" :key="i">{{ err }}</li>
+        </ul>
+      </div>
+
+      <!-- Botones -->
+      <div class="flex justify-between items-center pt-4 border-t">
+        <div>
+          <!-- Botón rápido de inactivar si está activo -->
+          <button
+            v-if="form.estado === 'activo'"
+            type="button"
+            @click="form.estado = 'inactivo'"
+            class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition font-medium"
+          >
+            ⏹️ Inactivar ahora
+          </button>
+        </div>
+        <div class="flex gap-3">
+          <NuxtLink to="/admin/comunicados" class="px-4 py-2 border rounded-lg hover:bg-gray-50">
+            Cancelar
+          </NuxtLink>
+          <button 
+            type="submit" 
+            :disabled="saving || !formularioValido" 
+            class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {{ saving ? 'Guardando...' : 'Guardar cambios' }}
+          </button>
+        </div>
       </div>
     </form>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useComunicados } from '~/composables/useComunicados'
 
@@ -7419,6 +9504,8 @@ const { getComunicadoById, updateComunicado, uploadImage: uploadImageApi, upload
 
 const loading = ref(true)
 const saving = ref(false)
+const uploadingImage = ref(false)
+const uploadingPDF = ref(false)
 const error = ref(null)
 const fileInput = ref(null)
 const pdfInput = ref(null)
@@ -7428,12 +9515,69 @@ const form = reactive({
   contenido: '',
   imagen: { url: '', alt: '', name: '' },
   pdf: { url: null, name: '', size: 0 },
-  estado: 'inactivo',
+  estado: 'programado',
   fechaActivacion: '',
   fechaDesactivacion: '',
   prioridad: 0
 })
 
+const errores = computed(() => {
+  const e = []
+
+  if (!form.titulo.trim()) e.push('El título es requerido')
+  if (!form.contenido.trim()) e.push('El contenido es requerido')
+  if (!form.imagen.url) e.push('La imagen es requerida')
+
+  if (form.estado === 'programado') {
+    if (!form.fechaActivacion) e.push('La fecha de inicio es requerida')
+    if (!form.fechaDesactivacion) e.push('La fecha de fin es requerida')
+    if (form.fechaActivacion && form.fechaDesactivacion) {
+      if (new Date(form.fechaActivacion) >= new Date(form.fechaDesactivacion)) {
+        e.push('La fecha de fin debe ser posterior a la fecha de inicio')
+      }
+    }
+  }
+
+  if (form.estado === 'activo' && form.fechaDesactivacion) {
+    // Solo validar que sea futura si tiene valor
+    if (new Date(form.fechaDesactivacion) <= new Date()) {
+      e.push('La fecha de fin debe ser futura')
+    }
+  }
+
+  return e
+})
+
+const formularioValido = computed(() => errores.value.length === 0)
+
+const estadoInfoClass = computed(() => {
+  if (form.estado === 'activo') return 'bg-green-50 border-green-200 text-green-800'
+  if (form.estado === 'programado') return 'bg-yellow-50 border-yellow-200 text-yellow-800'
+  return 'bg-gray-50 border-gray-200 text-gray-700'
+})
+
+const estadoText = (estado) => {
+  const texts = {
+    activo: '🟢 Activo',
+    programado: '⏰ Programado',
+    inactivo: '⚪ Inactivo'
+  }
+  return texts[estado] || estado
+}
+
+const formatearFechaLocal = (isoString) => {
+  if (!isoString) return ''
+  const date = new Date(isoString)
+  return date.toLocaleString('es-ES', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+// Convertir ISO a formato datetime-local (con timezone local)
 const toLocalDatetime = (isoString) => {
   if (!isoString) return ''
   const date = new Date(isoString)
@@ -7451,7 +9595,7 @@ const loadComunicado = async () => {
     form.contenido = data.contenido
     form.imagen = data.imagen || { url: '', alt: '', name: '' }
     form.pdf = data.pdf || { url: null, name: '', size: 0 }
-    form.estado = data.estado
+    form.estado = data.estado || 'programado'
     form.fechaActivacion = toLocalDatetime(data.fechaActivacion)
     form.fechaDesactivacion = toLocalDatetime(data.fechaDesactivacion)
     form.prioridad = data.prioridad || 0
@@ -7465,12 +9609,14 @@ const loadComunicado = async () => {
 const handleFileSelect = async (event) => {
   const file = event.target.files?.[0]
   if (!file) return
+  uploadingImage.value = true
   try {
     const result = await uploadImageApi(file, form.titulo)
     form.imagen = { url: result.url, alt: form.titulo, name: result.filename }
   } catch (err) {
     alert(err.message)
   } finally {
+    uploadingImage.value = false
     if (fileInput.value) fileInput.value.value = ''
   }
 }
@@ -7478,19 +9624,22 @@ const handleFileSelect = async (event) => {
 const handlePdfSelect = async (event) => {
   const file = event.target.files?.[0]
   if (!file) return
+  uploadingPDF.value = true
   try {
     const result = await uploadPDFApi(file)
     form.pdf = { url: result.url, name: result.originalName || result.filename, size: result.size || file.size }
   } catch (err) {
     alert(err.message)
   } finally {
+    uploadingPDF.value = false
     if (pdfInput.value) pdfInput.value.value = ''
   }
 }
 
 const saveComunicado = async () => {
-  if (!form.titulo.trim() || !form.contenido.trim() || !form.imagen.url) {
-    return alert('Complete todos los campos requeridos')
+  if (!formularioValido.value) {
+    alert('Corrige los errores antes de guardar')
+    return
   }
 
   saving.value = true
@@ -7502,9 +9651,9 @@ const saveComunicado = async () => {
       imagen: form.imagen,
       pdf: form.pdf.url ? form.pdf : null,
       estado: form.estado,
+      prioridad: form.prioridad,
       fechaActivacion: form.fechaActivacion ? new Date(form.fechaActivacion).toISOString() : null,
-      fechaDesactivacion: form.fechaDesactivacion ? new Date(form.fechaDesactivacion).toISOString() : null,
-      prioridad: form.prioridad
+      fechaDesactivacion: form.fechaDesactivacion ? new Date(form.fechaDesactivacion).toISOString() : null
     }
 
     await updateComunicado(id, payload)
@@ -12651,4 +14800,4 @@ declare module '~/stores/auth' {
     avatarInitials: string
   }
 } 
-Total archivos: 128 
+Total archivos: 135 

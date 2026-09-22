@@ -1,4 +1,4 @@
-<!-- layouts/default.vue - Agregar enlaces en la navegación -->
+<!-- layouts/default.vue -->
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Header -->
@@ -54,7 +54,6 @@
               Sesiones
             </NuxtLink>
 
-            <!-- 🔥 NUEVOS ENLACES -->
             <NuxtLink 
               to="/admin/comunicados" 
               class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
@@ -69,6 +68,15 @@
               :class="{ 'text-primary-600 border-b-2 border-primary-600': isActiveRoute('/admin/avisos') }"
             >
               📌 Avisos
+            </NuxtLink>
+
+            <!-- 🔥 NUEVO: ENLACE A AUDITORÍA -->
+            <NuxtLink 
+              to="/admin/auditoria" 
+              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
+              :class="{ 'text-primary-600 border-b-2 border-primary-600': isActiveRoute('/admin/auditoria') }"
+            >
+              🔍 Auditoría
             </NuxtLink>
           </nav>
 
@@ -201,6 +209,7 @@ const pageTitle = computed(() => {
   if (path.includes('/admin/sesiones')) return 'Gestión de Sesiones'
   if (path.includes('/admin/comunicados')) return '📢 Gestión de Comunicados'
   if (path.includes('/admin/avisos')) return '📌 Gestión de Avisos'
+  if (path.includes('/admin/auditoria')) return '🔍 Gestión de Auditoría'
   if (path.includes('/content')) return 'Gestión de Contenido'
   if (path.includes('/legislators')) return 'Legisladores'
   if (path.includes('/users')) return 'Usuarios'
