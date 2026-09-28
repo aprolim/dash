@@ -1,32 +1,32 @@
 <template>
   <div>
     <div class="flex items-center gap-4 mb-6">
-      <NuxtLink to="/admin/auditoria/poa-uai" class="text-gray-400 hover:text-gray-600 text-2xl">
+      <NuxtLink
+        to="/admin/auditoria"
+        class="text-gray-400 hover:text-gray-600 text-2xl"
+      >
         ←
       </NuxtLink>
-      <h1 class="text-2xl font-semibold text-gray-900">Editar POA</h1>
+      <h1 class="text-2xl font-semibold text-gray-900">Editar Documento</h1>
     </div>
 
     <div v-if="loading" class="text-center py-12">
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-      <p class="mt-4 text-gray-600">Cargando POA...</p>
     </div>
 
     <div v-else-if="error" class="text-center py-12 text-red-600">{{ error }}</div>
 
-    <form v-else @submit.prevent="savePOA" class="space-y-6">
+    <form v-else @submit.prevent="saveDocumento" class="space-y-6">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">
-          Año <span class="text-red-500">*</span>
-        </label>
-        <input
-          v-model.number="form.anio"
-          type="number"
-          required
-          min="2000"
-          max="2100"
+        <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+        <select
+          v-model="form.categoria"
           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-        />
+        >
+          <option v-for="cat in categorias" :key="cat.key" :value="cat.key">
+            {{ cat.nombre }}
+          </option>
+        </select>
       </div>
 
       <div>
@@ -37,15 +37,29 @@
           v-model="form.titulo"
           type="text"
           required
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg"
         />
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+        <textarea
+          v-model="form.descripcion"
+          rows="3"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg resize-none"
+        ></textarea>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Gestión <span class="text-red-500">*</span>
+        </label>
         <input
-          v-model="form.fecha"
-          type="text"
+          v-model.number="form.gestion"
+          type="number"
+          required
+          min="2000"
+          max="2100"
           class="w-full px-4 py-2 border border-gray-300 rounded-lg"
         />
       </div>
@@ -60,21 +74,31 @@
       </div>
 
       <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Orden</label>
+        <input
+          v-model.number="form.orden"
+          type="number"
+          min="0"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+        />
+      </div>
+
+      <div>
         <label class="flex items-center gap-3">
           <input v-model="form.activo" type="checkbox" class="w-5 h-5" />
-          <span class="text-sm text-gray-700">Marcar como POA vigente</span>
+          <span class="text-sm text-gray-700">Activo (visible en el frontend)</span>
         </label>
       </div>
 
       <div class="border-t pt-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">📄 PDF del POA</h3>
+        <h3 class="text-lg font-medium text-gray-900 mb-4">📄 Archivo PDF</h3>
 
         <div class="mb-4">
           <div class="flex gap-3 items-center flex-wrap">
             <label
               class="cursor-pointer bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2"
             >
-              <span>{{ form.pdfUrl ? 'Cambiar PDF' : 'Subir PDF' }}</span>
+              <span>{{ form.url ? 'Cambiar PDF' : 'Subir PDF' }}</span>
               <input
                 ref="pdfInput"
                 type="file"
@@ -91,17 +115,17 @@
           </div>
         </div>
 
-        <div v-if="form.pdfUrl" class="p-4 bg-gray-100 rounded-lg flex items-center gap-3">
+        <div v-if="form.url" class="p-4 bg-gray-100 rounded-lg flex items-center gap-3">
           <span class="text-3xl">📄</span>
           <div class="flex-1">
             <p class="font-medium text-sm">PDF cargado</p>
-            <a :href="form.pdfUrl" target="_blank" class="text-xs text-primary-600 hover:underline break-all">
+            <a :href="form.url" target="_blank" class="text-xs text-primary-600 hover:underline">
               Ver PDF actual
             </a>
           </div>
           <button
             type="button"
-            @click="form.pdfUrl = null"
+            @click="form.url = null"
             class="text-red-500 hover:text-red-700 text-xl flex-shrink-0"
           >
             ✕
@@ -111,7 +135,7 @@
 
       <div class="flex justify-end space-x-3 pt-4 border-t">
         <NuxtLink
-          to="/admin/auditoria/poa-uai"
+          to="/admin/auditoria"
           class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
         >
           Cancelar
@@ -135,47 +159,67 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useAuditoria, type EstadoAuditoria } from '~/composables/useAuditoria'
+import {
+  useAuditoria,
+  type AuditoriaCategoria,
+  type EstadoAuditoria,
+} from '~/composables/useAuditoria'
 
 definePageMeta({
   layout: 'default',
   middleware: 'auth',
 })
 
+// 🔥 Módulo fijo
+const MODULO = 'auditorias-ejecutadas' as const
+
 const route = useRoute()
 const router = useRouter()
-const { getPOAById, updatePOA, uploadPDF } = useAuditoria()
+const { getDocumentoById, updateDocumento, uploadPDF, getCategorias } = useAuditoria()
 
 const loading = ref(true)
 const saving = ref(false)
 const uploadingPDF = ref(false)
 const uploadProgress = ref('')
 const error = ref<string | null>(null)
+const categorias = ref<AuditoriaCategoria[]>([])
 const pdfInput = ref<HTMLInputElement | null>(null)
 
 const form = reactive({
-  anio: new Date().getFullYear(),
+  categoria: '',
   titulo: '',
-  fecha: '',
+  descripcion: '',
+  gestion: new Date().getFullYear(),
   estado: 'Publicado' as EstadoAuditoria,
-  activo: false,
-  pdfUrl: null as string | null,
+  activo: true,
+  orden: 0,
+  url: null as string | null,
 })
 
-const loadPOA = async () => {
+const loadDocumento = async () => {
   try {
     const id = route.params.id as string
-    const poa = await getPOAById(id)
-    form.anio = poa.anio
-    form.titulo = poa.titulo
-    form.fecha = poa.fecha
-    form.estado = poa.estado
-    form.activo = poa.activo
-    form.pdfUrl = poa.pdfUrl
+    const doc = await getDocumentoById(MODULO, id)
+    form.categoria = doc.categoria
+    form.titulo = doc.titulo
+    form.descripcion = doc.descripcion
+    form.gestion = doc.gestion
+    form.estado = doc.estado
+    form.activo = doc.activo
+    form.orden = doc.orden
+    form.url = doc.url
   } catch (err: any) {
     error.value = err.message
   } finally {
     loading.value = false
+  }
+}
+
+const loadCategorias = async () => {
+  try {
+    categorias.value = await getCategorias(MODULO, true)
+  } catch (err) {
+    console.error(err)
   }
 }
 
@@ -193,8 +237,8 @@ const handlePdfSelect = async (event: Event) => {
   uploadProgress.value = 'Subiendo PDF...'
 
   try {
-    const result = await uploadPDF(file, 'poa-uai')
-    form.pdfUrl = result.url
+    const result = await uploadPDF(file, MODULO)
+    form.url = result.url
     uploadProgress.value = '¡PDF subido con éxito!'
     setTimeout(() => (uploadProgress.value = ''), 3000)
   } catch (err: any) {
@@ -206,19 +250,21 @@ const handlePdfSelect = async (event: Event) => {
   }
 }
 
-const savePOA = async () => {
+const saveDocumento = async () => {
   saving.value = true
   try {
     const id = route.params.id as string
-    await updatePOA(id, {
-      anio: form.anio,
+    await updateDocumento(MODULO, id, {
+      categoria: form.categoria,
       titulo: form.titulo,
-      fecha: form.fecha,
+      descripcion: form.descripcion,
+      gestion: form.gestion,
       estado: form.estado,
       activo: form.activo,
-      pdfUrl: form.pdfUrl || undefined,
+      orden: form.orden,
+      url: form.url,
     })
-    router.push('/admin/auditoria/poa-uai')
+    router.push('/admin/auditoria')
   } catch (err: any) {
     alert(err.message || 'Error al guardar')
   } finally {
@@ -226,5 +272,8 @@ const savePOA = async () => {
   }
 }
 
-onMounted(loadPOA)
+onMounted(() => {
+  loadCategorias()
+  loadDocumento()
+})
 </script>

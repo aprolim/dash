@@ -10,7 +10,8 @@ export default defineNuxtRouteMiddleware((to) => {
     console.log('   User:', user ? 'presente' : 'ausente')
     
     // Rutas protegidas (requieren autenticación)
-    const protectedRoutes = ['/dashboard', '/tabs', '/admin', '/admin/noticias']
+    // SIN /dashboard, SIN /tabs, SIN /admin/avisos
+    const protectedRoutes = ['/admin']
     const isProtectedRoute = protectedRoutes.some(route => to.path.startsWith(route))
     
     // Si la ruta es protegida y no hay token → redirigir a login
@@ -19,10 +20,10 @@ export default defineNuxtRouteMiddleware((to) => {
       return navigateTo('/auth/login')
     }
     
-    // Si hay token pero la ruta es de login → redirigir a dashboard
+    // Si hay token pero la ruta es de login → redirigir a noticias
     if (token && user && to.path.startsWith('/auth')) {
-      console.log('✅ Ya autenticado, redirigiendo a dashboard')
-      return navigateTo('/dashboard')
+      console.log('✅ Ya autenticado, redirigiendo a noticias')
+      return navigateTo('/admin/noticias')
     }
   }
 })

@@ -120,11 +120,11 @@ export const useAuthStore = defineStore('auth', {
         this.token = token
         this.user = user
         
-        console.log('✅ [AuthStore] Login exitoso! Redirigiendo a dashboard')
+        console.log('✅ [AuthStore] Login exitoso! Redirigiendo a noticias')
         
-        // Redirigir a dashboard
+        // Redirigir a noticias (antes dashboard)
         if (typeof window !== 'undefined') {
-          window.location.href = '/dashboard'
+          window.location.href = '/admin/noticias'
         }
         
         return { user, token }

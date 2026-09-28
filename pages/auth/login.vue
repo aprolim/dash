@@ -87,13 +87,8 @@
 </template>
 
 <script setup lang="ts">
-// Usando ruta relativa para evitar problemas de path
 import { useAuthStore } from '@/stores/auth'
 import { ref, reactive, onMounted } from 'vue'
-
-// Para definePageMeta, podemos usar un enfoque diferente
-// En lugar de definePageMeta, podemos usar un middleware simple
-// o configurar el layout en el componente
 
 const authStore = useAuthStore()
 const isSubmitting = ref(false)
@@ -120,7 +115,7 @@ const handleLogin = async () => {
 
 onMounted(() => {
   if (authStore.isAuthenticated) {
-    window.location.href = '/dashboard'
+    window.location.href = '/admin/noticias'
   }
 })
 </script>

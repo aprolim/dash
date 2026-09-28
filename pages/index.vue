@@ -18,7 +18,7 @@ onMounted(() => {
   authStore.initialize()
   
   if (authStore.isAuthenticated) {
-    window.location.href = '/dashboard'
+    window.location.href = '/admin/noticias'
   } else {
     window.location.href = '/auth/login'
   }

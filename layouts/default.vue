@@ -20,24 +20,8 @@
             </div>
           </div>
 
-          <!-- Navegación -->
+          <!-- Navegación (SIN Dashboard, SIN Tabs, SIN Avisos) -->
           <nav class="hidden md:flex space-x-8">
-            <NuxtLink 
-              to="/dashboard" 
-              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
-              :class="{ 'text-primary-600 border-b-2 border-primary-600': isActiveRoute('/dashboard') }"
-            >
-              Dashboard
-            </NuxtLink>
-            
-            <NuxtLink 
-              to="/tabs" 
-              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
-              :class="{ 'text-primary-600 border-b-2 border-primary-600': isActiveRoute('/tabs') }"
-            >
-              Tabs
-            </NuxtLink>
-
             <NuxtLink 
               to="/admin/noticias" 
               class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
@@ -62,15 +46,6 @@
               📢 Comunicados
             </NuxtLink>
 
-            <NuxtLink 
-              to="/admin/avisos" 
-              class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
-              :class="{ 'text-primary-600 border-b-2 border-primary-600': isActiveRoute('/admin/avisos') }"
-            >
-              📌 Avisos
-            </NuxtLink>
-
-            <!-- 🔥 NUEVO: ENLACE A AUDITORÍA -->
             <NuxtLink 
               to="/admin/auditoria" 
               class="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors"
@@ -127,16 +102,17 @@
       <main class="flex-1">
         <div class="py-6">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Breadcrumb (sin Dashboard) -->
             <nav class="flex mb-6" aria-label="Breadcrumb">
               <ol class="flex items-center space-x-2">
                 <li>
                   <div class="flex items-center">
-                    <NuxtLink to="/dashboard" class="text-gray-400 hover:text-gray-500">
-                      Dashboard
+                    <NuxtLink to="/admin/noticias" class="text-gray-400 hover:text-gray-500">
+                      Inicio
                     </NuxtLink>
                   </div>
                 </li>
-                <template v-if="currentRoute !== '/dashboard'">
+                <template v-if="currentRoute !== '/admin/noticias'">
                   <li>
                     <div class="flex items-center">
                       <svg class="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -192,27 +168,19 @@ const route = useRoute()
 const currentRoute = computed(() => route.path)
 
 const isActiveRoute = (path: string) => {
-  if (path === '/dashboard') {
-    return currentRoute.value === '/dashboard'
-  }
   return currentRoute.value.startsWith(path)
 }
 
 const userName = computed(() => authStore.user?.name || 'Usuario')
 const avatarInitials = computed(() => authStore.avatarInitials)
 
+// SIN Dashboard, SIN Tabs, SIN Avisos
 const pageTitle = computed(() => {
   const path = currentRoute.value
-  if (path === '/dashboard') return 'Dashboard'
-  if (path.startsWith('/tabs')) return 'Gestión de Tabs'
   if (path.includes('/admin/noticias')) return 'Gestión de Noticias'
   if (path.includes('/admin/sesiones')) return 'Gestión de Sesiones'
   if (path.includes('/admin/comunicados')) return '📢 Gestión de Comunicados'
-  if (path.includes('/admin/avisos')) return '📌 Gestión de Avisos'
   if (path.includes('/admin/auditoria')) return '🔍 Gestión de Auditoría'
-  if (path.includes('/content')) return 'Gestión de Contenido'
-  if (path.includes('/legislators')) return 'Legisladores'
-  if (path.includes('/users')) return 'Usuarios'
   return 'Panel de Administración'
 })
 

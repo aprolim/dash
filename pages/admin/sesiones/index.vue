@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="flex items-center gap-4 mb-6">
-      <NuxtLink to="/admin" class="text-gray-400 hover:text-gray-600 text-2xl">
+      <NuxtLink to="/" class="text-gray-400 hover:text-gray-600 text-2xl">
         ←
       </NuxtLink>
       <div>
