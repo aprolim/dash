@@ -7,13 +7,23 @@
         <h1 class="text-2xl font-semibold text-gray-900">Gestión de Noticias</h1>
         <p class="text-gray-600">Crea, edita y administra todas las noticias del portal</p>
       </div>
-      <NuxtLink 
-        to="/admin/noticias/create" 
+      <NuxtLink
+        v-if="canCreate"
+        to="/admin/noticias/create"
         class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
       >
         <span class="mr-2">+</span>
         Nueva Noticia
       </NuxtLink>
+    </div>
+
+    <!-- Aviso de permisos según el rol -->
+    <div
+      v-if="!canDelete"
+      class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6 text-sm text-blue-800"
+    >
+      Estás como <strong>{{ roleLabel }}</strong>: podés crear y editar noticias,
+      pero no eliminarlas.
     </div>
 
     <!-- Filtros -->
@@ -140,12 +150,27 @@
             <td class="px-6 py-4 text-sm text-gray-500">{{ item.views || 0 }}</td>
             <td class="px-6 py-4 text-right text-sm font-medium">
               <div class="flex justify-end gap-2">
-                <NuxtLink :to="`/admin/noticias/edit/${item._id}`" class="text-primary-600 hover:text-primary-900">
+                <NuxtLink
+                  v-if="canEdit"
+                  :to="`/admin/noticias/edit/${item._id}`"
+                  class="text-primary-600 hover:text-primary-900"
+                >
                   Editar
                 </NuxtLink>
-                <button @click="confirmDelete(item)" class="text-red-600 hover:text-red-900">
+                <button
+                  v-if="canDelete"
+                  @click="confirmDelete(item)"
+                  class="text-red-600 hover:text-red-900"
+                >
                   Eliminar
                 </button>
+                <span
+                  v-if="!canEdit && !canDelete"
+                  class="text-xs text-gray-400"
+                  title="Tu rol sólo puede consultar las noticias"
+                >
+                  🔒 Solo lectura
+                </span>
               </div>
             </td>
           </tr>
@@ -196,9 +221,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useNews, type NewsItem } from '~/composables/useNews'
+import { usePermissions } from '~/composables/usePermissions'
 import Modal from '~/components/ui/Modal.vue'
 
 definePageMeta({
@@ -206,6 +232,11 @@ definePageMeta({
   middleware: 'auth'
 })
 
+// Permisos del rol: EDITOR puede crear y editar, pero borrar es sólo ADMIN+
+const { can, roleLabel } = usePermissions()
+const canCreate = computed(() => can('noticias', 'create'))
+const canEdit = computed(() => can('noticias', 'edit'))
+const canDelete = computed(() => can('noticias', 'delete'))
 const route = useRoute()
 const router = useRouter()
 const { getNews, deleteNews: deleteNewsApi } = useNews()
@@ -372,12 +403,14 @@ const newsToDelete = ref<NewsItem | null>(null)
 const deleting = ref(false)
 
 const confirmDelete = (item: NewsItem) => {
+  if (!canDelete.value) return
   newsToDelete.value = item
   showDeleteModal.value = true
 }
 
 const deleteNews = async () => {
   if (!newsToDelete.value) return
+  if (!canDelete.value) return
   
   deleting.value = true
   try {

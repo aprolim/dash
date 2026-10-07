@@ -12,6 +12,14 @@ export default defineNuxtConfig({
     port: 3002
   },
   ssr: false,
+
+  // URL del backend. Se puede sobreescribir sin tocar el código:
+  //   NUXT_PUBLIC_API_URL=http://localhost:3000/api npm run dev
+  runtimeConfig: {
+    public: {
+      apiUrl: process.env.NUXT_PUBLIC_API_URL || 'https://demoback.senado.gob.bo/api',
+    },
+  },
   
   modules: [
     '@pinia/nuxt',

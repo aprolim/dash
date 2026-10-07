@@ -115,7 +115,9 @@ const handleLogin = async () => {
 
 onMounted(() => {
   if (authStore.isAuthenticated) {
-    window.location.href = '/admin/noticias'
+    // El middleware ya redirige, pero por si se llega desde un enlace directo
+    authStore.initialize()
+    window.location.href = authStore.homeRoute
   }
 })
 </script>

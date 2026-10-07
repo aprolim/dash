@@ -16,9 +16,10 @@ const authStore = useAuthStore()
 
 onMounted(() => {
   authStore.initialize()
-  
+
   if (authStore.isAuthenticated) {
-    window.location.href = '/admin/noticias'
+    // Cada rol va a su primera sección permitida
+    window.location.href = authStore.homeRoute
   } else {
     window.location.href = '/auth/login'
   }
