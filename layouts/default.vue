@@ -20,7 +20,7 @@
             </div>
           </div>
 
-          <!-- Navegación: solo las secciones que permite el rol del usuario -->
+          <!-- Navegación -->
           <nav class="hidden md:flex space-x-4 lg:space-x-6">
             <NuxtLink
               v-for="item in authStore.sections"
@@ -33,7 +33,7 @@
             </NuxtLink>
           </nav>
 
-          <!-- Perfil de usuario -->
+          <!-- Perfil -->
           <div class="flex items-center space-x-4">
             <button class="p-2 text-gray-600 hover:text-gray-900">
               <span class="sr-only">Notificaciones</span>
@@ -55,7 +55,6 @@
                 v-if="userMenuOpen"
                 class="absolute right-0 mt-2 w-60 bg-white rounded-md shadow-lg py-1 z-10"
               >
-                <!-- Encabezado con el rol actual -->
                 <div class="px-4 py-2 border-b border-gray-100">
                   <p class="text-sm text-gray-900 truncate">{{ authStore.userName }}</p>
                   <p class="text-xs text-gray-500 truncate">{{ authStore.user?.email }}</p>
@@ -95,12 +94,11 @@
       </div>
     </header>
 
-    <!-- Contenido principal -->
+    <!-- Contenido -->
     <div class="flex">
       <main class="flex-1">
         <div class="py-6">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <!-- Breadcrumb -->
             <nav class="flex mb-6" aria-label="Breadcrumb">
               <ol class="flex items-center space-x-2">
                 <li>
