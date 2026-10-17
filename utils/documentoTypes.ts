@@ -121,7 +121,7 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
   },
 
   // ============================================
-  // 📋 GESTIÓN (placeholder, se activan después)
+  // 📋 GESTIÓN
   // ============================================
   'minuta-comunicacion': {
     tipo: 'minuta-comunicacion',
@@ -134,7 +134,7 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
       { key: 'numero', label: 'Nº', type: 'number', ancho: '60px' },
       { key: 'codigo', label: 'Código o Nombre', type: 'text' },
       { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
-      { key: 'proyectista', label: 'Proyectista', type: 'text' },
+      { key: 'peticionario', label: 'Proyectista', type: 'text' },
       { key: 'asunto', label: 'Asunto', type: 'longtext' },
       { key: 'destinatario', label: 'Destinatario', type: 'text' },
       { key: 'fechaRemisionDestinatario', label: 'Fecha de Remisión al Destinatario', type: 'date' },
@@ -144,7 +144,7 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
       { key: 'observacion', label: 'Observaciones', type: 'text' },
       { key: 'archivo', label: 'Archivo', type: 'file' }
     ],
-    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'proyectista', 'asunto', 'destinatario'],
+    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'peticionario', 'asunto', 'destinatario'],
     camposBloqueadosEnEdicion: ['numero']
   },
 
@@ -159,15 +159,15 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
       { key: 'numero', label: 'Nº', type: 'number', ancho: '60px' },
       { key: 'codigo', label: 'Código o Nombre', type: 'text' },
       { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
-      { key: 'proyectista', label: 'Proyectista', type: 'text' },
+      { key: 'peticionario', label: 'Proyectista', type: 'text' },
       { key: 'asunto', label: 'Asunto', type: 'longtext' },
       { key: 'fechaAprobacion', label: 'Fecha de Aprobación', type: 'date' },
       { key: 'sesion', label: 'Sesión', type: 'enum', opciones: ['PUBLICA', 'RESERVADA'] },
       { key: 'observacion', label: 'Observaciones', type: 'text' },
       { key: 'archivo', label: 'Archivo', type: 'file' }
     ],
-    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'proyectista', 'asunto'],
-    camposBloqueadosEnEdicion: ['numero', 'proyectista']  // 🔥 regla especial
+    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'peticionario', 'asunto'],
+    camposBloqueadosEnEdicion: ['numero', 'peticionario']
   },
 
   'declaracion-camaral': {
@@ -181,13 +181,13 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
       { key: 'numero', label: 'Nº', type: 'number', ancho: '60px' },
       { key: 'codigo', label: 'Código o Nombre', type: 'text' },
       { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
-      { key: 'proyectista', label: 'Proyectista', type: 'text' },
+      { key: 'peticionario', label: 'Proyectista', type: 'text' },
       { key: 'asunto', label: 'Asunto', type: 'longtext' },
       { key: 'fechaAprobacion', label: 'Fecha de Aprobación', type: 'date' },
       { key: 'observacion', label: 'Observaciones', type: 'text' },
       { key: 'archivo', label: 'Archivo', type: 'file' }
     ],
-    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'proyectista', 'asunto'],
+    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'peticionario', 'asunto'],
     camposBloqueadosEnEdicion: ['numero']
   },
 
@@ -202,18 +202,18 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
       { key: 'numero', label: 'Nº', type: 'number', ancho: '60px' },
       { key: 'codigo', label: 'Código o Nombre', type: 'text' },
       { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
-      { key: 'proyectista', label: 'Proyectista', type: 'text' },
+      { key: 'peticionario', label: 'Proyectista', type: 'text' },
       { key: 'asunto', label: 'Asunto', type: 'longtext' },
       { key: 'fechaAprobacion', label: 'Fecha de Aprobación', type: 'date' },
       { key: 'observacion', label: 'Observaciones', type: 'text' },
       { key: 'archivo', label: 'Archivo', type: 'file' }
     ],
-    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'proyectista', 'asunto'],
+    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'peticionario', 'asunto'],
     camposBloqueadosEnEdicion: ['numero']
   },
 
   // ============================================
-  // ⚖️ LEGISLACIÓN (placeholder, se activan después)
+  // ⚖️ LEGISLACIÓN
   // ============================================
   'proyecto-ley-tratamiento-senado': {
     tipo: 'proyecto-ley-tratamiento-senado',
@@ -222,8 +222,15 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
     bloque: 'legislacion',
     icono: 'mdi:file-document-edit',
     prefijoCodigo: 'P.L.',
-    columnas: [],
-    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'asunto', 'proyectista'],
+    columnas: [
+      { key: 'numero', label: 'Nº', type: 'number', ancho: '60px' },
+      { key: 'codigo', label: 'Código o Nombre', type: 'text' },
+      { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
+      { key: 'peticionario', label: 'Proyectista', type: 'text' },
+      { key: 'asunto', label: 'Asunto', type: 'longtext' },
+      { key: 'archivo', label: 'Archivo', type: 'file' }
+    ],
+    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'asunto', 'peticionario'],
     camposBloqueadosEnEdicion: ['numero']
   },
 
@@ -234,8 +241,15 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
     bloque: 'legislacion',
     icono: 'mdi:file-search',
     prefijoCodigo: 'P.L.',
-    columnas: [],
-    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'asunto', 'proyectista'],
+    columnas: [
+      { key: 'numero', label: 'Nº', type: 'number', ancho: '60px' },
+      { key: 'codigo', label: 'Código o Nombre', type: 'text' },
+      { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
+      { key: 'peticionario', label: 'Proyectista', type: 'text' },
+      { key: 'asunto', label: 'Asunto', type: 'longtext' },
+      { key: 'archivo', label: 'Archivo', type: 'file' }
+    ],
+    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'asunto', 'peticionario'],
     camposBloqueadosEnEdicion: ['numero']
   },
 
@@ -246,8 +260,15 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
     bloque: 'legislacion',
     icono: 'mdi:check-circle',
     prefijoCodigo: 'P.L.',
-    columnas: [],
-    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'asunto', 'proyectista'],
+    columnas: [
+      { key: 'numero', label: 'Nº', type: 'number', ancho: '60px' },
+      { key: 'codigo', label: 'Código o Nombre', type: 'text' },
+      { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
+      { key: 'peticionario', label: 'Proyectista', type: 'text' },
+      { key: 'asunto', label: 'Asunto', type: 'longtext' },
+      { key: 'archivo', label: 'Archivo', type: 'file' }
+    ],
+    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'asunto', 'peticionario'],
     camposBloqueadosEnEdicion: ['numero']
   },
 
@@ -258,8 +279,15 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
     bloque: 'legislacion',
     icono: 'mdi:seal',
     prefijoCodigo: 'P.L.',
-    columnas: [],
-    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'asunto', 'proyectista'],
+    columnas: [
+      { key: 'numero', label: 'Nº', type: 'number', ancho: '60px' },
+      { key: 'codigo', label: 'Código o Nombre', type: 'text' },
+      { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
+      { key: 'peticionario', label: 'Proyectista', type: 'text' },
+      { key: 'asunto', label: 'Asunto', type: 'longtext' },
+      { key: 'archivo', label: 'Archivo', type: 'file' }
+    ],
+    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'asunto', 'peticionario'],
     camposBloqueadosEnEdicion: ['numero']
   },
 
@@ -270,8 +298,15 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
     bloque: 'legislacion',
     icono: 'mdi:file-edit',
     prefijoCodigo: 'P.L.',
-    columnas: [],
-    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'asunto', 'proyectista'],
+    columnas: [
+      { key: 'numero', label: 'Nº', type: 'number', ancho: '60px' },
+      { key: 'codigo', label: 'Código o Nombre', type: 'text' },
+      { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
+      { key: 'peticionario', label: 'Proyectista', type: 'text' },
+      { key: 'asunto', label: 'Asunto', type: 'longtext' },
+      { key: 'archivo', label: 'Archivo', type: 'file' }
+    ],
+    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'asunto', 'peticionario'],
     camposBloqueadosEnEdicion: ['numero']
   },
 
@@ -282,8 +317,15 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
     bloque: 'legislacion',
     icono: 'mdi:close-circle',
     prefijoCodigo: 'P.L.',
-    columnas: [],
-    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'asunto', 'proyectista'],
+    columnas: [
+      { key: 'numero', label: 'Nº', type: 'number', ancho: '60px' },
+      { key: 'codigo', label: 'Código o Nombre', type: 'text' },
+      { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
+      { key: 'peticionario', label: 'Proyectista', type: 'text' },
+      { key: 'asunto', label: 'Asunto', type: 'longtext' },
+      { key: 'archivo', label: 'Archivo', type: 'file' }
+    ],
+    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'asunto', 'peticionario'],
     camposBloqueadosEnEdicion: ['numero']
   },
 
@@ -294,9 +336,16 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
     bloque: 'legislacion',
     icono: 'mdi:book-open-variant',
     prefijoCodigo: '',
-    columnas: [],
-    camposObligatorios: ['numeroLey', 'fechaPromulgacion', 'asunto'],
-    camposBloqueadosEnEdicion: []
+    columnas: [
+      { key: 'numero', label: 'Nº', type: 'number', ancho: '60px' },
+      { key: 'codigo', label: 'Código o Nombre', type: 'text' },
+      { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
+      { key: 'peticionario', label: 'Proyectista', type: 'text' },
+      { key: 'asunto', label: 'Asunto', type: 'longtext' },
+      { key: 'archivo', label: 'Archivo', type: 'file' }
+    ],
+    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'asunto', 'peticionario'],
+    camposBloqueadosEnEdicion: ['numero']
   }
 }
 

@@ -65,7 +65,7 @@
         <p v-if="errores.fechaIngreso" class="mt-1 text-xs text-red-600">{{ errores.fechaIngreso }}</p>
       </div>
 
-      <!-- Peticionario (PIE/PIO) o Proyectista (Gestión/Legislación) -->
+      <!-- Peticionario / Proyectista -->
       <div>
         <label class="block text-sm font-medium text-gray-700">
           {{ labelPeticionario }} <span class="text-red-500">*</span>
@@ -434,7 +434,6 @@ const validar = (): boolean => {
   Object.keys(errores).forEach(k => delete errores[k])
   errorGeneral.value = ''
 
-  // Obligatorios
   config.value.camposObligatorios.forEach((campo) => {
     const valor = (form as any)[campo]
     const vacio =
@@ -447,7 +446,6 @@ const validar = (): boolean => {
     }
   })
 
-  // Reglas específicas
   if (form.codigo && form.codigo.length > 100) {
     errores.codigo = 'Máximo 100 caracteres'
   }
@@ -482,10 +480,8 @@ const enviar = () => {
     archivo: form.archivo
   }
 
-  // Peticionario / Proyectista (mismo campo, distinto nombre en UI)
   payload.peticionario = form.peticionario
 
-  // Campos específicos por tipo
   if (props.tipo === 'peticion-informe-escrito') {
     payload.fechaRespuesta = form.fechaRespuesta || null
     payload.fechaRemisionPeticionario = form.fechaRemisionPeticionario || null
