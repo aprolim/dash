@@ -144,7 +144,7 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
       { key: 'observacion', label: 'Observaciones', type: 'text' },
       { key: 'archivo', label: 'Archivo', type: 'file' }
     ],
-    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'peticionario', 'asunto', 'destinatario'],
+    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'peticionario', 'asunto', 'destinatario', 'tipoDestinatario'],
     camposBloqueadosEnEdicion: ['numero']
   },
 
@@ -167,6 +167,7 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
       { key: 'archivo', label: 'Archivo', type: 'file' }
     ],
     camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'peticionario', 'asunto'],
+    // 🔥 REGLA ESPECIAL: En Resoluciones, el numero y el proyectista se bloquean al editar
     camposBloqueadosEnEdicion: ['numero', 'peticionario']
   },
 
@@ -213,7 +214,7 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
   },
 
   // ============================================
-  // ⚖️ LEGISLACIÓN
+  // ⚖️ LEGISLACIÓN (Se mantienen los placeholders)
   // ============================================
   'proyecto-ley-tratamiento-senado': {
     tipo: 'proyecto-ley-tratamiento-senado',

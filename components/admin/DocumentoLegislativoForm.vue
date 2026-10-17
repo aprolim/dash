@@ -13,7 +13,7 @@
 
     <!-- Grid de campos básicos -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <!-- Nº (bloqueado en edición) -->
+      <!-- Nº (bloqueado en edición para todos) -->
       <div>
         <label class="block text-sm font-medium text-gray-700">
           Nº <span class="text-red-500">*</span>
@@ -65,7 +65,7 @@
         <p v-if="errores.fechaIngreso" class="mt-1 text-xs text-red-600">{{ errores.fechaIngreso }}</p>
       </div>
 
-      <!-- Peticionario / Proyectista -->
+      <!-- Peticionario / Proyectista (con regla especial para Resoluciones) -->
       <div>
         <label class="block text-sm font-medium text-gray-700">
           {{ labelPeticionario }} <span class="text-red-500">*</span>
@@ -75,15 +75,19 @@
           type="text"
           required
           maxlength="300"
+          :disabled="esEdicion && esPeticionarioBloqueado"
           placeholder="Ej: Betty Canaviri Villanueva (LISTA DE SENADORES)"
-          class="mt-1 block w-full px-3 py-2 border rounded-md text-sm"
+          class="mt-1 block w-full px-3 py-2 border rounded-md text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
           :class="errores.peticionario ? 'border-red-400' : 'border-gray-300'"
         />
         <p v-if="errores.peticionario" class="mt-1 text-xs text-red-600">{{ errores.peticionario }}</p>
+        <p v-else-if="esEdicion && esPeticionarioBloqueado" class="mt-1 text-xs text-amber-600">
+          ⚠️ El {{ labelPeticionario }} no se puede modificar en este tipo de documento.
+        </p>
       </div>
     </div>
 
-    <!-- Asunto (full width, textarea) -->
+    <!-- Asunto -->
     <div>
       <label class="block text-sm font-medium text-gray-700">
         Asunto <span class="text-red-500">*</span>
@@ -104,47 +108,56 @@
       </div>
     </div>
 
-    <!-- Destinatario y tipo -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700">
-          Destinatario <span class="text-red-500">*</span>
-        </label>
-        <input
-          v-model.trim="form.destinatario"
-          type="text"
-          required
-          maxlength="300"
-          placeholder="Ej: Ministro de Planificación del Desarrollo"
-          class="mt-1 block w-full px-3 py-2 border rounded-md text-sm"
-          :class="errores.destinatario ? 'border-red-400' : 'border-gray-300'"
-        />
-        <p v-if="errores.destinatario" class="mt-1 text-xs text-red-600">{{ errores.destinatario }}</p>
-      </div>
+    <!-- ============================================ -->
+    <!-- CAMPOS CONDICIONALES: MINUTAS Y PIE          -->
+    <!-- ============================================ -->
+    <div v-if="esConDestinatario" class="border-t pt-5 space-y-4">
+      <p class="text-sm font-medium text-gray-700">Destinatario</p>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">
+            Destinatario <span class="text-red-500">*</span>
+          </label>
+          <input
+            v-model.trim="form.destinatario"
+            type="text"
+            required
+            maxlength="300"
+            placeholder="Ej: Ministro de Defensa"
+            class="mt-1 block w-full px-3 py-2 border rounded-md text-sm"
+            :class="errores.destinatario ? 'border-red-400' : 'border-gray-300'"
+          />
+          <p v-if="errores.destinatario" class="mt-1 text-xs text-red-600">{{ errores.destinatario }}</p>
+        </div>
 
-      <div>
-        <label class="block text-sm font-medium text-gray-700">
-          Tipo de Destinatario <span class="text-red-500">*</span>
-        </label>
-        <select
-          v-model="form.tipoDestinatario"
-          required
-          class="mt-1 block w-full px-3 py-2 border rounded-md text-sm"
-          :class="errores.tipoDestinatario ? 'border-red-400' : 'border-gray-300'"
-        >
-          <option value="">-- Selecciona --</option>
-          <option v-for="t in TIPOS_DESTINATARIO" :key="t" :value="t">{{ t }}</option>
-        </select>
-        <p v-if="errores.tipoDestinatario" class="mt-1 text-xs text-red-600">{{ errores.tipoDestinatario }}</p>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">
+            Tipo de Destinatario <span class="text-red-500">*</span>
+          </label>
+          <select
+            v-model="form.tipoDestinatario"
+            required
+            class="mt-1 block w-full px-3 py-2 border rounded-md text-sm"
+            :class="errores.tipoDestinatario ? 'border-red-400' : 'border-gray-300'"
+          >
+            <option value="">-- Selecciona --</option>
+            <option v-for="t in TIPOS_DESTINATARIO" :key="t" :value="t">{{ t }}</option>
+          </select>
+          <p v-if="errores.tipoDestinatario" class="mt-1 text-xs text-red-600">{{ errores.tipoDestinatario }}</p>
+        </div>
       </div>
     </div>
 
-    <!-- Fechas específicas por tipo -->
+    <!-- ============================================ -->
+    <!-- FECHAS DEL PROCESO (TODOS LOS TIPOS)         -->
+    <!-- ============================================ -->
     <div class="border-t pt-5">
       <p class="text-sm font-medium text-gray-700 mb-3">Fechas del proceso</p>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <!-- Fecha de Remisión al Destinatario (todos) -->
-        <div>
+        
+        <!-- Fecha de Remisión al Destinatario (PIE, PIO, Minutas) -->
+        <div v-if="esConDestinatario">
           <label class="block text-sm text-gray-600">Fecha de Remisión al Destinatario</label>
           <input
             v-model="form.fechaRemisionDestinatario"
@@ -201,8 +214,28 @@
           </div>
         </template>
 
-        <!-- Gestión: fechaAprobacion + sesion -->
-        <template v-if="esGestion">
+        <!-- MINUTAS: fechaRespuesta, fechaRemisionPeticionario -->
+        <template v-if="tipo === 'minuta-comunicacion'">
+          <div>
+            <label class="block text-sm text-gray-600">Fecha de Respuesta USCLyR</label>
+            <input
+              v-model="form.fechaRespuesta"
+              type="date"
+              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+          </div>
+          <div>
+            <label class="block text-sm text-gray-600">Fecha de Remisión al Peticionario</label>
+            <input
+              v-model="form.fechaRemisionPeticionario"
+              type="date"
+              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+          </div>
+        </template>
+
+        <!-- RESOLUCIONES, DECLARACIONES, HOMENAJES: fechaAprobacion -->
+        <template v-if="esAprobacion">
           <div>
             <label class="block text-sm text-gray-600">Fecha de Aprobación</label>
             <input
@@ -211,6 +244,7 @@
               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
             />
           </div>
+          <!-- RESOLUCIONES: sesion -->
           <div v-if="tipo === 'resolucion-camaral'">
             <label class="block text-sm text-gray-600">Sesión</label>
             <select
@@ -351,11 +385,27 @@ const esEdicion = computed(() => !!props.documento?._id)
 
 const labelPeticionario = computed(() => {
   if (props.tipo.startsWith('peticion-')) return 'Peticionario'
-  if (props.tipo.startsWith('proyecto-') || props.tipo === 'ley-promulgada') return 'Proyectista'
+  if (props.tipo === 'minuta-comunicacion') return 'Proyectista'
+  if (props.tipo === 'resolucion-camaral') return 'Proyectista'
+  if (props.tipo === 'declaracion-camaral') return 'Proyectista'
+  if (props.tipo === 'homenaje-camaral') return 'Proyectista'
   return 'Proyectista'
 })
 
-const esGestion = computed(() => config.value?.bloque === 'gestion')
+// 🔥 REGLA ESPECIAL: Resoluciones bloquean el peticionario al editar
+const esPeticionarioBloqueado = computed(() => {
+  return config.value?.camposBloqueadosEnEdicion.includes('peticionario') || false
+})
+
+// Mostrar bloque de destinatario (PIE, PIO, Minutas)
+const esConDestinatario = computed(() => {
+  return ['peticion-informe-escrito', 'peticion-informe-oral', 'minuta-comunicacion'].includes(props.tipo)
+})
+
+// Mostrar bloque de aprobación (Resoluciones, Declaraciones, Homenajes)
+const esAprobacion = computed(() => {
+  return ['resolucion-camaral', 'declaracion-camaral', 'homenaje-camaral'].includes(props.tipo)
+})
 
 // ============================================
 // FORM
@@ -473,14 +523,17 @@ const enviar = () => {
     codigo: form.codigo,
     fechaIngreso: form.fechaIngreso,
     asunto: form.asunto,
-    destinatario: form.destinatario || undefined,
-    tipoDestinatario: form.tipoDestinatario || undefined,
-    fechaRemisionDestinatario: form.fechaRemisionDestinatario || null,
     observacion: form.observacion || '',
     archivo: form.archivo
   }
 
   payload.peticionario = form.peticionario
+
+  if (esConDestinatario.value) {
+    payload.destinatario = form.destinatario || undefined
+    payload.tipoDestinatario = form.tipoDestinatario || undefined
+    payload.fechaRemisionDestinatario = form.fechaRemisionDestinatario || null
+  }
 
   if (props.tipo === 'peticion-informe-escrito') {
     payload.fechaRespuesta = form.fechaRespuesta || null
@@ -494,7 +547,12 @@ const enviar = () => {
     payload.fechaRealizacionFinal = form.fechaRealizacionFinal || null
   }
 
-  if (esGestion.value) {
+  if (props.tipo === 'minuta-comunicacion') {
+    payload.fechaRespuesta = form.fechaRespuesta || null
+    payload.fechaRemisionPeticionario = form.fechaRemisionPeticionario || null
+  }
+
+  if (esAprobacion.value) {
     payload.fechaAprobacion = form.fechaAprobacion || null
     if (props.tipo === 'resolucion-camaral') {
       payload.sesion = form.sesion || null
