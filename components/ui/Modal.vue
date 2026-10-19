@@ -9,10 +9,12 @@
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div v-if="modelValue" class="fixed inset-0 z-50 overflow-y-auto" @click.self="$emit('update:modelValue', false)">
+      <!-- 🔥 z-[9999] para evitar que se oculte detrás del layout -->
+      <div v-if="modelValue" class="fixed inset-0 z-[9999] overflow-y-auto" @click.self="$emit('update:modelValue', false)">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+          
           <!-- Fondo oscuro -->
-          <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+          <div class="fixed inset-0 transition-opacity" aria-hidden="true" @click="$emit('update:modelValue', false)">
             <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
           </div>
 
@@ -35,6 +37,7 @@
                 'sm:max-w-2xl': size === '2xl',
                 'sm:max-w-4xl': size === '4xl'
               }"
+              @click.stop
             >
               <!-- Header -->
               <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex-shrink-0">
