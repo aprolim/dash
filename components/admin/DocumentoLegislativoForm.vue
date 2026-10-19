@@ -938,6 +938,7 @@ const enviar = () => {
 // CAMBIO DE ESTADO (desde modal)
 // ============================================
 const cambiarEstado = (payload: { estadoLey: string; datos: any }) => {
+  console.log('🟢 [Form] Evento confirm recibido del modal:', payload)
   savingEstado.value = true
   emit('cambiarEstado', payload)
 }

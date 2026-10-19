@@ -105,9 +105,6 @@ const mostrarToast = (message: string, type: 'success' | 'error' = 'success') =>
   setTimeout(() => { toast.value.show = false }, 3500)
 }
 
-// ============================================
-// CARGAR DOCUMENTO
-// ============================================
 const cargarDocumento = async () => {
   loading.value = true
   error.value = ''
@@ -122,9 +119,6 @@ const cargarDocumento = async () => {
   }
 }
 
-// ============================================
-// GUARDAR (edición normal)
-// ============================================
 const guardar = async (payload: Partial<DocumentoLegislativo>) => {
   if (!documento.value) return
 
@@ -145,46 +139,42 @@ const guardar = async (payload: Partial<DocumentoLegislativo>) => {
   }
 }
 
-// ============================================
-// 🔥 CAMBIAR ESTADO (desde el modal)
-// ============================================
+// 🔥 HANDLER DEL CAMBIO DE ESTADO
 const handleCambiarEstado = async (payload: { estadoLey: string; datos: any }) => {
+  console.log('🚀 [Edit] handleCambiarEstado() disparado con:', payload)
+  
   if (!documento.value) return
 
   saving.value = true
   serverError.value = ''
 
-  // Notificar al form para que muestre el spinner en el modal
-  formRef.value?.setSavingEstado?.(true)
-
   try {
-    // El endpoint PUT recibe los datos y el backend deduce el nuevo `tipo`
+    console.log(`📡 [Edit] Enviando PUT a /legislativos/${tipo.value}/${documento.value._id}`)
     await updateDocumento(tipo.value, documento.value._id, payload.datos)
+    
+    console.log('✅ [Edit] Respuesta del backend OK')
 
-    // Detectar el nuevo tipo para redirigir al listado correspondiente
     const tipoNuevo = getTipoPorEstado(payload.estadoLey)
     const destino = tipoNuevo || tipo.value
 
-    mostrarToast(
-      `Documento migrado a "${payload.estadoLey}". Redirigiendo al listado...`,
-      'success'
-    )
+    mostrarToast(`Documento migrado a "${payload.estadoLey}".`, 'success')
 
     setTimeout(() => {
       router.push(`/admin/legislativos?tipo=${destino}`)
     }, 1200)
   } catch (err: any) {
+    console.error('❌ [Edit] Error en el PUT:', err)
     serverError.value = err.message || 'Error al cambiar el estado'
     mostrarToast(serverError.value, 'error')
-    formRef.value?.setSavingEstado?.(false)
   } finally {
     saving.value = false
+    // Aseguramos apagar el spinner interno del modal si falló
+    if (formRef.value && formRef.value.setSavingEstado) {
+      formRef.value.setSavingEstado(false)
+    }
   }
 }
 
-// ============================================
-// LIFECYCLE
-// ============================================
 onMounted(() => {
   cargarDocumento()
 })
