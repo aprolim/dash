@@ -36,7 +36,7 @@
             :disabled="loading"
             class="px-3 py-3 rounded-lg border-2 text-sm font-medium text-left transition-all disabled:opacity-50"
             :class="nuevoEstado === estado.value
-              ? 'border-senado-primary bg-senado-primary/5 text-senado-primary'
+              ? 'border-blue-600 bg-blue-50 text-blue-700'
               : 'border-gray-200 hover:border-gray-300 text-gray-700'"
           >
             <div class="flex items-center gap-2">
@@ -126,19 +126,19 @@
               <span class="text-2xl">📎</span>
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-medium text-gray-800 truncate">{{ anexo.originalName || anexo.filename }}</p>
-                <a :href="anexo.url" target="_blank" class="text-xs text-primary-600 hover:underline">Ver PDF →</a>
+                <a :href="anexo.url" target="_blank" class="text-xs text-blue-600 hover:underline">Ver PDF →</a>
               </div>
               <button type="button" @click="quitarAnexo(idx)" class="text-red-500 hover:text-red-700 text-xl" title="Quitar anexo">✕</button>
             </div>
           </div>
 
           <div class="flex items-center gap-3">
-            <label class="cursor-pointer bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm inline-flex items-center gap-2" :class="{ 'opacity-50 cursor-not-allowed': uploadingAnexo || loading }">
+            <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm inline-flex items-center gap-2" :class="{ 'opacity-50 cursor-not-allowed': uploadingAnexo || loading }">
               <span>📎 Agregar anexo</span>
               <input ref="anexoInput" type="file" accept="application/pdf" class="hidden" :disabled="uploadingAnexo || loading" @change="handleAnexoSelect" />
             </label>
             <span v-if="uploadingAnexo" class="text-sm text-gray-500 flex items-center gap-2">
-              <div class="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div> Subiendo...
+              <div class="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div> Subiendo...
             </span>
           </div>
           <p v-if="anexoError" class="mt-2 text-xs text-red-600">{{ anexoError }}</p>
@@ -151,10 +151,22 @@
         <p class="text-sm text-red-800">{{ errorGeneral }}</p>
       </div>
 
-      <!-- Botones (Siempre visibles) -->
-      <div class="flex justify-end gap-3 pt-4 border-t shrink-0">
-        <button type="button" @click="cerrar" :disabled="loading" class="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50">Cancelar</button>
-        <button type="button" @click="confirmar" :disabled="loading || !nuevoEstado || datos.archivoAnexo.length === 0" class="px-4 py-2 bg-senado-primary text-white rounded-lg hover:bg-senado-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+      <!-- 🔥 BOTONES CORREGIDOS (Usando Flex estricto) -->
+      <div class="flex items-center justify-end gap-3 pt-4 border-t shrink-0">
+        <button 
+          type="button" 
+          @click="cerrar" 
+          :disabled="loading" 
+          class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+        >
+          Cancelar
+        </button>
+        <button 
+          type="button" 
+          @click="confirmar" 
+          :disabled="loading || !nuevoEstado || datos.archivoAnexo.length === 0" 
+          class="px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+        >
           <span v-if="loading" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
           {{ loading ? 'Cambiando...' : 'Confirmar cambio' }}
         </button>
@@ -209,11 +221,9 @@ const uploadingAnexo = ref(false)
 const anexoInput = ref<HTMLInputElement | null>(null)
 
 watch(() => props.modelValue, (abierto) => {
-  // 🔥 FIX: Bloquear/Desbloquear scroll del body
   if (typeof document !== 'undefined') {
     document.body.style.overflow = abierto ? 'hidden' : ''
   }
-
   if (!abierto) return
 
   nuevoEstado.value = ''
