@@ -61,38 +61,17 @@
         <template v-if="['APROBADO', 'APROBADO CON MODIFICACIONES'].includes(nuevoEstado)">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Fecha de Aprobación
-              </label>
-              <input
-                v-model="datos.fechaAprobacion"
-                type="date"
-                class="w-full px-3 py-2 border rounded-md text-sm border-gray-300"
-              />
+              <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Aprobación</label>
+              <input v-model="datos.fechaAprobacion" type="date" class="w-full px-3 py-2 border rounded-md text-sm border-gray-300" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Fecha Remisión a Diputados
-              </label>
-              <input
-                v-model="datos.fechaRemisionDiputados"
-                type="date"
-                class="w-full px-3 py-2 border rounded-md text-sm border-gray-300"
-              />
+              <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Remisión a Diputados</label>
+              <input v-model="datos.fechaRemisionDiputados" type="date" class="w-full px-3 py-2 border rounded-md text-sm border-gray-300" />
             </div>
           </div>
-
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              N° Ley
-            </label>
-            <input
-              v-model.number="datos.numeroLey"
-              type="number"
-              min="1"
-              class="w-48 px-3 py-2 border rounded-md text-sm border-gray-300"
-              placeholder="Ej: 1763"
-            />
+            <label class="block text-sm font-medium text-gray-700 mb-1">N° Ley</label>
+            <input v-model.number="datos.numeroLey" type="number" min="1" class="w-48 px-3 py-2 border rounded-md text-sm border-gray-300" placeholder="Ej: 1763" />
             <p class="mt-1 text-xs text-gray-500">Debe ser único a nivel global.</p>
           </div>
         </template>
@@ -101,37 +80,17 @@
         <template v-if="nuevoEstado === 'SANCIONADO'">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Fecha de Sanción
-              </label>
-              <input
-                v-model="datos.fechaSancion"
-                type="date"
-                class="w-full px-3 py-2 border rounded-md text-sm border-gray-300"
-              />
+              <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Sanción</label>
+              <input v-model="datos.fechaSancion" type="date" class="w-full px-3 py-2 border rounded-md text-sm border-gray-300" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Fecha Remisión al Ejecutivo
-              </label>
-              <input
-                v-model="datos.fechaRemisionEjecutivo"
-                type="date"
-                class="w-full px-3 py-2 border rounded-md text-sm border-gray-300"
-              />
+              <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Remisión al Ejecutivo</label>
+              <input v-model="datos.fechaRemisionEjecutivo" type="date" class="w-full px-3 py-2 border rounded-md text-sm border-gray-300" />
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              N° Ley
-            </label>
-            <input
-              v-model.number="datos.numeroLey"
-              type="number"
-              min="1"
-              class="w-48 px-3 py-2 border rounded-md text-sm border-gray-300"
-              placeholder="Ej: 1763"
-            />
+            <label class="block text-sm font-medium text-gray-700 mb-1">N° Ley</label>
+            <input v-model.number="datos.numeroLey" type="number" min="1" class="w-48 px-3 py-2 border rounded-md text-sm border-gray-300" placeholder="Ej: 1763" />
           </div>
         </template>
 
@@ -139,24 +98,12 @@
         <template v-if="nuevoEstado === 'RECHAZADO'">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Fecha de Rechazo
-              </label>
-              <input
-                v-model="datos.fechaRechazo"
-                type="date"
-                class="w-full px-3 py-2 border rounded-md text-sm border-gray-300"
-              />
+              <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Rechazo</label>
+              <input v-model="datos.fechaRechazo" type="date" class="w-full px-3 py-2 border rounded-md text-sm border-gray-300" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Fecha Remisión a Diputados
-              </label>
-              <input
-                v-model="datos.fechaRemisionDiputados"
-                type="date"
-                class="w-full px-3 py-2 border rounded-md text-sm border-gray-300"
-              />
+              <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Remisión a Diputados</label>
+              <input v-model="datos.fechaRemisionDiputados" type="date" class="w-full px-3 py-2 border rounded-md text-sm border-gray-300" />
             </div>
           </div>
         </template>
@@ -166,8 +113,7 @@
           <div class="flex items-start justify-between mb-2">
             <div>
               <p class="text-sm font-medium text-gray-900">
-                Archivo Anexo (Informe de Comisión)
-                <span class="text-red-500">*</span>
+                Archivo Anexo (Informe de Comisión) <span class="text-red-500">*</span>
               </p>
               <p class="text-xs text-gray-600 mt-0.5">
                 Obligatorio para confirmar el cambio a <strong>{{ nuevoEstado }}</strong>.
@@ -176,43 +122,23 @@
           </div>
 
           <div v-if="datos.archivoAnexo.length > 0" class="space-y-2 mb-3">
-            <div
-              v-for="(anexo, idx) in datos.archivoAnexo"
-              :key="idx"
-              class="bg-white rounded-lg p-3 flex items-center gap-3 border border-gray-200"
-            >
+            <div v-for="(anexo, idx) in datos.archivoAnexo" :key="idx" class="bg-white rounded-lg p-3 flex items-center gap-3 border border-gray-200">
               <span class="text-2xl">📎</span>
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-medium text-gray-800 truncate">{{ anexo.originalName || anexo.filename }}</p>
                 <a :href="anexo.url" target="_blank" class="text-xs text-primary-600 hover:underline">Ver PDF →</a>
               </div>
-              <button
-                type="button"
-                @click="quitarAnexo(idx)"
-                class="text-red-500 hover:text-red-700 text-xl"
-                title="Quitar anexo"
-              >✕</button>
+              <button type="button" @click="quitarAnexo(idx)" class="text-red-500 hover:text-red-700 text-xl" title="Quitar anexo">✕</button>
             </div>
           </div>
 
           <div class="flex items-center gap-3">
-            <label
-              class="cursor-pointer bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm inline-flex items-center gap-2 disabled:opacity-50"
-              :class="{ 'opacity-50 cursor-not-allowed': uploadingAnexo || loading }"
-            >
+            <label class="cursor-pointer bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm inline-flex items-center gap-2" :class="{ 'opacity-50 cursor-not-allowed': uploadingAnexo || loading }">
               <span>📎 Agregar anexo</span>
-              <input
-                ref="anexoInput"
-                type="file"
-                accept="application/pdf"
-                class="hidden"
-                :disabled="uploadingAnexo || loading"
-                @change="handleAnexoSelect"
-              />
+              <input ref="anexoInput" type="file" accept="application/pdf" class="hidden" :disabled="uploadingAnexo || loading" @change="handleAnexoSelect" />
             </label>
             <span v-if="uploadingAnexo" class="text-sm text-gray-500 flex items-center gap-2">
-              <div class="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
-              Subiendo...
+              <div class="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div> Subiendo...
             </span>
           </div>
           <p v-if="anexoError" class="mt-2 text-xs text-red-600">{{ anexoError }}</p>
@@ -227,20 +153,8 @@
 
       <!-- Botones (Siempre visibles) -->
       <div class="flex justify-end gap-3 pt-4 border-t shrink-0">
-        <button
-          type="button"
-          @click="cerrar"
-          :disabled="loading"
-          class="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
-        >
-          Cancelar
-        </button>
-        <button
-          type="button"
-          @click="confirmar"
-          :disabled="loading || !nuevoEstado || datos.archivoAnexo.length === 0"
-          class="px-4 py-2 bg-senado-primary text-white rounded-lg hover:bg-senado-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-        >
+        <button type="button" @click="cerrar" :disabled="loading" class="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50">Cancelar</button>
+        <button type="button" @click="confirmar" :disabled="loading || !nuevoEstado || datos.archivoAnexo.length === 0" class="px-4 py-2 bg-senado-primary text-white rounded-lg hover:bg-senado-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
           <span v-if="loading" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
           {{ loading ? 'Cambiando...' : 'Confirmar cambio' }}
         </button>
@@ -295,6 +209,11 @@ const uploadingAnexo = ref(false)
 const anexoInput = ref<HTMLInputElement | null>(null)
 
 watch(() => props.modelValue, (abierto) => {
+  // 🔥 FIX: Bloquear/Desbloquear scroll del body
+  if (typeof document !== 'undefined') {
+    document.body.style.overflow = abierto ? 'hidden' : ''
+  }
+
   if (!abierto) return
 
   nuevoEstado.value = ''
@@ -368,9 +287,7 @@ const quitarAnexo = (idx: number) => {
 }
 
 const confirmar = () => {
-  if (!validar()) {
-    return
-  }
+  if (!validar()) return
 
   const payload: any = {
     estadoLey: nuevoEstado.value,
