@@ -17,7 +17,7 @@
           {{ documento.asunto }}
         </p>
         <p class="text-xs text-gray-600 mt-2">
-          <strong>Estado actual:</strong> {{ (documento as any).estadoLey || '—' }}
+          <strong>Estado actual:</strong> {{ documento.estadoLey || '—' }}
         </p>
       </div>
 
@@ -49,12 +49,11 @@
         </p>
       </div>
 
-      <!-- ============================================ -->
-      <!-- CAMPOS CONDICIONALES POR ESTADO              -->
-      <!-- ============================================ -->
+      <!-- Campos condicionales (opcionales, solo informativos) -->
       <div v-if="nuevoEstado" class="border-t pt-4 space-y-4">
         <p class="text-sm font-medium text-gray-700">
-          Campos requeridos para pasar a <strong>{{ nuevoEstado }}</strong>
+          Campos para pasar a <strong>{{ nuevoEstado }}</strong>
+          <span class="text-xs font-normal text-gray-500 ml-1">(puedes completarlos ahora o después)</span>
         </p>
 
         <!-- APROBADO / APROBADO CON MODIFICACIONES -->
@@ -62,7 +61,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
-                Fecha de Aprobación <span class="text-red-500">*</span>
+                Fecha de Aprobación
               </label>
               <input
                 v-model="datos.fechaAprobacion"
@@ -74,7 +73,7 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
-                Fecha Remisión a Diputados <span class="text-red-500">*</span>
+                Fecha Remisión a Diputados
               </label>
               <input
                 v-model="datos.fechaRemisionDiputados"
@@ -88,7 +87,7 @@
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              N° Ley <span class="text-red-500">*</span>
+              N° Ley
             </label>
             <input
               v-model.number="datos.numeroLey"
@@ -108,7 +107,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
-                Fecha de Sanción <span class="text-red-500">*</span>
+                Fecha de Sanción
               </label>
               <input
                 v-model="datos.fechaSancion"
@@ -120,7 +119,7 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
-                Fecha Remisión al Ejecutivo <span class="text-red-500">*</span>
+                Fecha Remisión al Ejecutivo
               </label>
               <input
                 v-model="datos.fechaRemisionEjecutivo"
@@ -134,7 +133,7 @@
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              N° Ley <span class="text-red-500">*</span>
+              N° Ley
             </label>
             <input
               v-model.number="datos.numeroLey"
@@ -153,7 +152,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
-                Fecha de Rechazo <span class="text-red-500">*</span>
+                Fecha de Rechazo
               </label>
               <input
                 v-model="datos.fechaRechazo"
@@ -165,7 +164,7 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
-                Fecha Remisión a Diputados <span class="text-red-500">*</span>
+                Fecha Remisión a Diputados
               </label>
               <input
                 v-model="datos.fechaRemisionDiputados"
@@ -178,17 +177,15 @@
           </div>
         </template>
 
-        <!-- ============================================ -->
-        <!-- ARCHIVO ANEXO (OBLIGATORIO)                  -->
-        <!-- ============================================ -->
-        <div class="border-t pt-4">
+        <!-- ARCHIVO ANEXO (OBLIGATORIO) -->
+        <div class="border-t pt-4 bg-amber-50/50 -mx-4 px-4 -mb-4 pb-4 rounded-b-lg">
           <div class="flex items-start justify-between mb-2">
             <div>
-              <p class="text-sm font-medium text-gray-700">
+              <p class="text-sm font-medium text-gray-900">
                 Archivo Anexo (Informe de Comisión)
                 <span class="text-red-500">*</span>
               </p>
-              <p class="text-xs text-gray-500 mt-0.5">
+              <p class="text-xs text-gray-600 mt-0.5">
                 Obligatorio para confirmar el cambio a <strong>{{ nuevoEstado }}</strong>.
               </p>
             </div>
@@ -198,7 +195,7 @@
             <div
               v-for="(anexo, idx) in datos.archivoAnexo"
               :key="idx"
-              class="bg-gray-100 rounded-lg p-3 flex items-center gap-3"
+              class="bg-white rounded-lg p-3 flex items-center gap-3 border border-gray-200"
             >
               <span class="text-2xl">📎</span>
               <div class="flex-1 min-w-0">
@@ -235,7 +232,7 @@
             </span>
           </div>
           <p v-if="anexoError" class="mt-2 text-xs text-red-600">{{ anexoError }}</p>
-          <p v-if="errores.archivoAnexo" class="mt-2 text-xs text-red-600">{{ errores.archivoAnexo }}</p>
+          <p v-if="errores.archivoAnexo" class="mt-2 text-xs text-red-600 font-medium">{{ errores.archivoAnexo }}</p>
         </div>
       </div>
 
@@ -257,7 +254,7 @@
         <button
           type="button"
           @click="confirmar"
-          :disabled="loading || !puedeConfirmar"
+          :disabled="loading || !nuevoEstado || datos.archivoAnexo.length === 0"
           class="px-4 py-2 bg-senado-primary text-white rounded-lg hover:bg-senado-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
           <span v-if="loading" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
@@ -269,7 +266,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import Modal from '~/components/ui/Modal.vue'
 import { useDocumentosLegislativos, type UploadResult } from '~/composables/useDocumentosLegislativos'
 import type { DocumentoLegislativo } from '~/composables/useDocumentosLegislativos'
@@ -289,9 +286,6 @@ const emit = defineEmits<{
 
 const { uploadPDF } = useDocumentosLegislativos()
 
-// ============================================
-// ESTADOS DISPONIBLES
-// ============================================
 const estadosDisponibles = [
   { value: 'APROBADO', label: 'Aprobado', icon: '🔵' },
   { value: 'SANCIONADO', label: 'Sancionado', icon: '🟣' },
@@ -299,9 +293,6 @@ const estadosDisponibles = [
   { value: 'RECHAZADO', label: 'Rechazado', icon: '🔴' }
 ]
 
-// ============================================
-// ESTADO LOCAL
-// ============================================
 const nuevoEstado = ref('')
 const datos = reactive({
   fechaAprobacion: '',
@@ -319,9 +310,6 @@ const anexoError = ref('')
 const uploadingAnexo = ref(false)
 const anexoInput = ref<HTMLInputElement | null>(null)
 
-// ============================================
-// RESET AL ABRIR
-// ============================================
 watch(() => props.modelValue, (abierto) => {
   if (!abierto) return
 
@@ -338,18 +326,12 @@ watch(() => props.modelValue, (abierto) => {
   anexoError.value = ''
 })
 
-// ============================================
-// SELECCIONAR ESTADO
-// ============================================
 const seleccionarEstado = (estado: string) => {
   if (props.loading) return
   nuevoEstado.value = estado
   Object.keys(errores).forEach(k => delete errores[k])
 }
 
-// ============================================
-// VALIDACIÓN
-// ============================================
 const validar = (): boolean => {
   Object.keys(errores).forEach(k => delete errores[k])
   errorGeneral.value = ''
@@ -359,38 +341,15 @@ const validar = (): boolean => {
     return false
   }
 
-  if (['APROBADO', 'APROBADO CON MODIFICACIONES'].includes(nuevoEstado.value)) {
-    if (!datos.fechaAprobacion) errores.fechaAprobacion = 'Obligatorio'
-    if (!datos.fechaRemisionDiputados) errores.fechaRemisionDiputados = 'Obligatorio'
-    if (!datos.numeroLey) errores.numeroLey = 'Obligatorio'
-  }
-
-  if (nuevoEstado.value === 'SANCIONADO') {
-    if (!datos.fechaSancion) errores.fechaSancion = 'Obligatorio'
-    if (!datos.fechaRemisionEjecutivo) errores.fechaRemisionEjecutivo = 'Obligatorio'
-    if (!datos.numeroLey) errores.numeroLey = 'Obligatorio'
-  }
-
-  if (nuevoEstado.value === 'RECHAZADO') {
-    if (!datos.fechaRechazo) errores.fechaRechazo = 'Obligatorio'
-    if (!datos.fechaRemisionDiputados) errores.fechaRemisionDiputados = 'Obligatorio'
-  }
-
+  // 🔥 SOLO el archivo anexo es obligatorio
   if (!datos.archivoAnexo || datos.archivoAnexo.length === 0) {
     errores.archivoAnexo = 'Adjunta al menos un informe de comisión'
+    return false
   }
 
-  return Object.keys(errores).length === 0
+  return true
 }
 
-// ============================================
-// PUEDE CONFIRMAR
-// ============================================
-const puedeConfirmar = computed(() => !!nuevoEstado.value)
-
-// ============================================
-// UPLOAD ANEXO
-// ============================================
 const handleAnexoSelect = async (event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
@@ -425,12 +384,8 @@ const quitarAnexo = (idx: number) => {
   datos.archivoAnexo.splice(idx, 1)
 }
 
-// ============================================
-// CONFIRMAR
-// ============================================
 const confirmar = () => {
   if (!validar()) {
-    errorGeneral.value = 'Corrige los errores antes de continuar.'
     return
   }
 
@@ -439,29 +394,18 @@ const confirmar = () => {
     archivoAnexo: datos.archivoAnexo
   }
 
-  if (['APROBADO', 'APROBADO CON MODIFICACIONES'].includes(nuevoEstado.value)) {
-    payload.fechaAprobacion = datos.fechaAprobacion
-    payload.fechaRemisionDiputados = datos.fechaRemisionDiputados
-    payload.numeroLey = datos.numeroLey
-  }
-
-  if (nuevoEstado.value === 'SANCIONADO') {
-    payload.fechaSancion = datos.fechaSancion
-    payload.fechaRemisionEjecutivo = datos.fechaRemisionEjecutivo
-    payload.numeroLey = datos.numeroLey
-  }
-
-  if (nuevoEstado.value === 'RECHAZADO') {
-    payload.fechaRechazo = datos.fechaRechazo
-    payload.fechaRemisionDiputados = datos.fechaRemisionDiputados
-  }
+  // Solo enviamos las fechas si el usuario las llenó
+  if (datos.fechaAprobacion) payload.fechaAprobacion = datos.fechaAprobacion
+  if (datos.fechaRemisionDiputados) payload.fechaRemisionDiputados = datos.fechaRemisionDiputados
+  if (datos.fechaSancion) payload.fechaSancion = datos.fechaSancion
+  if (datos.fechaRemisionEjecutivo) payload.fechaRemisionEjecutivo = datos.fechaRemisionEjecutivo
+  if (datos.fechaRechazo) payload.fechaRechazo = datos.fechaRechazo
+  
+  if (datos.numeroLey) payload.numeroLey = datos.numeroLey
 
   emit('confirm', { estadoLey: nuevoEstado.value, datos: payload })
 }
 
-// ============================================
-// CERRAR
-// ============================================
 const cerrar = () => {
   if (props.loading) return
   emit('update:modelValue', false)
