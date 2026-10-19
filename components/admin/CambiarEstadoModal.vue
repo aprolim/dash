@@ -6,9 +6,10 @@
     size="xl"
     @update:model-value="cerrar"
   >
-    <div class="space-y-5">
+    <div class="flex flex-col h-full space-y-5">
+      
       <!-- Info del documento -->
-      <div v-if="documento" class="bg-gray-50 rounded-lg p-3">
+      <div v-if="documento" class="bg-gray-50 rounded-lg p-3 shrink-0">
         <p class="text-sm text-gray-700">
           <strong>Nº:</strong> {{ documento.numero }} &nbsp;·&nbsp;
           <strong>Código:</strong> {{ documento.codigo }}
@@ -22,7 +23,7 @@
       </div>
 
       <!-- Selector de estado -->
-      <div>
+      <div class="shrink-0">
         <label class="block text-sm font-medium text-gray-700 mb-2">
           Nuevo estado <span class="text-red-500">*</span>
         </label>
@@ -49,7 +50,7 @@
         </p>
       </div>
 
-      <!-- Campos condicionales (opcionales, solo informativos) -->
+      <!-- Campos condicionales -->
       <div v-if="nuevoEstado" class="border-t pt-4 space-y-4">
         <p class="text-sm font-medium text-gray-700">
           Campos para pasar a <strong>{{ nuevoEstado }}</strong>
@@ -66,10 +67,8 @@
               <input
                 v-model="datos.fechaAprobacion"
                 type="date"
-                class="w-full px-3 py-2 border rounded-md text-sm"
-                :class="errores.fechaAprobacion ? 'border-red-400' : 'border-gray-300'"
+                class="w-full px-3 py-2 border rounded-md text-sm border-gray-300"
               />
-              <p v-if="errores.fechaAprobacion" class="mt-1 text-xs text-red-600">{{ errores.fechaAprobacion }}</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -78,10 +77,8 @@
               <input
                 v-model="datos.fechaRemisionDiputados"
                 type="date"
-                class="w-full px-3 py-2 border rounded-md text-sm"
-                :class="errores.fechaRemisionDiputados ? 'border-red-400' : 'border-gray-300'"
+                class="w-full px-3 py-2 border rounded-md text-sm border-gray-300"
               />
-              <p v-if="errores.fechaRemisionDiputados" class="mt-1 text-xs text-red-600">{{ errores.fechaRemisionDiputados }}</p>
             </div>
           </div>
 
@@ -93,12 +90,10 @@
               v-model.number="datos.numeroLey"
               type="number"
               min="1"
-              class="w-48 px-3 py-2 border rounded-md text-sm"
-              :class="errores.numeroLey ? 'border-red-400' : 'border-gray-300'"
+              class="w-48 px-3 py-2 border rounded-md text-sm border-gray-300"
               placeholder="Ej: 1763"
             />
-            <p v-if="errores.numeroLey" class="mt-1 text-xs text-red-600">{{ errores.numeroLey }}</p>
-            <p v-else class="mt-1 text-xs text-gray-500">Debe ser único a nivel global.</p>
+            <p class="mt-1 text-xs text-gray-500">Debe ser único a nivel global.</p>
           </div>
         </template>
 
@@ -112,10 +107,8 @@
               <input
                 v-model="datos.fechaSancion"
                 type="date"
-                class="w-full px-3 py-2 border rounded-md text-sm"
-                :class="errores.fechaSancion ? 'border-red-400' : 'border-gray-300'"
+                class="w-full px-3 py-2 border rounded-md text-sm border-gray-300"
               />
-              <p v-if="errores.fechaSancion" class="mt-1 text-xs text-red-600">{{ errores.fechaSancion }}</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -124,13 +117,10 @@
               <input
                 v-model="datos.fechaRemisionEjecutivo"
                 type="date"
-                class="w-full px-3 py-2 border rounded-md text-sm"
-                :class="errores.fechaRemisionEjecutivo ? 'border-red-400' : 'border-gray-300'"
+                class="w-full px-3 py-2 border rounded-md text-sm border-gray-300"
               />
-              <p v-if="errores.fechaRemisionEjecutivo" class="mt-1 text-xs text-red-600">{{ errores.fechaRemisionEjecutivo }}</p>
             </div>
           </div>
-
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
               N° Ley
@@ -139,11 +129,9 @@
               v-model.number="datos.numeroLey"
               type="number"
               min="1"
-              class="w-48 px-3 py-2 border rounded-md text-sm"
-              :class="errores.numeroLey ? 'border-red-400' : 'border-gray-300'"
+              class="w-48 px-3 py-2 border rounded-md text-sm border-gray-300"
               placeholder="Ej: 1763"
             />
-            <p v-if="errores.numeroLey" class="mt-1 text-xs text-red-600">{{ errores.numeroLey }}</p>
           </div>
         </template>
 
@@ -157,10 +145,8 @@
               <input
                 v-model="datos.fechaRechazo"
                 type="date"
-                class="w-full px-3 py-2 border rounded-md text-sm"
-                :class="errores.fechaRechazo ? 'border-red-400' : 'border-gray-300'"
+                class="w-full px-3 py-2 border rounded-md text-sm border-gray-300"
               />
-              <p v-if="errores.fechaRechazo" class="mt-1 text-xs text-red-600">{{ errores.fechaRechazo }}</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -169,16 +155,14 @@
               <input
                 v-model="datos.fechaRemisionDiputados"
                 type="date"
-                class="w-full px-3 py-2 border rounded-md text-sm"
-                :class="errores.fechaRemisionDiputados ? 'border-red-400' : 'border-gray-300'"
+                class="w-full px-3 py-2 border rounded-md text-sm border-gray-300"
               />
-              <p v-if="errores.fechaRemisionDiputados" class="mt-1 text-xs text-red-600">{{ errores.fechaRemisionDiputados }}</p>
             </div>
           </div>
         </template>
 
         <!-- ARCHIVO ANEXO (OBLIGATORIO) -->
-        <div class="border-t pt-4 bg-amber-50/50 -mx-4 px-4 -mb-4 pb-4 rounded-b-lg">
+        <div class="border-t pt-4 bg-amber-50/50 -mx-6 px-6 pb-2">
           <div class="flex items-start justify-between mb-2">
             <div>
               <p class="text-sm font-medium text-gray-900">
@@ -237,12 +221,12 @@
       </div>
 
       <!-- Error general -->
-      <div v-if="errorGeneral" class="bg-red-50 border border-red-200 rounded-lg p-3">
+      <div v-if="errorGeneral" class="bg-red-50 border border-red-200 rounded-lg p-3 shrink-0">
         <p class="text-sm text-red-800">{{ errorGeneral }}</p>
       </div>
 
-      <!-- Botones -->
-      <div class="flex justify-end gap-3 pt-4 border-t">
+      <!-- Botones (Siempre visibles) -->
+      <div class="flex justify-end gap-3 pt-4 border-t shrink-0">
         <button
           type="button"
           @click="cerrar"
@@ -258,7 +242,7 @@
           class="px-4 py-2 bg-senado-primary text-white rounded-lg hover:bg-senado-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
           <span v-if="loading" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-          {{ loading ? 'Cambiando...' : 'Confirmar cambio de estado' }}
+          {{ loading ? 'Cambiando...' : 'Confirmar cambio' }}
         </button>
       </div>
     </div>
@@ -341,7 +325,6 @@ const validar = (): boolean => {
     return false
   }
 
-  // 🔥 SOLO el archivo anexo es obligatorio
   if (!datos.archivoAnexo || datos.archivoAnexo.length === 0) {
     errores.archivoAnexo = 'Adjunta al menos un informe de comisión'
     return false
@@ -394,13 +377,11 @@ const confirmar = () => {
     archivoAnexo: datos.archivoAnexo
   }
 
-  // Solo enviamos las fechas si el usuario las llenó
   if (datos.fechaAprobacion) payload.fechaAprobacion = datos.fechaAprobacion
   if (datos.fechaRemisionDiputados) payload.fechaRemisionDiputados = datos.fechaRemisionDiputados
   if (datos.fechaSancion) payload.fechaSancion = datos.fechaSancion
   if (datos.fechaRemisionEjecutivo) payload.fechaRemisionEjecutivo = datos.fechaRemisionEjecutivo
   if (datos.fechaRechazo) payload.fechaRechazo = datos.fechaRechazo
-  
   if (datos.numeroLey) payload.numeroLey = datos.numeroLey
 
   emit('confirm', { estadoLey: nuevoEstado.value, datos: payload })

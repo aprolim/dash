@@ -28,7 +28,7 @@
           >
             <div
               v-if="modelValue"
-              class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle w-full"
+              class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle w-full flex flex-col max-h-[90vh]"
               :class="{
                 'sm:max-w-lg': size === 'lg',
                 'sm:max-w-xl': size === 'xl',
@@ -37,7 +37,7 @@
               }"
             >
               <!-- Header -->
-              <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+              <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex-shrink-0">
                 <div class="flex items-center justify-between">
                   <h3 class="text-lg font-semibold text-gray-900">
                     {{ title }}
@@ -52,7 +52,7 @@
               </div>
 
               <!-- Content -->
-              <div class="px-6 py-4">
+              <div class="px-6 py-4 overflow-y-auto">
                 <slot />
               </div>
             </div>
