@@ -1,6 +1,5 @@
 // utils/documentoTypes.ts
 // Configuración de tipos de documentos legislativos.
-// Debe mantenerse en sync con backend/src/config/tiposDocumento.js
 
 export type TipoDocumento =
   | 'peticion-informe-escrito'
@@ -167,7 +166,6 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
       { key: 'archivo', label: 'Archivo', type: 'file' }
     ],
     camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'peticionario', 'asunto'],
-    // 🔥 REGLA ESPECIAL: En Resoluciones, el numero y el proyectista se bloquean al editar
     camposBloqueadosEnEdicion: ['numero', 'peticionario']
   },
 
@@ -214,7 +212,7 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
   },
 
   // ============================================
-  // ⚖️ LEGISLACIÓN (Se mantienen los placeholders)
+  // ⚖️ LEGISLACIÓN (Proyectos de Ley)
   // ============================================
   'proyecto-ley-tratamiento-senado': {
     tipo: 'proyecto-ley-tratamiento-senado',
@@ -222,17 +220,27 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
     labelSingular: 'Proyecto de Ley en Tratamiento',
     bloque: 'legislacion',
     icono: 'mdi:file-document-edit',
-    prefijoCodigo: 'P.L.',
+    prefijoCodigo: 'P.L. C.S.',
     columnas: [
       { key: 'numero', label: 'Nº', type: 'number', ancho: '60px' },
       { key: 'codigo', label: 'Código o Nombre', type: 'text' },
       { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
+      { key: 'asunto', label: 'Asunto o Referencia', type: 'longtext' },
       { key: 'peticionario', label: 'Proyectista', type: 'text' },
-      { key: 'asunto', label: 'Asunto', type: 'longtext' },
+      { key: 'esNuevoOReReposicion', label: 'Nuevo o Reposición', type: 'text' },
+      { key: 'plAnterior', label: 'P.L. Anterior', type: 'text' },
+      { key: 'comisionI', label: 'Comisión I Remitida', type: 'text' },
+      { key: 'fechaRemisionComisionI', label: 'Fecha Remisión Comisión I', type: 'date' },
+      { key: 'comisionII', label: 'Comisión II', type: 'text' },
+      { key: 'fechaRemisionComisionII', label: 'Fecha Remisión Comisión II', type: 'date' },
+      { key: 'estadoLey', label: 'Estado', type: 'text' },
+      { key: 'fechaAprobacion', label: 'Fecha de Aprobación', type: 'date' },
+      { key: 'fechaRemisionDiputados', label: 'Fecha Remisión a Diputados', type: 'date' },
+      { key: 'observacion', label: 'Observaciones', type: 'text' },
       { key: 'archivo', label: 'Archivo', type: 'file' }
     ],
-    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'asunto', 'peticionario'],
-    camposBloqueadosEnEdicion: ['numero']
+    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'asunto', 'peticionario', 'estadoLey'],
+    camposBloqueadosEnEdicion: ['numero', 'codigo']
   },
 
   'proyecto-ley-revision-diputados': {
@@ -241,19 +249,28 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
     labelSingular: 'Proyecto de Ley en Revisión',
     bloque: 'legislacion',
     icono: 'mdi:file-search',
-    prefijoCodigo: 'P.L.',
+    prefijoCodigo: 'P.L. C.D.',
     columnas: [
       { key: 'numero', label: 'Nº', type: 'number', ancho: '60px' },
       { key: 'codigo', label: 'Código o Nombre', type: 'text' },
       { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
+      { key: 'asunto', label: 'Asunto o Referencia', type: 'longtext' },
       { key: 'peticionario', label: 'Proyectista', type: 'text' },
-      { key: 'asunto', label: 'Asunto', type: 'longtext' },
+      { key: 'comisionI', label: 'Comisión I Remitida', type: 'text' },
+      { key: 'fechaRemisionComisionI', label: 'Fecha Remisión Comisión I', type: 'date' },
+      { key: 'comisionII', label: 'Comisión II', type: 'text' },
+      { key: 'fechaRemisionComisionII', label: 'Fecha Remisión Comisión II', type: 'date' },
+      { key: 'estadoLey', label: 'Estado', type: 'text' },
+      { key: 'fechaSancion', label: 'Fecha de Sanción', type: 'date' },
+      { key: 'fechaRemisionEjecutivo', label: 'Fecha Remisión al Ejecutivo', type: 'date' },
+      { key: 'observacion', label: 'Observaciones', type: 'text' },
       { key: 'archivo', label: 'Archivo', type: 'file' }
     ],
-    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'asunto', 'peticionario'],
-    camposBloqueadosEnEdicion: ['numero']
+    camposObligatorios: ['numero', 'codigo', 'fechaIngreso', 'asunto', 'peticionario', 'estadoLey'],
+    camposBloqueadosEnEdicion: ['numero', 'codigo']
   },
 
+  // Placeholders para los otros tipos de legislación
   'proyecto-ley-aprobados': {
     tipo: 'proyecto-ley-aprobados',
     label: 'Proyectos de Ley Aprobados',
