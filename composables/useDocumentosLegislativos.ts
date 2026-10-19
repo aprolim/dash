@@ -2,6 +2,13 @@
 import { useApi } from './useApi'
 import type { TipoDocumento } from '~/utils/documentoTypes'
 
+export interface ArchivoAnexo {
+  url: string
+  filename: string
+  originalName: string
+  size: number
+}
+
 export interface DocumentoLegislativo {
   _id: string
   tipo: TipoDocumento
@@ -29,6 +36,22 @@ export interface DocumentoLegislativo {
     originalName: string
     size: number
   }
+
+  // 🔥 NUEVOS CAMPOS (los 4 tipos nuevos)
+  archivoAnexo?: ArchivoAnexo[]
+  numeroLey?: number | null
+  fechaRechazo?: string | null
+  esNuevoOReReposicion?: string
+  plAnterior?: string
+  comisionI?: string
+  fechaRemisionComisionI?: string | null
+  comisionII?: string
+  fechaRemisionComisionII?: string | null
+  estadoLey?: string
+  fechaRemisionDiputados?: string | null
+  fechaSancion?: string | null
+  fechaRemisionEjecutivo?: string | null
+
   activo: boolean
   eliminado: boolean
   eliminadoPor?: any
@@ -146,10 +169,6 @@ export const useDocumentosLegislativos = () => {
     return await put<DocumentoLegislativo>(`${baseUrl}/legislativos/${tipo}/${id}`, data)
   }
 
-  /**
-   * 🔥 SOFT DELETE con motivo obligatorio.
-   * El backend marca el documento como eliminado y guarda quién/cuándo/por qué.
-   */
   const deleteDocumento = async (
     tipo: TipoDocumento,
     id: string,
@@ -171,9 +190,6 @@ export const useDocumentosLegislativos = () => {
     return result
   }
 
-  /**
-   * Restaurar (solo SUPER_ADMIN)
-   */
   const restoreDocumento = async (
     tipo: TipoDocumento,
     id: string

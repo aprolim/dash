@@ -45,11 +45,13 @@
     <!-- Formulario -->
     <div v-else-if="documento" class="bg-white rounded-lg shadow p-6">
       <DocumentoLegislativoForm
+        ref="formRef"
         :tipo="tipo"
         :documento="documento"
         :saving="saving"
         :server-error="serverError"
         @submit="guardar"
+        @cambiarEstado="handleCambiarEstado"
       />
     </div>
 
@@ -71,7 +73,7 @@ import {
   useDocumentosLegislativos,
   type DocumentoLegislativo
 } from '~/composables/useDocumentosLegislativos'
-import { getConfigTipo, type TipoDocumento } from '~/utils/documentoTypes'
+import { getConfigTipo, type TipoDocumento, getTipoPorEstado } from '~/utils/documentoTypes'
 import DocumentoLegislativoForm from '~/components/admin/DocumentoLegislativoForm.vue'
 
 definePageMeta({
@@ -95,6 +97,7 @@ const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
 const serverError = ref('')
+const formRef = ref<any>(null)
 const toast = ref({ show: false, message: '', type: 'success' as 'success' | 'error' })
 
 const mostrarToast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -102,6 +105,9 @@ const mostrarToast = (message: string, type: 'success' | 'error' = 'success') =>
   setTimeout(() => { toast.value.show = false }, 3500)
 }
 
+// ============================================
+// CARGAR DOCUMENTO
+// ============================================
 const cargarDocumento = async () => {
   loading.value = true
   error.value = ''
@@ -116,6 +122,9 @@ const cargarDocumento = async () => {
   }
 }
 
+// ============================================
+// GUARDAR (edición normal)
+// ============================================
 const guardar = async (payload: Partial<DocumentoLegislativo>) => {
   if (!documento.value) return
 
@@ -136,6 +145,46 @@ const guardar = async (payload: Partial<DocumentoLegislativo>) => {
   }
 }
 
+// ============================================
+// 🔥 CAMBIAR ESTADO (desde el modal)
+// ============================================
+const handleCambiarEstado = async (payload: { estadoLey: string; datos: any }) => {
+  if (!documento.value) return
+
+  saving.value = true
+  serverError.value = ''
+
+  // Notificar al form para que muestre el spinner en el modal
+  formRef.value?.setSavingEstado?.(true)
+
+  try {
+    // El endpoint PUT recibe los datos y el backend deduce el nuevo `tipo`
+    await updateDocumento(tipo.value, documento.value._id, payload.datos)
+
+    // Detectar el nuevo tipo para redirigir al listado correspondiente
+    const tipoNuevo = getTipoPorEstado(payload.estadoLey)
+    const destino = tipoNuevo || tipo.value
+
+    mostrarToast(
+      `Documento migrado a "${payload.estadoLey}". Redirigiendo al listado...`,
+      'success'
+    )
+
+    setTimeout(() => {
+      router.push(`/admin/legislativos?tipo=${destino}`)
+    }, 1200)
+  } catch (err: any) {
+    serverError.value = err.message || 'Error al cambiar el estado'
+    mostrarToast(serverError.value, 'error')
+    formRef.value?.setSavingEstado?.(false)
+  } finally {
+    saving.value = false
+  }
+}
+
+// ============================================
+// LIFECYCLE
+// ============================================
 onMounted(() => {
   cargarDocumento()
 })

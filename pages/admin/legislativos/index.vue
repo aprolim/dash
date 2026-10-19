@@ -199,7 +199,7 @@
                   </span>
                 </template>
 
-                <!-- Archivo -->
+                <!-- Archivo principal -->
                 <template v-else-if="col.key === 'archivo'">
                   <a
                     v-if="doc.archivo?.url"
@@ -212,6 +212,31 @@
                   <span v-else class="text-gray-300 text-xs">Sin PDF</span>
                 </template>
 
+                <!-- Archivo Anexo (array) -->
+                <template v-else-if="col.key === 'archivoAnexo'">
+                  <div v-if="doc.archivoAnexo && doc.archivoAnexo.length > 0" class="flex flex-col gap-1">
+                    <a
+                      v-for="(anexo, i) in doc.archivoAnexo"
+                      :key="i"
+                      :href="anexo.url"
+                      target="_blank"
+                      class="inline-flex items-center gap-1 text-amber-600 hover:text-amber-800 text-xs font-medium"
+                      :title="anexo.originalName || anexo.filename"
+                    >
+                      📎 Anexo {{ Number(i) + 1 }}
+                    </a>
+                  </div>
+                  <span v-else class="text-gray-300 text-xs">Sin anexo</span>
+                </template>
+
+                <!-- numeroLey -->
+                <template v-else-if="col.key === 'numeroLey'">
+                  <span v-if="doc.numeroLey" class="font-semibold text-blue-700">
+                    {{ doc.numeroLey }}
+                  </span>
+                  <span v-else class="text-gray-300 text-xs">—</span>
+                </template>
+
                 <!-- Longtext (asunto) -->
                 <template v-else-if="col.type === 'longtext'">
                   <div class="max-w-md text-xs text-gray-700 leading-snug line-clamp-3 text-justify">
@@ -219,7 +244,7 @@
                   </div>
                 </template>
 
-                <!-- Default (text, number, enum) -->
+                <!-- Default -->
                 <template v-else>
                   <span class="text-xs text-gray-700">
                     {{ doc[col.key as keyof typeof doc] || '—' }}
@@ -233,7 +258,6 @@
                 class="px-3 py-2 text-right align-top whitespace-nowrap"
               >
                 <div class="flex justify-end gap-1">
-                  <!-- Ver PDF -->
                   <a
                     v-if="doc.archivo?.url"
                     :href="doc.archivo.url"
@@ -244,7 +268,6 @@
                     👁
                   </a>
 
-                  <!-- Editar -->
                   <NuxtLink
                     v-if="canEdit && !doc.eliminado"
                     :to="`/admin/legislativos/edit/${doc._id}?tipo=${tipoActivo}`"
@@ -253,7 +276,6 @@
                     ✏ Editar
                   </NuxtLink>
 
-                  <!-- Eliminar (soft delete) -->
                   <button
                     v-if="canDelete && !doc.eliminado"
                     @click="abrirEliminar(doc)"
@@ -262,7 +284,6 @@
                     🗑
                   </button>
 
-                  <!-- Restaurar (solo SUPER_ADMIN y solo si está eliminado) -->
                   <button
                     v-if="isSuperAdmin && doc.eliminado"
                     @click="restaurarDocumento(doc)"
@@ -303,7 +324,7 @@
       </div>
     </div>
 
-    <!-- Modal de eliminación con motivo -->
+    <!-- Modal de eliminación -->
     <DeleteModal
       v-model="showDeleteModal"
       :documento="docToDelete"
@@ -408,7 +429,6 @@ const tieneFiltros = computed(() => {
   )
 })
 
-// Años disponibles (del 2020 al actual + 1)
 const aniosDisponibles = computed(() => {
   const actual = new Date().getFullYear()
   const anios: number[] = []
@@ -498,7 +518,6 @@ const recargarTodo = async () => {
 const onTipoChange = () => {
   page.value = 1
   resetFiltrosInterno()
-  // Actualizar la URL sin recargar la página
   router.replace({ query: { tipo: tipoActivo.value } })
   recargarTodo()
 }
@@ -546,7 +565,7 @@ const nextPage = () => {
 }
 
 // ============================================
-// ELIMINAR (SOFT DELETE)
+// ELIMINAR
 // ============================================
 const abrirEliminar = (doc: DocumentoLegislativo) => {
   docToDelete.value = doc
@@ -571,7 +590,7 @@ const confirmarEliminar = async (motivo: string) => {
 }
 
 // ============================================
-// RESTAURAR (solo SUPER_ADMIN)
+// RESTAURAR
 // ============================================
 const restaurarDocumento = async (doc: DocumentoLegislativo) => {
   if (!confirm(`¿Restaurar el documento Nº ${doc.numero} - ${doc.codigo}?`)) return
@@ -592,7 +611,6 @@ onMounted(() => {
   recargarTodo()
 })
 
-// Si el usuario cambia el query string, sincronizar
 watch(
   () => route.query.tipo,
   (nuevo) => {
