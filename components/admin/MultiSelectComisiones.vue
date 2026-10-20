@@ -11,7 +11,7 @@
         :key="sel.value"
         class="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-full pl-2 pr-1 py-0.5 text-xs font-medium"
       >
-        <span class="truncate max-w-[220px]" :title="sel.label">{{ sel.label }}</span>
+        <span class="truncate max-w-[260px]" :title="sel.value">{{ sel.value }}</span>
         <button
           type="button"
           class="text-amber-600 hover:text-amber-800 font-bold leading-none px-1"
@@ -54,10 +54,13 @@
         @mousedown.prevent="seleccionar(c)"
       >
         <span class="text-lg">📋</span>
-        <span class="text-sm text-gray-800 truncate">{{ c.label }}</span>
+        <span class="text-sm text-gray-800 truncate">{{ c.value }}</span>
       </button>
 
-      <div v-if="!loading && query.trim().length > 0 && resultados.length === 0" class="px-3 py-3 text-sm text-gray-500 text-center">
+      <div
+        v-if="!loading && query.trim().length > 0 && resultados.length === 0"
+        class="px-3 py-3 text-sm text-gray-500 text-center"
+      >
         Sin resultados para "{{ query }}"
       </div>
     </div>
@@ -71,7 +74,10 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
-import { useCatalogos, type ComisionCatalogo } from '~/composables/useCatalogos'
+import {
+  useLegislativosCatalogos,
+  type CatalogoItem
+} from '~/composables/useLegislativosCatalogos'
 
 const props = defineProps<{
   modelValue: string[]
@@ -84,25 +90,22 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string[]): void
 }>()
 
-const { getComisiones } = useCatalogos()
+const { getComisiones } = useLegislativosCatalogos()
 
-const todos = ref<ComisionCatalogo[]>([])
+const todos = ref<CatalogoItem[]>([])
 const loading = ref(false)
 const cargado = ref(false)
 
 const query = ref('')
 const abierto = ref(false)
-const resultados = ref<ComisionCatalogo[]>([])
+const resultados = ref<CatalogoItem[]>([])
 
 const rootRef = ref<HTMLElement | null>(null)
 const inputRef = ref<HTMLInputElement | null>(null)
 
-const seleccionados = computed<ComisionCatalogo[]>(() => {
+const seleccionados = computed<{ value: string }[]>(() => {
   const valores = Array.isArray(props.modelValue) ? props.modelValue : []
-  return valores.map((v) => {
-    const found = todos.value.find((c) => c.value === v)
-    return found || { value: v, label: v }
-  })
+  return valores.map((v) => ({ value: v }))
 })
 
 const cargarCatalogo = async () => {
@@ -138,7 +141,7 @@ const filtrar = () => {
 
   resultados.value = todos.value.filter((c) => {
     if (yaSeleccionados.has(c.value)) return false
-    return c.label.toLowerCase().includes(q)
+    return c.value.toLowerCase().includes(q)
   })
 }
 
@@ -167,7 +170,7 @@ const seleccionarPrimero = () => {
   if (resultados.value.length > 0) seleccionar(resultados.value[0])
 }
 
-const seleccionar = (c: ComisionCatalogo) => {
+const seleccionar = (c: CatalogoItem) => {
   if (props.disabled) return
   const actuales = Array.isArray(props.modelValue) ? [...props.modelValue] : []
   if (!actuales.includes(c.value)) {

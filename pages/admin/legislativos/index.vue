@@ -11,14 +11,25 @@
           Gestiona peticiones, resoluciones, declaraciones, minutas y proyectos de ley
         </p>
       </div>
-      <NuxtLink
-        v-if="canCreate"
-        :to="`/admin/legislativos/create?tipo=${tipoActivo}`"
-        class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
-      >
-        <span class="mr-2">+</span>
-        Nuevo Documento
-      </NuxtLink>
+      <div class="flex gap-2">
+        <!-- 🔥 NUEVO: botón a la página de catálogos -->
+        <NuxtLink
+          v-if="canEdit"
+          to="/admin/legislativos/catalogos"
+          class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-md hover:bg-gray-50 text-sm font-medium"
+        >
+          ⚙️ Administrar catálogos
+        </NuxtLink>
+
+        <NuxtLink
+          v-if="canCreate"
+          :to="`/admin/legislativos/create?tipo=${tipoActivo}`"
+          class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+        >
+          <span class="mr-2">+</span>
+          Nuevo Documento
+        </NuxtLink>
+      </div>
     </div>
 
     <div
@@ -172,7 +183,6 @@
                 :key="col.key"
                 class="px-3 py-2 align-top"
               >
-                <!-- Número -->
                 <template v-if="col.key === 'numero'">
                   <span class="font-bold text-primary-700">{{ doc.numero }}</span>
                   <span v-if="doc.eliminado" class="ml-2 text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded">
@@ -183,14 +193,12 @@
                   </span>
                 </template>
 
-                <!-- Fechas -->
                 <template v-else-if="col.type === 'date'">
                   <span class="text-gray-700 whitespace-nowrap">
                     {{ formatearFecha((doc as any)[col.key]) }}
                   </span>
                 </template>
 
-                <!-- Archivo principal -->
                 <template v-else-if="col.key === 'archivo'">
                   <a
                     v-if="doc.archivo?.url"
@@ -203,7 +211,6 @@
                   <span v-else class="text-gray-300 text-xs">Sin PDF</span>
                 </template>
 
-                <!-- Archivo Anexo (array) -->
                 <template v-else-if="col.key === 'archivoAnexo'">
                   <div v-if="doc.archivoAnexo && doc.archivoAnexo.length > 0" class="flex flex-col gap-1">
                     <a
@@ -220,7 +227,6 @@
                   <span v-else class="text-gray-300 text-xs">Sin anexo</span>
                 </template>
 
-                <!-- numeroLey -->
                 <template v-else-if="col.key === 'numeroLey'">
                   <span v-if="doc.numeroLey" class="font-semibold text-blue-700">
                     {{ doc.numeroLey }}
@@ -243,14 +249,12 @@
                   <span v-else class="text-gray-300 text-xs">—</span>
                 </template>
 
-                <!-- Longtext -->
                 <template v-else-if="col.type === 'longtext'">
                   <div class="max-w-md text-xs text-gray-700 leading-snug line-clamp-3 text-justify">
                     {{ doc[col.key as keyof typeof doc] || '—' }}
                   </div>
                 </template>
 
-                <!-- Default -->
                 <template v-else>
                   <span class="text-xs text-gray-700">
                     {{ doc[col.key as keyof typeof doc] || '—' }}

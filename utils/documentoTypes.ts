@@ -1,4 +1,4 @@
-// utils/documentoTypes.js
+// utils/documentoTypes.ts
 // Configuración de tipos de documentos legislativos.
 
 export type TipoDocumento =
@@ -25,6 +25,7 @@ export type ColumnaTipo =
   | 'date'
   | 'enum'
   | 'file'
+  | 'array'   // 🔥 NUEVO: para peticionario / comisiones / anexos
 
 export interface ColumnaConfig {
   key: string
@@ -45,7 +46,7 @@ export interface TipoDocumentoConfig {
   columnas: ColumnaConfig[]
   camposObligatorios: string[]
   camposBloqueadosEnEdicion: string[]
-  estadoRequerido?: string  // 🔥 Solo para tipos destino (aprobados/sancionados/etc.)
+  estadoRequerido?: string
 }
 
 // ============================================
@@ -87,13 +88,11 @@ export const TIPO_A_ESTADO: Record<TipoDocumento, string> = {
   'proyecto-ley-rechazados': 'RECHAZADO'
 } as any
 
-// Tipos origen (desde donde se puede cambiar estado)
 export const TIPOS_ORIGEN_TRANSICION: TipoDocumento[] = [
   'proyecto-ley-tratamiento-senado',
   'proyecto-ley-revision-diputados'
 ]
 
-// Tipos destino (a los que se puede llegar)
 export const TIPOS_DESTINO_TRANSICION: TipoDocumento[] = [
   'proyecto-ley-aprobados',
   'proyecto-ley-sancionados',
@@ -101,7 +100,6 @@ export const TIPOS_DESTINO_TRANSICION: TipoDocumento[] = [
   'proyecto-ley-rechazados'
 ]
 
-// ¿Qué estados puede tomar un documento origen?
 export const ESTADOS_TRANSICION_DISPONIBLES = [
   'APROBADO',
   'SANCIONADO',
@@ -127,7 +125,7 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
       { key: 'numero', label: 'Nº', type: 'number', ancho: '60px' },
       { key: 'codigo', label: 'Código o Nombre', type: 'text' },
       { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
-      { key: 'peticionario', label: 'Peticionario', type: 'text' },
+      { key: 'peticionario', label: 'Peticionario', type: 'array' },   // 🔥
       { key: 'asunto', label: 'Asunto', type: 'longtext' },
       { key: 'destinatario', label: 'Destinatario', type: 'text' },
       { key: 'tipoDestinatario', label: 'Tipo de Destinatario', type: 'text' },
@@ -153,7 +151,7 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
       { key: 'numero', label: 'Nº', type: 'number', ancho: '60px' },
       { key: 'codigo', label: 'Código o Nombre', type: 'text' },
       { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
-      { key: 'peticionario', label: 'Peticionario', type: 'text' },
+      { key: 'peticionario', label: 'Peticionario', type: 'array' },   // 🔥
       { key: 'asunto', label: 'Asunto', type: 'longtext' },
       { key: 'destinatario', label: 'Destinatario', type: 'text' },
       { key: 'tipoDestinatario', label: 'Tipo de Destinatario', type: 'text' },
@@ -182,7 +180,7 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
       { key: 'numero', label: 'Nº', type: 'number', ancho: '60px' },
       { key: 'codigo', label: 'Código o Nombre', type: 'text' },
       { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
-      { key: 'peticionario', label: 'Proyectista', type: 'text' },
+      { key: 'peticionario', label: 'Proyectista', type: 'array' },   // 🔥
       { key: 'asunto', label: 'Asunto', type: 'longtext' },
       { key: 'destinatario', label: 'Destinatario', type: 'text' },
       { key: 'fechaRemisionDestinatario', label: 'Fecha de Remisión al Destinatario', type: 'date' },
@@ -207,7 +205,7 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
       { key: 'numero', label: 'Nº', type: 'number', ancho: '60px' },
       { key: 'codigo', label: 'Código o Nombre', type: 'text' },
       { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
-      { key: 'peticionario', label: 'Proyectista', type: 'text' },
+      { key: 'peticionario', label: 'Proyectista', type: 'array' },   // 🔥
       { key: 'asunto', label: 'Asunto', type: 'longtext' },
       { key: 'fechaAprobacion', label: 'Fecha de Aprobación', type: 'date' },
       { key: 'sesion', label: 'Sesión', type: 'enum', opciones: ['PUBLICA', 'RESERVADA'] },
@@ -229,7 +227,7 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
       { key: 'numero', label: 'Nº', type: 'number', ancho: '60px' },
       { key: 'codigo', label: 'Código o Nombre', type: 'text' },
       { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
-      { key: 'peticionario', label: 'Proyectista', type: 'text' },
+      { key: 'peticionario', label: 'Proyectista', type: 'array' },   // 🔥
       { key: 'asunto', label: 'Asunto', type: 'longtext' },
       { key: 'fechaAprobacion', label: 'Fecha de Aprobación', type: 'date' },
       { key: 'observacion', label: 'Observaciones', type: 'text' },
@@ -250,7 +248,7 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
       { key: 'numero', label: 'Nº', type: 'number', ancho: '60px' },
       { key: 'codigo', label: 'Código o Nombre', type: 'text' },
       { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
-      { key: 'peticionario', label: 'Proyectista', type: 'text' },
+      { key: 'peticionario', label: 'Proyectista', type: 'array' },   // 🔥
       { key: 'asunto', label: 'Asunto', type: 'longtext' },
       { key: 'fechaAprobacion', label: 'Fecha de Aprobación', type: 'date' },
       { key: 'observacion', label: 'Observaciones', type: 'text' },
@@ -275,12 +273,12 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
       { key: 'codigo', label: 'Código o Nombre', type: 'text' },
       { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
       { key: 'asunto', label: 'Asunto o Referencia', type: 'longtext' },
-      { key: 'peticionario', label: 'Proyectista', type: 'text' },
+      { key: 'peticionario', label: 'Proyectista', type: 'array' },   // 🔥
       { key: 'esNuevoOReReposicion', label: 'Nuevo o Reposición', type: 'text' },
       { key: 'plAnterior', label: 'P.L. Anterior', type: 'text' },
-      { key: 'comisionI', label: 'Comisión I Remitida', type: 'text' },
+      { key: 'comisionI', label: 'Comisión I Remitida', type: 'array' },      // 🔥
       { key: 'fechaRemisionComisionI', label: 'Fecha Remisión Comisión I', type: 'date' },
-      { key: 'comisionII', label: 'Comisión II', type: 'text' },
+      { key: 'comisionII', label: 'Comisión II', type: 'array' },             // 🔥
       { key: 'fechaRemisionComisionII', label: 'Fecha Remisión Comisión II', type: 'date' },
       { key: 'estadoLey', label: 'Estado', type: 'text' },
       { key: 'fechaAprobacion', label: 'Fecha de Aprobación', type: 'date' },
@@ -304,10 +302,10 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
       { key: 'codigo', label: 'Código o Nombre', type: 'text' },
       { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
       { key: 'asunto', label: 'Asunto o Referencia', type: 'longtext' },
-      { key: 'peticionario', label: 'Proyectista', type: 'text' },
-      { key: 'comisionI', label: 'Comisión I Remitida', type: 'text' },
+      { key: 'peticionario', label: 'Proyectista', type: 'array' },   // 🔥
+      { key: 'comisionI', label: 'Comisión I Remitida', type: 'array' },      // 🔥
       { key: 'fechaRemisionComisionI', label: 'Fecha Remisión Comisión I', type: 'date' },
-      { key: 'comisionII', label: 'Comisión II', type: 'text' },
+      { key: 'comisionII', label: 'Comisión II', type: 'array' },             // 🔥
       { key: 'fechaRemisionComisionII', label: 'Fecha Remisión Comisión II', type: 'date' },
       { key: 'estadoLey', label: 'Estado', type: 'text' },
       { key: 'fechaSancion', label: 'Fecha de Sanción', type: 'date' },
@@ -335,12 +333,12 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
       { key: 'codigo', label: 'Código o Nombre', type: 'text' },
       { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
       { key: 'asunto', label: 'Asunto o Referencia', type: 'longtext' },
-      { key: 'peticionario', label: 'Proyectista', type: 'text' },
+      { key: 'peticionario', label: 'Proyectista', type: 'array' },   // 🔥
       { key: 'esNuevoOReReposicion', label: 'Nuevo o Reposición', type: 'text' },
       { key: 'plAnterior', label: 'P.L. Anterior', type: 'text' },
-      { key: 'comisionI', label: 'Comisión I Remitida', type: 'text' },
+      { key: 'comisionI', label: 'Comisión I Remitida', type: 'array' },      // 🔥
       { key: 'fechaRemisionComisionI', label: 'Fecha Remisión Comisión I', type: 'date' },
-      { key: 'comisionII', label: 'Comisión II', type: 'text' },
+      { key: 'comisionII', label: 'Comisión II', type: 'array' },             // 🔥
       { key: 'fechaRemisionComisionII', label: 'Fecha Remisión Comisión II', type: 'date' },
       { key: 'estadoLey', label: 'Estado', type: 'text' },
       { key: 'fechaAprobacion', label: 'Fecha de Aprobación', type: 'date' },
@@ -371,10 +369,10 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
       { key: 'codigo', label: 'Código o Nombre', type: 'text' },
       { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
       { key: 'asunto', label: 'Asunto o Referencia', type: 'longtext' },
-      { key: 'peticionario', label: 'Proyectista', type: 'text' },
-      { key: 'comisionI', label: 'Comisión I Remitida', type: 'text' },
+      { key: 'peticionario', label: 'Proyectista', type: 'array' },   // 🔥
+      { key: 'comisionI', label: 'Comisión I Remitida', type: 'array' },      // 🔥
       { key: 'fechaRemisionComisionI', label: 'Fecha Remisión Comisión I', type: 'date' },
-      { key: 'comisionII', label: 'Comisión II', type: 'text' },
+      { key: 'comisionII', label: 'Comisión II', type: 'array' },             // 🔥
       { key: 'fechaRemisionComisionII', label: 'Fecha Remisión Comisión II', type: 'date' },
       { key: 'estadoLey', label: 'Estado', type: 'text' },
       { key: 'fechaSancion', label: 'Fecha de Sanción', type: 'date' },
@@ -405,10 +403,10 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
       { key: 'codigo', label: 'Código o Nombre', type: 'text' },
       { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
       { key: 'asunto', label: 'Asunto o Referencia', type: 'longtext' },
-      { key: 'peticionario', label: 'Proyectista', type: 'text' },
-      { key: 'comisionI', label: 'Comisión I Remitida', type: 'text' },
+      { key: 'peticionario', label: 'Proyectista', type: 'array' },   // 🔥
+      { key: 'comisionI', label: 'Comisión I Remitida', type: 'array' },      // 🔥
       { key: 'fechaRemisionComisionI', label: 'Fecha Remisión Comisión I', type: 'date' },
-      { key: 'comisionII', label: 'Comisión II', type: 'text' },
+      { key: 'comisionII', label: 'Comisión II', type: 'array' },             // 🔥
       { key: 'fechaRemisionComisionII', label: 'Fecha Remisión Comisión II', type: 'date' },
       { key: 'estadoLey', label: 'Estado', type: 'text' },
       { key: 'fechaAprobacion', label: 'Fecha de Aprobación', type: 'date' },
@@ -439,10 +437,10 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
       { key: 'codigo', label: 'Código o Nombre', type: 'text' },
       { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
       { key: 'asunto', label: 'Asunto o Referencia', type: 'longtext' },
-      { key: 'peticionario', label: 'Proyectista', type: 'text' },
-      { key: 'comisionI', label: 'Comisión I Remitida', type: 'text' },
+      { key: 'peticionario', label: 'Proyectista', type: 'array' },   // 🔥
+      { key: 'comisionI', label: 'Comisión I Remitida', type: 'array' },      // 🔥
       { key: 'fechaRemisionComisionI', label: 'Fecha Remisión Comisión I', type: 'date' },
-      { key: 'comisionII', label: 'Comisión II', type: 'text' },
+      { key: 'comisionII', label: 'Comisión II', type: 'array' },             // 🔥
       { key: 'fechaRemisionComisionII', label: 'Fecha Remisión Comisión II', type: 'date' },
       { key: 'estadoLey', label: 'Estado', type: 'text' },
       { key: 'fechaRechazo', label: 'Fecha de Rechazo', type: 'date' },
@@ -473,7 +471,7 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
       { key: 'numero', label: 'Nº', type: 'number', ancho: '60px' },
       { key: 'codigo', label: 'Código o Nombre', type: 'text' },
       { key: 'fechaIngreso', label: 'Fecha de Ingreso', type: 'date' },
-      { key: 'peticionario', label: 'Proyectista', type: 'text' },
+      { key: 'peticionario', label: 'Proyectista', type: 'array' },   // 🔥
       { key: 'asunto', label: 'Asunto', type: 'longtext' },
       { key: 'archivo', label: 'Archivo', type: 'file' }
     ],
@@ -531,31 +529,19 @@ export function esCampoBloqueadoEnEdicion(tipo: TipoDocumento, campo: string): b
   return config.camposBloqueadosEnEdicion.includes(campo)
 }
 
-/**
- * ¿Este tipo es un origen del que se puede cambiar estado?
- */
 export function esTipoOrigenTransicion(tipo: string): boolean {
   return TIPOS_ORIGEN_TRANSICION.includes(tipo as TipoDocumento)
 }
 
-/**
- * ¿Este tipo es un destino (al que se llega por transición)?
- */
 export function esTipoDestinoTransicion(tipo: string): boolean {
   return TIPOS_DESTINO_TRANSICION.includes(tipo as TipoDocumento)
 }
 
-/**
- * Devuelve el estado requerido de un tipo destino (o null si no aplica).
- */
 export function getEstadoRequerido(tipo: string): string | null {
   const config = getConfigTipo(tipo)
   return config?.estadoRequerido || null
 }
 
-/**
- * Mapea un estadoLey al tipo resultante.
- */
 export function getTipoPorEstado(estado: string): TipoDocumento | null {
   return ESTADO_A_TIPO[estado] || null
 }
