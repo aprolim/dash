@@ -30,9 +30,8 @@ export const useLegislativosCatalogos = () => {
   const baseUrl = config.public.apiUrl || 'https://demoback.senado.gob.bo/api'
 
   // ============================================
-  // 📡 LECTURA (público autenticado)
+  // 📡 LECTURA
   // ============================================
-
   const getSenadores = async (params?: {
     q?: string
     incluirInactivos?: boolean
@@ -43,8 +42,15 @@ export const useLegislativosCatalogos = () => {
 
     const qs = query.toString()
     const url = `${baseUrl}/legislativos/catalogos/senadores${qs ? `?${qs}` : ''}`
-    const result = await get<{ data: CatalogoItem[]; total: number }>(url)
-    return result.data || []
+    
+    // 🔥 CORRECCIÓN: useApi ya devuelve data.data, así que result ES el array
+    const result = await get<any>(url)
+    
+    // Si el backend devuelve el objeto completo por alguna razón, lo atajamos:
+    if (result && Array.isArray(result.data)) return result.data
+    if (Array.isArray(result)) return result
+    
+    return []
   }
 
   const getComisiones = async (params?: {
@@ -57,14 +63,17 @@ export const useLegislativosCatalogos = () => {
 
     const qs = query.toString()
     const url = `${baseUrl}/legislativos/catalogos/comisiones${qs ? `?${qs}` : ''}`
-    const result = await get<{ data: CatalogoItem[]; total: number }>(url)
-    return result.data || []
+    
+    const result = await get<any>(url)
+    if (result && Array.isArray(result.data)) return result.data
+    if (Array.isArray(result)) return result
+    
+    return []
   }
 
   // ============================================
   // 🔐 CRUD - SENADORES
   // ============================================
-
   const createSenador = async (payload: CreateCatalogoPayload): Promise<CatalogoItem> => {
     return await post<CatalogoItem>(
       `${baseUrl}/legislativos/catalogos/senadores`,
@@ -89,7 +98,6 @@ export const useLegislativosCatalogos = () => {
   // ============================================
   // 🔐 CRUD - COMISIONES
   // ============================================
-
   const createComision = async (payload: CreateCatalogoPayload): Promise<CatalogoItem> => {
     return await post<CatalogoItem>(
       `${baseUrl}/legislativos/catalogos/comisiones`,
@@ -112,9 +120,8 @@ export const useLegislativosCatalogos = () => {
   }
 
   // ============================================
-  // 🌱 SEED (solo SUPER_ADMIN / ADMIN)
+  // 🌱 SEED
   // ============================================
-
   const seedCatalogos = async (sobrescribir = false): Promise<{
     senadores: number
     comisiones: number
@@ -126,18 +133,14 @@ export const useLegislativosCatalogos = () => {
   }
 
   return {
-    // Lectura
     getSenadores,
     getComisiones,
-    // CRUD Senadores
     createSenador,
     updateSenador,
     deleteSenador,
-    // CRUD Comisiones
     createComision,
     updateComision,
     deleteComision,
-    // Seed
     seedCatalogos
   }
 }

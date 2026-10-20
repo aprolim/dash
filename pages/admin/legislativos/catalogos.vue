@@ -1,18 +1,15 @@
 <!-- pages/admin/legislativos/catalogos.vue -->
 <template>
   <div>
-    <!-- Header -->
+    <!-- Header (acción de importar base) -->
     <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
       <div>
         <NuxtLink
           to="/admin/legislativos"
-          class="text-gray-400 hover:text-gray-600 text-sm inline-flex items-center gap-1 mb-1"
+          class="text-gray-500 hover:text-gray-800 text-sm inline-flex items-center gap-1 font-medium"
         >
           ← Volver a Documentos Legislativos
         </NuxtLink>
-        <h1 class="text-2xl font-semibold text-gray-900">
-          ⚙️ Catálogos de Legislación
-        </h1>
         <p class="text-sm text-gray-500 mt-1">
           Listas exclusivas del módulo Legislación (senadores y comisiones especiales)
         </p>
@@ -23,7 +20,7 @@
           v-if="canSeed"
           @click="importarBase"
           :disabled="seeding"
-          class="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50 text-sm"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50 text-sm font-medium transition-colors"
         >
           <span v-if="seeding" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
           🌱 Importar catálogo base
@@ -36,17 +33,19 @@
       <nav class="flex space-x-8">
         <button
           @click="tabActivo = 'senadores'"
-          class="py-2 px-1 border-b-2 font-medium text-sm transition-colors"
+          class="py-2 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2"
           :class="tabActivo === 'senadores' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
         >
-          👤 Senadores ({{ senadores.length }})
+          👤 Senadores
+          <span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">{{ senadores.length }}</span>
         </button>
         <button
           @click="tabActivo = 'comisiones'"
-          class="py-2 px-1 border-b-2 font-medium text-sm transition-colors"
+          class="py-2 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2"
           :class="tabActivo === 'comisiones' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
         >
-          📋 Comisiones ({{ comisiones.length }})
+          📋 Comisiones
+          <span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">{{ comisiones.length }}</span>
         </button>
       </nav>
     </div>
@@ -65,11 +64,11 @@
                 @input="filtrarLocal"
                 type="text"
                 :placeholder="tabActivo === 'senadores' ? 'Buscar senador…' : 'Buscar comisión…'"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
               />
             </div>
             <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" v-model="incluirInactivos" @change="cargarTodo" />
+              <input type="checkbox" v-model="incluirInactivos" @change="cargarTodo" class="w-4 h-4" />
               Incluir inactivos
             </label>
           </div>
@@ -81,14 +80,11 @@
 
           <div v-else-if="itemsFiltrados.length === 0" class="text-center py-12 text-gray-500">
             <div class="text-4xl mb-2">{{ tabActivo === 'senadores' ? '👤' : '📋' }}</div>
-            <p class="text-sm">
+            <p class="text-sm font-medium">
               {{ filtro ? 'Sin resultados para tu búsqueda' : 'No hay elementos en el catálogo' }}
             </p>
-            <p v-if="!filtro && tabActivo === 'senadores'" class="text-xs text-gray-400 mt-1">
-              Usa el botón "Importar catálogo base" para cargar los 36 senadores.
-            </p>
-            <p v-if="!filtro && tabActivo === 'comisiones'" class="text-xs text-gray-400 mt-1">
-              Usa el botón "Importar catálogo base" para cargar las comisiones iniciales.
+            <p v-if="!filtro" class="text-xs text-gray-400 mt-1">
+              Usa el botón "Importar catálogo base" o crea uno nuevo desde el formulario.
             </p>
           </div>
 
@@ -96,8 +92,8 @@
             <div
               v-for="item in itemsFiltrados"
               :key="item._id"
-              class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50"
-              :class="{ 'opacity-50': !item.activo }"
+              class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+              :class="{ 'opacity-50 bg-gray-50': !item.activo }"
             >
               <span class="text-lg">{{ tabActivo === 'senadores' ? '👤' : '📋' }}</span>
               <div class="flex-1 min-w-0">
@@ -147,7 +143,7 @@
                 required
                 maxlength="300"
                 :placeholder="tabActivo === 'senadores' ? 'Ej: Wilder Véliz Armas' : 'Ej: Comisión de Constitución'"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
                 :class="errorNombre ? 'border-red-400' : 'border-gray-300'"
               />
               <p v-if="errorNombre" class="mt-1 text-xs text-red-600">{{ errorNombre }}</p>
@@ -159,12 +155,12 @@
                 v-model.number="form.orden"
                 type="number"
                 min="0"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
               />
               <p class="mt-1 text-xs text-gray-500">Menor número = aparece primero en el select</p>
             </div>
 
-            <label class="flex items-center gap-2 text-sm">
+            <label class="flex items-center gap-2 text-sm cursor-pointer">
               <input v-model="form.activo" type="checkbox" class="w-4 h-4" />
               Activo (visible en los selects)
             </label>
@@ -178,14 +174,14 @@
                 v-if="editando"
                 type="button"
                 @click="cancelar"
-                class="flex-1 px-3 py-2 border rounded-lg hover:bg-gray-50 text-sm"
+                class="flex-1 px-3 py-2 border rounded-lg hover:bg-gray-50 text-sm transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 :disabled="guardando || !form.nombre"
-                class="flex-1 px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 text-sm flex items-center justify-center gap-2"
+                class="flex-1 px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 text-sm flex items-center justify-center gap-2 transition-colors"
               >
                 <span v-if="guardando" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                 {{ guardando ? 'Guardando...' : (editando ? 'Guardar' : 'Crear') }}
@@ -209,14 +205,15 @@
           (guardan el texto, no la referencia). Solo desaparecerá del selector.
         </p>
         <div class="flex justify-end gap-3 mt-6">
-          <button @click="showDeleteModal = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50">
+          <button @click="showDeleteModal = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors">
             Cancelar
           </button>
           <button
             @click="eliminar"
             :disabled="eliminando"
-            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center gap-2"
           >
+            <span v-if="eliminando" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
             {{ eliminando ? 'Eliminando...' : 'Eliminar' }}
           </button>
         </div>
@@ -226,7 +223,7 @@
     <!-- Toast -->
     <div
       v-if="toast.show"
-      class="fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50"
+      class="fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 transition-all"
       :class="toast.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'"
     >
       {{ toast.message }}
@@ -252,7 +249,7 @@ const { can } = usePermissions()
 
 const canEdit = computed(() => can('legislativos', 'edit'))
 const canDelete = computed(() => can('legislativos', 'delete'))
-const canSeed = computed(() => can('legislativos', 'create')) // SUPER_ADMIN/ADMIN
+const canSeed = computed(() => can('legislativos', 'create'))
 
 const {
   getSenadores,
@@ -327,7 +324,7 @@ const resetForm = () => {
 }
 
 const filtrarLocal = () => {
-  // Solo dispara el computed
+  // Solo dispara el computed de itemsFiltrados
 }
 
 // ============================================
