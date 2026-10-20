@@ -92,23 +92,20 @@
         <p v-if="errores.fechaIngreso" class="mt-1 text-xs text-red-600">{{ errores.fechaIngreso }}</p>
       </div>
 
-      <!-- Peticionario / Proyectista -->
+      <!-- Peticionario / Proyectista (MULTI-SELECT) -->
       <div>
         <label class="block text-sm font-medium text-gray-700">
           {{ labelPeticionario }} <span class="text-red-500">*</span>
         </label>
-        <input
-          v-model.trim="form.peticionario"
-          type="text"
-          required
-          maxlength="300"
-          :disabled="esEdicion && esPeticionarioBloqueado"
-          placeholder="Ej: Betty Canaviri Villanueva (LISTA DE SENADORES)"
-          class="mt-1 block w-full px-3 py-2 border rounded-md text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
-          :class="errores.peticionario ? 'border-red-400' : 'border-gray-300'"
-        />
-        <p v-if="errores.peticionario" class="mt-1 text-xs text-red-600">{{ errores.peticionario }}</p>
-        <p v-else-if="esEdicion && esPeticionarioBloqueado" class="mt-1 text-xs text-amber-600">
+        <div class="mt-1">
+          <MultiSelectSenadores
+            v-model="form.peticionario"
+            :disabled="esEdicion && esPeticionarioBloqueado"
+            :error="errores.peticionario"
+            placeholder="Buscar senador por nombre, partido o departamento…"
+          />
+        </div>
+        <p v-if="esEdicion && esPeticionarioBloqueado" class="mt-1 text-xs text-amber-600">
           ⚠️ El {{ labelPeticionario }} no se puede modificar en este tipo de documento.
         </p>
       </div>
@@ -128,12 +125,13 @@
         class="mt-1 block w-full px-3 py-2 border rounded-md text-sm resize-y"
         :class="errores.asunto ? 'border-red-400' : 'border-gray-300'"
       ></textarea>
+      <p v-if="errores.asunto" class="mt-1 text-xs text-red-600">{{ errores.asunto }}</p>
     </div>
 
-    <!-- Campos Proyectos de Ley (todos los tipos) -->
+    <!-- Campos Proyectos de Ley -->
     <div v-if="esProyectoLey" class="border-t pt-5 space-y-5">
 
-      <!-- Solo tratamiento/revisión: Nuevo o Reposición / PL Anterior -->
+      <!-- Nuevo o Reposición / PL Anterior -->
       <div
         v-if="tipo === 'proyecto-ley-tratamiento-senado' || tipo === 'proyecto-ley-aprobados'"
         class="grid grid-cols-1 md:grid-cols-2 gap-4"
@@ -160,15 +158,17 @@
         </div>
       </div>
 
-      <!-- Comisiones -->
+      <!-- Comisiones (MULTI-SELECT) -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700">Comisión I Remitida</label>
-          <input
-            v-model.trim="form.comisionI"
-            type="text"
-            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-          />
+          <div class="mt-1">
+            <MultiSelectComisiones
+              v-model="form.comisionI"
+              :error="errores.comisionI"
+              placeholder="Buscar comisión…"
+            />
+          </div>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Fecha de Remisión Comisión I</label>
@@ -180,11 +180,13 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Comisión II</label>
-          <input
-            v-model.trim="form.comisionII"
-            type="text"
-            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-          />
+          <div class="mt-1">
+            <MultiSelectComisiones
+              v-model="form.comisionII"
+              :error="errores.comisionII"
+              placeholder="Buscar comisión…"
+            />
+          </div>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Fecha de Remisión Comisión II</label>
@@ -353,7 +355,7 @@
         </template>
       </div>
 
-      <!-- N° Ley (solo aprobados/sancionados/modificaciones) -->
+      <!-- N° Ley -->
       <div v-if="['proyecto-ley-aprobados', 'proyecto-ley-sancionados', 'proyecto-ley-modificaciones'].includes(tipo)">
         <label class="block text-sm font-medium text-gray-700">
           N° Ley <span class="text-red-500">*</span>
@@ -566,7 +568,6 @@
         </div>
       </div>
 
-      <!-- Lista de anexos -->
       <div v-if="form.archivoAnexo.length > 0" class="space-y-2 mb-3">
         <div
           v-for="(anexo, idx) in form.archivoAnexo"
@@ -650,6 +651,8 @@ import {
   type ArchivoAnexo
 } from '~/composables/useDocumentosLegislativos'
 import CambiarEstadoModal from '~/components/admin/CambiarEstadoModal.vue'
+import MultiSelectSenadores from '~/components/admin/MultiSelectSenadores.vue'
+import MultiSelectComisiones from '~/components/admin/MultiSelectComisiones.vue'
 
 const props = defineProps<{
   tipo: TipoDocumento
@@ -667,10 +670,8 @@ const { uploadPDF } = useDocumentosLegislativos()
 
 const config = computed(() => getConfigTipo(props.tipo)!)
 const esEdicion = computed(() => !!props.documento?._id)
-
 const esOrigenTransicion = computed(() => esTipoOrigenTransicion(props.tipo))
 
-// Helpers de bloqueo
 const estaBloqueado = (campo: string): boolean => {
   return esEdicion.value && Boolean(config.value?.camposBloqueadosEnEdicion.includes(campo))
 }
@@ -712,7 +713,7 @@ const form = reactive({
   numero: null as number | null,
   codigo: '',
   fechaIngreso: '',
-  peticionario: '',
+  peticionario: [] as string[],   // 🔥 ahora array
   asunto: '',
   destinatario: '',
   tipoDestinatario: '',
@@ -732,9 +733,9 @@ const form = reactive({
   // Proyectos de Ley
   esNuevoOReReposicion: '',
   plAnterior: '',
-  comisionI: '',
+  comisionI: [] as string[],      // 🔥 ahora array
   fechaRemisionComisionI: '',
-  comisionII: '',
+  comisionII: [] as string[],     // 🔥 ahora array
   fechaRemisionComisionII: '',
   estadoLey: '',
   fechaRemisionDiputados: '',
@@ -753,7 +754,6 @@ const anexoInput = ref<HTMLInputElement | null>(null)
 const uploadingPDF = ref(false)
 const uploadingAnexo = ref(false)
 
-// Modal estado
 const showEstadoModal = ref(false)
 const savingEstado = ref(false)
 
@@ -764,11 +764,17 @@ const abrirModalEstado = () => {
 // ============================================
 // CARGA INICIAL
 // ============================================
+const asegurarArray = (v: unknown): string[] => {
+  if (Array.isArray(v)) return v.map(x => String(x)).filter(Boolean)
+  if (typeof v === 'string' && v.trim()) return [v.trim()]
+  return []
+}
+
 const cargarDesdeDocumento = (doc: DocumentoLegislativo) => {
   form.numero = doc.numero
   form.codigo = doc.codigo
   form.fechaIngreso = doc.fechaIngreso ? doc.fechaIngreso.split('T')[0] : ''
-  form.peticionario = doc.peticionario || doc.proyectista || ''
+  form.peticionario = asegurarArray(doc.peticionario ?? doc.proyectista)
   form.asunto = doc.asunto
   form.destinatario = doc.destinatario || ''
   form.tipoDestinatario = doc.tipoDestinatario || ''
@@ -787,9 +793,9 @@ const cargarDesdeDocumento = (doc: DocumentoLegislativo) => {
 
   form.esNuevoOReReposicion = doc.esNuevoOReReposicion || ''
   form.plAnterior = doc.plAnterior || ''
-  form.comisionI = doc.comisionI || ''
+  form.comisionI = asegurarArray(doc.comisionI)
   form.fechaRemisionComisionI = doc.fechaRemisionComisionI?.split('T')[0] || ''
-  form.comisionII = doc.comisionII || ''
+  form.comisionII = asegurarArray(doc.comisionII)
   form.fechaRemisionComisionII = doc.fechaRemisionComisionII?.split('T')[0] || ''
   form.estadoLey = doc.estadoLey || ''
   form.fechaRemisionDiputados = doc.fechaRemisionDiputados?.split('T')[0] || ''
@@ -832,6 +838,13 @@ const validar = (): boolean => {
       return
     }
 
+    if (campo === 'peticionario' || campo === 'comisionI' || campo === 'comisionII') {
+      if (!Array.isArray(valor) || valor.length === 0) {
+        errores[campo] = 'Debe seleccionar al menos uno'
+      }
+      return
+    }
+
     const vacio =
       valor === null ||
       valor === undefined ||
@@ -861,7 +874,7 @@ const enviar = () => {
     codigo: form.codigo,
     fechaIngreso: form.fechaIngreso,
     asunto: form.asunto,
-    peticionario: form.peticionario,
+    peticionario: form.peticionario,   // 🔥 array
     observacion: form.observacion || '',
     archivo: form.archivo
   }
@@ -901,9 +914,9 @@ const enviar = () => {
       payload.esNuevoOReReposicion = form.esNuevoOReReposicion || null
       payload.plAnterior = form.plAnterior || null
     }
-    payload.comisionI = form.comisionI || null
+    payload.comisionI = form.comisionI     // 🔥 array
     payload.fechaRemisionComisionI = form.fechaRemisionComisionI || null
-    payload.comisionII = form.comisionII || null
+    payload.comisionII = form.comisionII   // 🔥 array
     payload.fechaRemisionComisionII = form.fechaRemisionComisionII || null
     payload.estadoLey = form.estadoLey || null
 

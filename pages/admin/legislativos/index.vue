@@ -21,7 +21,6 @@
       </NuxtLink>
     </div>
 
-    <!-- Aviso de solo lectura -->
     <div
       v-if="!canEdit"
       class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6 text-sm text-blue-800"
@@ -45,11 +44,7 @@
           :key="bloqueId"
           :label="bloque.label"
         >
-          <option
-            v-for="t in bloque.tipos"
-            :key="t"
-            :value="t"
-          >
+          <option v-for="t in bloque.tipos" :key="t" :value="t">
             {{ getConfigTipo(t)?.label || t }}
           </option>
         </optgroup>
@@ -111,13 +106,11 @@
 
     <!-- Tabla -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
-      <!-- Loading -->
       <div v-if="loading" class="text-center py-12">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
         <p class="mt-4 text-gray-600">Cargando documentos...</p>
       </div>
 
-      <!-- Error -->
       <div v-else-if="error" class="p-6">
         <div class="bg-red-50 border border-red-200 rounded-lg p-4">
           <p class="text-red-800 text-sm">{{ error }}</p>
@@ -130,7 +123,6 @@
         </div>
       </div>
 
-      <!-- Empty -->
       <div v-else-if="documentos.length === 0" class="p-12 text-center">
         <div class="text-4xl mb-3">📭</div>
         <h3 class="text-lg font-medium text-gray-900 mb-2">
@@ -148,7 +140,6 @@
         </NuxtLink>
       </div>
 
-      <!-- Tabla real -->
       <div v-else class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200 text-sm">
           <thead class="bg-gray-50">
@@ -237,7 +228,22 @@
                   <span v-else class="text-gray-300 text-xs">—</span>
                 </template>
 
-                <!-- Longtext (asunto) -->
+                <!-- 🔥 ARRAY (peticionario / comisiones) -->
+                <template v-else-if="col.type === 'array'">
+                  <div v-if="Array.isArray((doc as any)[col.key]) && (doc as any)[col.key].length > 0" class="flex flex-wrap gap-1 max-w-xs">
+                    <span
+                      v-for="(item, i) in (doc as any)[col.key]"
+                      :key="i"
+                      class="inline-block px-1.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded text-[11px] leading-tight"
+                      :title="item"
+                    >
+                      {{ item }}
+                    </span>
+                  </div>
+                  <span v-else class="text-gray-300 text-xs">—</span>
+                </template>
+
+                <!-- Longtext -->
                 <template v-else-if="col.type === 'longtext'">
                   <div class="max-w-md text-xs text-gray-700 leading-snug line-clamp-3 text-justify">
                     {{ doc[col.key as keyof typeof doc] || '—' }}
@@ -252,7 +258,6 @@
                 </template>
               </td>
 
-              <!-- Acciones -->
               <td
                 v-if="canEdit || canDelete"
                 class="px-3 py-2 text-right align-top whitespace-nowrap"
@@ -299,7 +304,6 @@
         </table>
       </div>
 
-      <!-- Paginación -->
       <div
         v-if="totalPages > 1 && !loading"
         class="px-4 py-3 border-t flex flex-wrap justify-between items-center gap-3"
@@ -324,7 +328,6 @@
       </div>
     </div>
 
-    <!-- Modal de eliminación -->
     <DeleteModal
       v-model="showDeleteModal"
       :documento="docToDelete"
@@ -332,7 +335,6 @@
       @confirm="confirmarEliminar"
     />
 
-    <!-- Toast -->
     <div
       v-if="toast.show"
       class="fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50"
@@ -383,9 +385,6 @@ const {
   getStats
 } = useDocumentosLegislativos()
 
-// ============================================
-// ESTADO
-// ============================================
 const tipoActivo = ref<TipoDocumento>(getTipoInicial())
 
 const documentos = ref<DocumentoLegislativo[]>([])
@@ -411,14 +410,8 @@ const showDeleteModal = ref(false)
 const docToDelete = ref<DocumentoLegislativo | null>(null)
 const deleting = ref(false)
 
-// ============================================
-// COMPUTED
-// ============================================
 const config = computed(() => getConfigTipo(tipoActivo.value))
-
-const columnasVisibles = computed<ColumnaConfig[]>(() => {
-  return config.value?.columnas || []
-})
+const columnasVisibles = computed<ColumnaConfig[]>(() => config.value?.columnas || [])
 
 const tieneFiltros = computed(() => {
   return !!(
@@ -438,9 +431,6 @@ const aniosDisponibles = computed(() => {
   return anios
 })
 
-// ============================================
-// HELPERS
-// ============================================
 function getTipoInicial(): TipoDocumento {
   const fromQuery = route.query.tipo as TipoDocumento | undefined
   if (fromQuery && TIPOS_DOCUMENTO[fromQuery]) return fromQuery
@@ -470,9 +460,6 @@ const formatearFecha = (fecha: string | null | undefined): string => {
   }
 }
 
-// ============================================
-// CARGA DE DATOS
-// ============================================
 const loadDocumentos = async () => {
   loading.value = true
   error.value = null
@@ -512,9 +499,6 @@ const recargarTodo = async () => {
   await Promise.all([loadDocumentos(), loadStats()])
 }
 
-// ============================================
-// FILTROS Y PAGINACIÓN
-// ============================================
 const onTipoChange = () => {
   page.value = 1
   resetFiltrosInterno()
@@ -564,9 +548,6 @@ const nextPage = () => {
   }
 }
 
-// ============================================
-// ELIMINAR
-// ============================================
 const abrirEliminar = (doc: DocumentoLegislativo) => {
   docToDelete.value = doc
   showDeleteModal.value = true
@@ -589,9 +570,6 @@ const confirmarEliminar = async (motivo: string) => {
   }
 }
 
-// ============================================
-// RESTAURAR
-// ============================================
 const restaurarDocumento = async (doc: DocumentoLegislativo) => {
   if (!confirm(`¿Restaurar el documento Nº ${doc.numero} - ${doc.codigo}?`)) return
 
@@ -604,9 +582,6 @@ const restaurarDocumento = async (doc: DocumentoLegislativo) => {
   }
 }
 
-// ============================================
-// LIFECYCLE
-// ============================================
 onMounted(() => {
   recargarTodo()
 })

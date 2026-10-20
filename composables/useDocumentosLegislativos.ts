@@ -15,8 +15,15 @@ export interface DocumentoLegislativo {
   numero: number
   codigo: string
   fechaIngreso: string
-  peticionario?: string
-  proyectista?: string
+
+  // 🔥 AHORA SON ARRAYS
+  peticionario?: string[]
+  comisionI?: string[]
+  comisionII?: string[]
+
+  // Compat: por si viene el nombre viejo
+  proyectista?: string | string[]
+
   asunto: string
   destinatario?: string
   tipoDestinatario?: string
@@ -37,15 +44,12 @@ export interface DocumentoLegislativo {
     size: number
   }
 
-  // 🔥 NUEVOS CAMPOS (los 4 tipos nuevos)
   archivoAnexo?: ArchivoAnexo[]
   numeroLey?: number | null
   fechaRechazo?: string | null
   esNuevoOReReposicion?: string
   plAnterior?: string
-  comisionI?: string
   fechaRemisionComisionI?: string | null
-  comisionII?: string
   fechaRemisionComisionII?: string | null
   estadoLey?: string
   fechaRemisionDiputados?: string | null
@@ -96,6 +100,40 @@ export interface UploadResult {
   sizeMB: string
 }
 
+/**
+ * Normaliza un campo que debe ser array de strings.
+ * Acepta string, array, null, undefined.
+ */
+function toArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((v) => String(v).trim()).filter(Boolean)
+  }
+  if (typeof value === 'string') {
+    const v = value.trim()
+    return v ? [v] : []
+  }
+  return []
+}
+
+/**
+ * Normaliza un documento que viene del backend para asegurar
+ * que peticionario / comisionI / comisionII sean arrays de strings.
+ */
+function normalizarDocumento(doc: any): DocumentoLegislativo {
+  if (!doc) return doc
+
+  // peticionario puede venir como peticionario o proyectista
+  const peticionario = toArray(doc.peticionario ?? doc.proyectista)
+
+  return {
+    ...doc,
+    peticionario,
+    comisionI: toArray(doc.comisionI),
+    comisionII: toArray(doc.comisionII),
+    archivoAnexo: Array.isArray(doc.archivoAnexo) ? doc.archivoAnexo : []
+  }
+}
+
 export const useDocumentosLegislativos = () => {
   const { get, post, put, patch } = useApi()
   const config = useRuntimeConfig()
@@ -117,7 +155,12 @@ export const useDocumentosLegislativos = () => {
     const qs = query.toString()
     const url = `${baseUrl}/legislativos/${tipo}${qs ? `?${qs}` : ''}`
     const result = await get<PaginatedResult>(url)
-    return result
+
+    // Normalizar arrays
+    return {
+      ...result,
+      documentos: (result.documentos || []).map(normalizarDocumento)
+    }
   }
 
   // ============================================
@@ -144,21 +187,33 @@ export const useDocumentosLegislativos = () => {
 
     const qs = query.toString()
     const url = `${baseUrl}/legislativos/${tipo}/admin${qs ? `?${qs}` : ''}`
-    return await get<PaginatedResult>(url)
+    const result = await get<PaginatedResult>(url)
+
+    return {
+      ...result,
+      documentos: (result.documentos || []).map(normalizarDocumento)
+    }
   }
 
   const getDocumentoById = async (
     tipo: TipoDocumento,
     id: string
   ): Promise<DocumentoLegislativo> => {
-    return await get<DocumentoLegislativo>(`${baseUrl}/legislativos/${tipo}/${id}`)
+    const result = await get<DocumentoLegislativo>(
+      `${baseUrl}/legislativos/${tipo}/${id}`
+    )
+    return normalizarDocumento(result)
   }
 
   const createDocumento = async (
     tipo: TipoDocumento,
     data: Partial<DocumentoLegislativo>
   ): Promise<DocumentoLegislativo> => {
-    return await post<DocumentoLegislativo>(`${baseUrl}/legislativos/${tipo}`, data)
+    const result = await post<DocumentoLegislativo>(
+      `${baseUrl}/legislativos/${tipo}`,
+      data
+    )
+    return normalizarDocumento(result)
   }
 
   const updateDocumento = async (
@@ -166,7 +221,11 @@ export const useDocumentosLegislativos = () => {
     id: string,
     data: Partial<DocumentoLegislativo>
   ): Promise<DocumentoLegislativo> => {
-    return await put<DocumentoLegislativo>(`${baseUrl}/legislativos/${tipo}/${id}`, data)
+    const result = await put<DocumentoLegislativo>(
+      `${baseUrl}/legislativos/${tipo}/${id}`,
+      data
+    )
+    return normalizarDocumento(result)
   }
 
   const deleteDocumento = async (
@@ -194,10 +253,11 @@ export const useDocumentosLegislativos = () => {
     tipo: TipoDocumento,
     id: string
   ): Promise<DocumentoLegislativo> => {
-    return await patch<DocumentoLegislativo>(
+    const result = await patch<DocumentoLegislativo>(
       `${baseUrl}/legislativos/${tipo}/${id}/restore`,
       {}
     )
+    return normalizarDocumento(result)
   }
 
   // ============================================
@@ -224,15 +284,12 @@ export const useDocumentosLegislativos = () => {
   }
 
   // ============================================
-  // 📊 STATS
+  // 📊 STATS / CONFIG
   // ============================================
   const getStats = async (tipo: TipoDocumento): Promise<StatsResult> => {
     return await get<StatsResult>(`${baseUrl}/legislativos/${tipo}/stats`)
   }
 
-  // ============================================
-  // 📋 CONFIG
-  // ============================================
   const getConfigDelTipo = async (tipo: TipoDocumento): Promise<ConfigTipo> => {
     return await get<ConfigTipo>(`${baseUrl}/legislativos/${tipo}/config`)
   }
