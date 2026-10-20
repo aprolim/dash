@@ -1,22 +1,14 @@
 <!-- pages/admin/legislativos/index.vue -->
 <template>
   <div>
-    <!-- Header -->
-    <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
-      <div class="flex-1 min-w-0">
-        <h1 class="text-2xl font-semibold text-gray-900">
-          📚 Documentos Legislativos
-        </h1>
-        <p class="text-gray-600 text-sm mt-1">
-          Gestiona peticiones, resoluciones, declaraciones, minutas y proyectos de ley
-        </p>
-      </div>
+    <!-- Header con botones alineados a la derecha -->
+    <div class="flex flex-wrap justify-end items-center gap-4 mb-6">
       <div class="flex gap-2">
-        <!-- 🔥 NUEVO: botón a la página de catálogos -->
+        <!-- Botón a la página de catálogos -->
         <NuxtLink
           v-if="canEdit"
           to="/admin/legislativos/catalogos"
-          class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-md hover:bg-gray-50 text-sm font-medium"
+          class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-md hover:bg-gray-50 text-sm font-medium transition-colors"
         >
           ⚙️ Administrar catálogos
         </NuxtLink>
@@ -24,7 +16,7 @@
         <NuxtLink
           v-if="canCreate"
           :to="`/admin/legislativos/create?tipo=${tipoActivo}`"
-          class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+          class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
         >
           <span class="mr-2">+</span>
           Nuevo Documento
@@ -183,6 +175,7 @@
                 :key="col.key"
                 class="px-3 py-2 align-top"
               >
+                <!-- Número -->
                 <template v-if="col.key === 'numero'">
                   <span class="font-bold text-primary-700">{{ doc.numero }}</span>
                   <span v-if="doc.eliminado" class="ml-2 text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded">
@@ -193,12 +186,14 @@
                   </span>
                 </template>
 
+                <!-- Fechas -->
                 <template v-else-if="col.type === 'date'">
                   <span class="text-gray-700 whitespace-nowrap">
                     {{ formatearFecha((doc as any)[col.key]) }}
                   </span>
                 </template>
 
+                <!-- Archivo principal -->
                 <template v-else-if="col.key === 'archivo'">
                   <a
                     v-if="doc.archivo?.url"
@@ -211,6 +206,7 @@
                   <span v-else class="text-gray-300 text-xs">Sin PDF</span>
                 </template>
 
+                <!-- Archivo Anexo (array) -->
                 <template v-else-if="col.key === 'archivoAnexo'">
                   <div v-if="doc.archivoAnexo && doc.archivoAnexo.length > 0" class="flex flex-col gap-1">
                     <a
@@ -227,6 +223,7 @@
                   <span v-else class="text-gray-300 text-xs">Sin anexo</span>
                 </template>
 
+                <!-- numeroLey -->
                 <template v-else-if="col.key === 'numeroLey'">
                   <span v-if="doc.numeroLey" class="font-semibold text-blue-700">
                     {{ doc.numeroLey }}
@@ -249,12 +246,14 @@
                   <span v-else class="text-gray-300 text-xs">—</span>
                 </template>
 
+                <!-- Longtext -->
                 <template v-else-if="col.type === 'longtext'">
                   <div class="max-w-md text-xs text-gray-700 leading-snug line-clamp-3 text-justify">
                     {{ doc[col.key as keyof typeof doc] || '—' }}
                   </div>
                 </template>
 
+                <!-- Default -->
                 <template v-else>
                   <span class="text-xs text-gray-700">
                     {{ doc[col.key as keyof typeof doc] || '—' }}
@@ -262,6 +261,7 @@
                 </template>
               </td>
 
+              <!-- Acciones -->
               <td
                 v-if="canEdit || canDelete"
                 class="px-3 py-2 text-right align-top whitespace-nowrap"
@@ -308,6 +308,7 @@
         </table>
       </div>
 
+      <!-- Paginación -->
       <div
         v-if="totalPages > 1 && !loading"
         class="px-4 py-3 border-t flex flex-wrap justify-between items-center gap-3"
@@ -332,6 +333,7 @@
       </div>
     </div>
 
+    <!-- Modal de eliminación -->
     <DeleteModal
       v-model="showDeleteModal"
       :documento="docToDelete"
@@ -339,6 +341,7 @@
       @confirm="confirmarEliminar"
     />
 
+    <!-- Toast -->
     <div
       v-if="toast.show"
       class="fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50"
