@@ -14,18 +14,6 @@
           Catálogo editable de Tipos de Destinatario usados en los formularios legislativos
         </p>
       </div>
-
-      <div class="flex gap-2">
-        <button
-          v-if="canSeed"
-          @click="importarBase"
-          :disabled="seeding"
-          class="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50 text-sm font-medium transition-colors"
-        >
-          <span v-if="seeding" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-          🌱 Importar catálogo base
-        </button>
-      </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -60,7 +48,7 @@
               {{ filtro ? 'Sin resultados para tu búsqueda' : 'No hay tipos de destinatario' }}
             </p>
             <p v-if="!filtro" class="text-xs text-gray-400 mt-1">
-              Usa el botón "Importar catálogo base" o crea uno nuevo desde el formulario.
+              Crea uno nuevo desde el formulario.
             </p>
           </div>
 
@@ -222,14 +210,12 @@ const { can } = usePermissions()
 
 const canEdit = computed(() => can('legislativos', 'edit'))
 const canDelete = computed(() => can('legislativos', 'delete'))
-const canSeed = computed(() => can('legislativos', 'create'))
 
 const {
   getTiposDestinatario,
   createTipoDestinatario,
   updateTipoDestinatario,
-  deleteTipoDestinatario,
-  seedTiposDestinatario
+  deleteTipoDestinatario
 } = useTiposDestinatario()
 
 // ============================================
@@ -248,7 +234,6 @@ const form = reactive({
 
 const editando = ref<TipoDestinatarioItem | null>(null)
 const guardando = ref(false)
-const seeding = ref(false)
 const errorNombre = ref('')
 const errorGeneral = ref('')
 
@@ -375,32 +360,6 @@ const eliminar = async () => {
   } finally {
     eliminando.value = false
     itemAEliminar.value = null
-  }
-}
-
-// ============================================
-// SEED
-// ============================================
-const importarBase = async () => {
-  const hayDatos = items.value.length > 0
-  const mensaje = hayDatos
-    ? '⚠️ Ya existen datos. ¿Reemplazar el catálogo actual con el base?\n\nSe borrarán los actuales y se cargarán 7 tipos de destinatario.'
-    : '¿Importar el catálogo base de tipos de destinatario?'
-
-  if (!confirm(mensaje)) return
-
-  seeding.value = true
-  try {
-    const result = await seedTiposDestinatario(hayDatos)
-    mostrarToast(
-      `Importados ${result.tiposDestinatario} tipos de destinatario`,
-      'success'
-    )
-    await cargar()
-  } catch (err: any) {
-    mostrarToast(err.message || 'Error al importar', 'error')
-  } finally {
-    seeding.value = false
   }
 }
 
