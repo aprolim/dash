@@ -13,6 +13,15 @@
           ⚙️ Administrar catálogos
         </NuxtLink>
 
+        <!-- 🔥 NUEVO: botón a Tipos de Destinatario -->
+        <NuxtLink
+          v-if="canEdit"
+          to="/admin/tipos-destinatario"
+          class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-md hover:bg-gray-50 text-sm font-medium transition-colors"
+        >
+          📋 Tipos de Destinatario
+        </NuxtLink>
+
         <NuxtLink
           v-if="canCreate"
           :to="`/admin/legislativos/create?tipo=${tipoActivo}`"

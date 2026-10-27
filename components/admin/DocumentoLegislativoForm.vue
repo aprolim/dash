@@ -388,15 +388,32 @@
           />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700">Tipo de Destinatario <span class="text-red-500">*</span></label>
+          <label class="block text-sm font-medium text-gray-700">
+            Tipo de Destinatario <span class="text-red-500">*</span>
+          </label>
+          <!-- 🔥 SELECT CONECTADO AL CATÁLOGO DE LA BD -->
           <select
             v-model="form.tipoDestinatario"
             required
-            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            :disabled="cargandoTiposDestinatario"
+            class="mt-1 block w-full px-3 py-2 border rounded-md text-sm disabled:bg-gray-100"
+            :class="errores.tipoDestinatario ? 'border-red-400' : 'border-gray-300'"
           >
-            <option value="">-- Selecciona --</option>
-            <option v-for="t in TIPOS_DESTINATARIO" :key="t" :value="t">{{ t }}</option>
+            <option value="">
+              {{ cargandoTiposDestinatario ? 'Cargando tipos…' : '-- Selecciona --' }}
+            </option>
+            <option v-for="t in tiposDestinatario" :key="t" :value="t">{{ t }}</option>
           </select>
+          <p v-if="errores.tipoDestinatario" class="mt-1 text-xs text-red-600">{{ errores.tipoDestinatario }}</p>
+          <p
+            v-else-if="!cargandoTiposDestinatario && tiposDestinatario.length === 0"
+            class="mt-1 text-xs text-amber-600"
+          >
+            ⚠️ No hay tipos de destinatario configurados.
+            <NuxtLink to="/admin/tipos-destinatario" class="underline font-medium">
+              Crear uno
+            </NuxtLink>
+          </p>
         </div>
       </div>
     </div>
@@ -640,7 +657,6 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import {
   getConfigTipo,
-  TIPOS_DESTINATARIO,
   esTipoOrigenTransicion,
   type TipoDocumento
 } from '~/utils/documentoTypes'
@@ -650,6 +666,7 @@ import {
   type UploadResult,
   type ArchivoAnexo
 } from '~/composables/useDocumentosLegislativos'
+import { useTiposDestinatario } from '~/composables/useTiposDestinatario' // 🔥 NUEVO
 import CambiarEstadoModal from '~/components/admin/CambiarEstadoModal.vue'
 import MultiSelectSenadores from '~/components/admin/MultiSelectSenadores.vue'
 import MultiSelectComisiones from '~/components/admin/MultiSelectComisiones.vue'
@@ -668,9 +685,29 @@ const emit = defineEmits<{
 
 const { uploadPDF } = useDocumentosLegislativos()
 
+// 🔥 NUEVO: composable para tipos de destinatario
+const { getTiposDestinatario } = useTiposDestinatario()
+
 const config = computed(() => getConfigTipo(props.tipo)!)
 const esEdicion = computed(() => !!props.documento?._id)
 const esOrigenTransicion = computed(() => esTipoOrigenTransicion(props.tipo))
+
+// 🔥 NUEVO: estado para tipos de destinatario
+const tiposDestinatario = ref<string[]>([])
+const cargandoTiposDestinatario = ref(false)
+
+const cargarTiposDestinatario = async () => {
+  cargandoTiposDestinatario.value = true
+  try {
+    const items = await getTiposDestinatario()
+    tiposDestinatario.value = items.map((t) => t.value)
+  } catch (err) {
+    console.error('❌ Error cargando tipos de destinatario:', err)
+    tiposDestinatario.value = []
+  } finally {
+    cargandoTiposDestinatario.value = false
+  }
+}
 
 const estaBloqueado = (campo: string): boolean => {
   return esEdicion.value && Boolean(config.value?.camposBloqueadosEnEdicion.includes(campo))
@@ -713,7 +750,7 @@ const form = reactive({
   numero: null as number | null,
   codigo: '',
   fechaIngreso: '',
-  peticionario: [] as string[],   // 🔥 ahora array
+  peticionario: [] as string[],
   asunto: '',
   destinatario: '',
   tipoDestinatario: '',
@@ -730,12 +767,11 @@ const form = reactive({
   archivo: { url: null as string | null, filename: '', originalName: '', size: 0 },
   archivoAnexo: [] as ArchivoAnexo[],
 
-  // Proyectos de Ley
   esNuevoOReReposicion: '',
   plAnterior: '',
-  comisionI: [] as string[],      // 🔥 ahora array
+  comisionI: [] as string[],
   fechaRemisionComisionI: '',
-  comisionII: [] as string[],     // 🔥 ahora array
+  comisionII: [] as string[],
   fechaRemisionComisionII: '',
   estadoLey: '',
   fechaRemisionDiputados: '',
@@ -814,6 +850,9 @@ watch(
 )
 
 onMounted(() => {
+  // 🔥 Cargar tipos de destinatario desde la BD
+  cargarTiposDestinatario()
+
   if (!esEdicion.value) {
     if (props.tipo === 'proyecto-ley-tratamiento-senado') form.estadoLey = 'EN TRATAMIENTO'
     if (props.tipo === 'proyecto-ley-revision-diputados') form.estadoLey = 'EN REVISIÓN'
@@ -874,7 +913,7 @@ const enviar = () => {
     codigo: form.codigo,
     fechaIngreso: form.fechaIngreso,
     asunto: form.asunto,
-    peticionario: form.peticionario,   // 🔥 array
+    peticionario: form.peticionario,
     observacion: form.observacion || '',
     archivo: form.archivo
   }
@@ -914,9 +953,9 @@ const enviar = () => {
       payload.esNuevoOReReposicion = form.esNuevoOReReposicion || null
       payload.plAnterior = form.plAnterior || null
     }
-    payload.comisionI = form.comisionI     // 🔥 array
+    payload.comisionI = form.comisionI
     payload.fechaRemisionComisionI = form.fechaRemisionComisionI || null
-    payload.comisionII = form.comisionII   // 🔥 array
+    payload.comisionII = form.comisionII
     payload.fechaRemisionComisionII = form.fechaRemisionComisionII || null
     payload.estadoLey = form.estadoLey || null
 
@@ -948,7 +987,7 @@ const enviar = () => {
 }
 
 // ============================================
-// CAMBIO DE ESTADO (desde modal)
+// CAMBIO DE ESTADO
 // ============================================
 const cambiarEstado = (payload: { estadoLey: string; datos: any }) => {
   console.log('🟢 [Form] Evento confirm recibido del modal:', payload)
