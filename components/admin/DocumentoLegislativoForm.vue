@@ -40,6 +40,10 @@
       <div>
         <label class="block text-sm font-medium text-gray-700">
           Nº <span class="text-red-500">*</span>
+          <!-- 🔥 CAMBIO: aviso de número repetible en rechazados -->
+          <span v-if="permiteNumeroRepetido" class="text-xs font-normal text-gray-500 ml-1">
+            (puede repetirse en este tipo)
+          </span>
         </label>
         <input
           v-model.number="form.numero"
@@ -53,6 +57,10 @@
         <p v-if="errores.numero" class="mt-1 text-xs text-red-600">{{ errores.numero }}</p>
         <p v-else-if="esNumeroBloqueado" class="mt-1 text-xs text-amber-600">
           ⚠️ El número no se puede modificar.
+        </p>
+        <!-- 🔥 CAMBIO: pista para rechazados -->
+        <p v-else-if="permiteNumeroRepetido" class="mt-1 text-xs text-gray-500">
+          En rechazados el número puede repetirse (se permite más de un documento con el mismo Nº).
         </p>
       </div>
 
@@ -355,22 +363,21 @@
         </template>
       </div>
 
-      <!-- N° Ley -->
+      <!-- N° Ley (opcional) -->
       <div v-if="['proyecto-ley-aprobados', 'proyecto-ley-sancionados', 'proyecto-ley-modificaciones'].includes(tipo)">
         <label class="block text-sm font-medium text-gray-700">
-          N° Ley <span class="text-red-500">*</span>
+          N° Ley <span class="text-xs font-normal text-gray-500">(opcional)</span>
         </label>
         <input
           v-model.number="form.numeroLey"
           type="number"
           min="1"
-          required
           class="mt-1 block w-48 px-3 py-2 border rounded-md text-sm"
           :class="errores.numeroLey ? 'border-red-400' : 'border-gray-300'"
           placeholder="Ej: 1763"
         />
         <p v-if="errores.numeroLey" class="mt-1 text-xs text-red-600">{{ errores.numeroLey }}</p>
-        <p v-else class="mt-1 text-xs text-gray-500">Debe ser único a nivel global.</p>
+        <p v-else class="mt-1 text-xs text-gray-500">Si lo completas, debe ser único a nivel global.</p>
       </div>
     </div>
 
@@ -391,7 +398,6 @@
           <label class="block text-sm font-medium text-gray-700">
             Tipo de Destinatario <span class="text-red-500">*</span>
           </label>
-          <!-- 🔥 SELECT CONECTADO AL CATÁLOGO DE LA BD -->
           <select
             v-model="form.tipoDestinatario"
             required
@@ -571,16 +577,16 @@
       <p v-if="uploadError" class="mt-2 text-xs text-red-600">{{ uploadError }}</p>
     </div>
 
-    <!-- Archivo Anexo (solo tipos destino) -->
+    <!-- Archivo Anexo (opcional) -->
     <div v-if="mostrarArchivoAnexo" class="border-t pt-5">
       <div class="flex items-start justify-between mb-3">
         <div>
           <p class="text-sm font-medium text-gray-700">
             Archivo Anexo (Informe de Comisión)
-            <span class="text-red-500">*</span>
+            <span class="text-xs font-normal text-gray-500">(opcional)</span>
           </p>
           <p class="text-xs text-gray-500 mt-0.5">
-            Obligatorio cuando el estado es <strong>{{ config.estadoRequerido }}</strong>.
+            Puedes adjuntarlo ahora o más tarde editando el documento.
           </p>
         </div>
       </div>
@@ -616,7 +622,6 @@
         </span>
       </div>
       <p v-if="anexoError" class="mt-2 text-xs text-red-600">{{ anexoError }}</p>
-      <p v-if="errores.archivoAnexo" class="mt-2 text-xs text-red-600">{{ errores.archivoAnexo }}</p>
     </div>
 
     <!-- Error general -->
@@ -666,7 +671,7 @@ import {
   type UploadResult,
   type ArchivoAnexo
 } from '~/composables/useDocumentosLegislativos'
-import { useTiposDestinatario } from '~/composables/useTiposDestinatario' // 🔥 NUEVO
+import { useTiposDestinatario } from '~/composables/useTiposDestinatario'
 import CambiarEstadoModal from '~/components/admin/CambiarEstadoModal.vue'
 import MultiSelectSenadores from '~/components/admin/MultiSelectSenadores.vue'
 import MultiSelectComisiones from '~/components/admin/MultiSelectComisiones.vue'
@@ -684,15 +689,16 @@ const emit = defineEmits<{
 }>()
 
 const { uploadPDF } = useDocumentosLegislativos()
-
-// 🔥 NUEVO: composable para tipos de destinatario
 const { getTiposDestinatario } = useTiposDestinatario()
 
 const config = computed(() => getConfigTipo(props.tipo)!)
 const esEdicion = computed(() => !!props.documento?._id)
 const esOrigenTransicion = computed(() => esTipoOrigenTransicion(props.tipo))
 
-// 🔥 NUEVO: estado para tipos de destinatario
+// 🔥 CAMBIO: tipos donde el número puede repetirse
+const TIPOS_NUMERO_NO_UNICO: TipoDocumento[] = ['proyecto-ley-rechazados']
+const permiteNumeroRepetido = computed(() => TIPOS_NUMERO_NO_UNICO.includes(props.tipo))
+
 const tiposDestinatario = ref<string[]>([])
 const cargandoTiposDestinatario = ref(false)
 
@@ -743,9 +749,6 @@ const esProyectoLey = computed(() =>
 
 const mostrarArchivoAnexo = computed(() => Boolean(config.value?.estadoRequerido))
 
-// ============================================
-// FORM
-// ============================================
 const form = reactive({
   numero: null as number | null,
   codigo: '',
@@ -797,9 +800,6 @@ const abrirModalEstado = () => {
   showEstadoModal.value = true
 }
 
-// ============================================
-// CARGA INICIAL
-// ============================================
 const asegurarArray = (v: unknown): string[] => {
   if (Array.isArray(v)) return v.map(x => String(x)).filter(Boolean)
   if (typeof v === 'string' && v.trim()) return [v.trim()]
@@ -850,7 +850,6 @@ watch(
 )
 
 onMounted(() => {
-  // 🔥 Cargar tipos de destinatario desde la BD
   cargarTiposDestinatario()
 
   if (!esEdicion.value) {
@@ -860,9 +859,6 @@ onMounted(() => {
   }
 })
 
-// ============================================
-// VALIDACIÓN
-// ============================================
 const validar = (): boolean => {
   Object.keys(errores).forEach((k) => delete errores[k])
   errorGeneral.value = ''
@@ -899,9 +895,6 @@ const validar = (): boolean => {
   return Object.keys(errores).length === 0
 }
 
-// ============================================
-// ENVÍO NORMAL
-// ============================================
 const enviar = () => {
   if (!validar()) {
     errorGeneral.value = 'Corrige los errores antes de guardar.'
@@ -970,12 +963,12 @@ const enviar = () => {
     if (['proyecto-ley-aprobados', 'proyecto-ley-modificaciones'].includes(props.tipo)) {
       payload.fechaAprobacion = form.fechaAprobacion || null
       payload.fechaRemisionDiputados = form.fechaRemisionDiputados || null
-      payload.numeroLey = form.numeroLey
+      if (form.numeroLey) payload.numeroLey = form.numeroLey
     }
     if (props.tipo === 'proyecto-ley-sancionados') {
       payload.fechaSancion = form.fechaSancion || null
       payload.fechaRemisionEjecutivo = form.fechaRemisionEjecutivo || null
-      payload.numeroLey = form.numeroLey
+      if (form.numeroLey) payload.numeroLey = form.numeroLey
     }
     if (props.tipo === 'proyecto-ley-rechazados') {
       payload.fechaRechazo = form.fechaRechazo || null
@@ -986,9 +979,6 @@ const enviar = () => {
   emit('submit', payload)
 }
 
-// ============================================
-// CAMBIO DE ESTADO
-// ============================================
 const cambiarEstado = (payload: { estadoLey: string; datos: any }) => {
   console.log('🟢 [Form] Evento confirm recibido del modal:', payload)
   savingEstado.value = true
@@ -1004,9 +994,6 @@ defineExpose({
   }
 })
 
-// ============================================
-// UPLOAD PRINCIPAL
-// ============================================
 const handlePdfSelect = async (event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
@@ -1040,9 +1027,6 @@ const quitarPdf = () => {
   form.archivo = { url: null, filename: '', originalName: '', size: 0 }
 }
 
-// ============================================
-// UPLOAD ANEXO
-// ============================================
 const handleAnexoSelect = async (event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]

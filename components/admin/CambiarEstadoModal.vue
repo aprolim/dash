@@ -54,7 +54,7 @@
       <div v-if="nuevoEstado" class="border-t pt-4 space-y-4">
         <p class="text-sm font-medium text-gray-700">
           Campos para pasar a <strong>{{ nuevoEstado }}</strong>
-          <span class="text-xs font-normal text-gray-500 ml-1">(puedes completarlos ahora o después)</span>
+          <span class="text-xs font-normal text-gray-500 ml-1">(todos opcionales, puedes completarlos ahora o después)</span>
         </p>
 
         <!-- APROBADO / APROBADO CON MODIFICACIONES -->
@@ -69,10 +69,13 @@
               <input v-model="datos.fechaRemisionDiputados" type="date" class="w-full px-3 py-2 border rounded-md text-sm border-gray-300" />
             </div>
           </div>
+          <!-- 🔥 CAMBIO: N° Ley ahora es OPCIONAL -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">N° Ley</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              N° Ley <span class="text-xs font-normal text-gray-500">(opcional)</span>
+            </label>
             <input v-model.number="datos.numeroLey" type="number" min="1" class="w-48 px-3 py-2 border rounded-md text-sm border-gray-300" placeholder="Ej: 1763" />
-            <p class="mt-1 text-xs text-gray-500">Debe ser único a nivel global.</p>
+            <p class="mt-1 text-xs text-gray-500">Si lo completas, debe ser único a nivel global.</p>
           </div>
         </template>
 
@@ -88,8 +91,11 @@
               <input v-model="datos.fechaRemisionEjecutivo" type="date" class="w-full px-3 py-2 border rounded-md text-sm border-gray-300" />
             </div>
           </div>
+          <!-- 🔥 CAMBIO: N° Ley ahora es OPCIONAL -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">N° Ley</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              N° Ley <span class="text-xs font-normal text-gray-500">(opcional)</span>
+            </label>
             <input v-model.number="datos.numeroLey" type="number" min="1" class="w-48 px-3 py-2 border rounded-md text-sm border-gray-300" placeholder="Ej: 1763" />
           </div>
         </template>
@@ -108,15 +114,16 @@
           </div>
         </template>
 
-        <!-- ARCHIVO ANEXO (OBLIGATORIO) -->
-        <div class="border-t pt-4 bg-amber-50/50 -mx-6 px-6 pb-2">
+        <!-- 🔥 CAMBIO: ARCHIVO ANEXO AHORA ES OPCIONAL -->
+        <div class="border-t pt-4 bg-gray-50/50 -mx-6 px-6 pb-2">
           <div class="flex items-start justify-between mb-2">
             <div>
               <p class="text-sm font-medium text-gray-900">
-                Archivo Anexo (Informe de Comisión) <span class="text-red-500">*</span>
+                Archivo Anexo (Informe de Comisión)
+                <span class="text-xs font-normal text-gray-500">(opcional)</span>
               </p>
               <p class="text-xs text-gray-600 mt-0.5">
-                Obligatorio para confirmar el cambio a <strong>{{ nuevoEstado }}</strong>.
+                Puedes adjuntarlo ahora o más tarde editando el documento.
               </p>
             </div>
           </div>
@@ -142,7 +149,6 @@
             </span>
           </div>
           <p v-if="anexoError" class="mt-2 text-xs text-red-600">{{ anexoError }}</p>
-          <p v-if="errores.archivoAnexo" class="mt-2 text-xs text-red-600 font-medium">{{ errores.archivoAnexo }}</p>
         </div>
       </div>
 
@@ -151,7 +157,7 @@
         <p class="text-sm text-red-800">{{ errorGeneral }}</p>
       </div>
 
-      <!-- 🔥 BOTONES CORREGIDOS (Usando Flex estricto) -->
+      <!-- 🔥 CAMBIO: Botón confirmar ya NO se bloquea por falta de anexo -->
       <div class="flex items-center justify-end gap-3 pt-4 border-t shrink-0">
         <button 
           type="button" 
@@ -164,7 +170,7 @@
         <button 
           type="button" 
           @click="confirmar" 
-          :disabled="loading || !nuevoEstado || datos.archivoAnexo.length === 0" 
+          :disabled="loading || !nuevoEstado" 
           class="px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
           <span v-if="loading" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
@@ -245,17 +251,13 @@ const seleccionarEstado = (estado: string) => {
   Object.keys(errores).forEach(k => delete errores[k])
 }
 
+// 🔥 CAMBIO: validación mínima, ya no exige archivoAnexo
 const validar = (): boolean => {
   Object.keys(errores).forEach(k => delete errores[k])
   errorGeneral.value = ''
 
   if (!nuevoEstado.value) {
     errorGeneral.value = 'Selecciona el nuevo estado.'
-    return false
-  }
-
-  if (!datos.archivoAnexo || datos.archivoAnexo.length === 0) {
-    errores.archivoAnexo = 'Adjunta al menos un informe de comisión'
     return false
   }
 
@@ -300,8 +302,12 @@ const confirmar = () => {
   if (!validar()) return
 
   const payload: any = {
-    estadoLey: nuevoEstado.value,
-    archivoAnexo: datos.archivoAnexo
+    estadoLey: nuevoEstado.value
+  }
+
+  // 🔥 CAMBIO: solo incluir archivoAnexo si hay al menos uno
+  if (datos.archivoAnexo.length > 0) {
+    payload.archivoAnexo = datos.archivoAnexo
   }
 
   if (datos.fechaAprobacion) payload.fechaAprobacion = datos.fechaAprobacion
