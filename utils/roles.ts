@@ -9,7 +9,8 @@ export type SectionId =
   | 'sesiones'
   | 'auditoria'
   | 'legislativos'
-  | 'catalogos-legislativos'   // 🔥 NUEVO
+  | 'directiva'                 // 🔥 NUEVO - Pestaña de primer nivel
+  | 'catalogos-legislativos'
   | 'usuarios'
 
 export type ActionId = 'view' | 'create' | 'edit' | 'delete'
@@ -53,7 +54,9 @@ const SESIONES_ROLES: Role[] = [...CONTENT_ROLES, 'EDITOR_SESIONES']
 const COMUNICADOS_ROLES: Role[] = [...CONTENT_ROLES, 'EDITOR_COMUNICADOS']
 const AUDITORIA_ROLES: Role[] = [...CONTENT_ROLES, 'EDITOR_AUDITORIA']
 const LEGISLATIVOS_ROLES: Role[] = [...CONTENT_ROLES, 'EDITOR_AUDITORIA']
-// 🔥 NUEVO: catálogos legislativos los puede administrar el que edita legislativos
+// 🔥 NUEVO: la directiva la administra el que edita legislativos
+const DIRECTIVA_ROLES: Role[] = [...LEGISLATIVOS_ROLES]
+// Catálogos legislativos los puede administrar el que edita legislativos
 const CATALOGOS_LEGISLATIVOS_ROLES: Role[] = [...LEGISLATIVOS_ROLES]
 
 export const ROLE_IDS: Role[] = [
@@ -76,7 +79,7 @@ export const ROLES: RoleInfo[] = [
   { id: 'EDITOR_NOTICIAS', label: 'Editor de Noticias', description: 'Sólo la sección de Noticias.', badgeClass: 'bg-sky-100 text-sky-800' },
   { id: 'EDITOR_SESIONES', label: 'Editor de Sesiones', description: 'Sólo la sección de Sesiones.', badgeClass: 'bg-teal-100 text-teal-800' },
   { id: 'EDITOR_COMUNICADOS', label: 'Editor de Comunicados', description: 'Sólo la sección de Comunicados.', badgeClass: 'bg-indigo-100 text-indigo-800' },
-  { id: 'EDITOR_AUDITORIA', label: 'Editor de Auditoría y Legislativos', description: 'Auditoría, Documentos Legislativos y sus catálogos.', badgeClass: 'bg-amber-100 text-amber-800' },
+  { id: 'EDITOR_AUDITORIA', label: 'Editor de Auditoría y Legislativos', description: 'Auditoría, Documentos Legislativos, Directiva y sus catálogos.', badgeClass: 'bg-amber-100 text-amber-800' },
   { id: 'MODERATOR', label: 'Moderador', description: 'Sin acceso al panel.', badgeClass: 'bg-yellow-100 text-yellow-800' },
   { id: 'VIEWER', label: 'Solo lectura', description: 'Sin acceso al panel de administración.', badgeClass: 'bg-gray-100 text-gray-700' },
   { id: 'CITIZEN', label: 'Ciudadano', description: 'Solo portal público.', badgeClass: 'bg-green-100 text-green-800' },
@@ -96,9 +99,14 @@ export const SECTIONS: SectionInfo[] = [
   { id: 'comunicados', label: 'Comunicados', icon: '📢', path: '/admin/comunicados', title: '📢 Gestión de Comunicados', description: 'Comunicados que aparecen como modal en la página principal' },
   { id: 'auditoria', label: 'Auditoría', icon: '🔍', path: '/admin/auditoria', title: '📋 Auditorías Ejecutadas', description: 'Documentos de auditoría organizados por categorías' },
   { id: 'legislativos', label: 'Legislativos', icon: '📚', path: '/admin/legislativos', title: '📚 Documentos Legislativos', description: 'Peticiones, proyectos, resoluciones, declaraciones y minutas' },
-  // 🔥 NUEVO: esta sub-sección NO aparece en el menú del header (la oculta el layout)
+
+  // 🔥 NUEVO - Pestaña de primer nivel en el header
+  { id: 'directiva', label: 'Directiva', icon: '👥', path: '/admin/directiva', title: '👥 Directiva Camaral', description: 'Cargos de la directiva de la Cámara de Senadores' },
+
+  // Esta sub-sección NO aparece en el menú del header (la oculta el layout)
   // porque se llega a ella desde /admin/legislativos con un botón.
   { id: 'catalogos-legislativos', label: 'Catálogos', icon: '⚙️', path: '/admin/legislativos/catalogos', title: '⚙️ Catálogos de Legislación', description: 'Senadores y comisiones exclusivos del módulo Legislación' },
+
   { id: 'usuarios', label: 'Usuarios', icon: '👥', path: '/admin/usuarios', title: '👥 Usuarios y Roles', description: 'Quién puede entrar al panel y con qué rol' },
 ]
 
@@ -133,7 +141,15 @@ export const PERMISSIONS: Record<SectionId, SectionPermissions> = {
     edit: [...LEGISLATIVOS_ROLES],
     delete: [...LEGISLATIVOS_ROLES],
   },
-  // 🔥 NUEVO
+
+  // 🔥 NUEVO - Permisos de la pestaña Directiva
+  directiva: {
+    view: [...DIRECTIVA_ROLES],
+    create: [...DIRECTIVA_ROLES],
+    edit: [...DIRECTIVA_ROLES],
+    delete: [...DIRECTIVA_ROLES],
+  },
+
   'catalogos-legislativos': {
     view: [...CATALOGOS_LEGISLATIVOS_ROLES],
     create: [...CATALOGOS_LEGISLATIVOS_ROLES],
@@ -174,7 +190,7 @@ export function sectionById(id: SectionId): SectionInfo | undefined {
 
 export function sectionForPath(path: string): SectionInfo | null {
   const clean = (path || '').split('?')[0].split('#')[0]
-  // Buscar primero por el path MÁS ESPECÍFICO (más largo)
+  // Buscar primero por el path MÁS específico (más largo)
   const sorted = [...SECTIONS].sort((a, b) => b.path.length - a.path.length)
   return sorted.find(s => clean === s.path || clean.startsWith(s.path + '/')) || null
 }
