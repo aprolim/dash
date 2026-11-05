@@ -40,10 +40,6 @@
       <div>
         <label class="block text-sm font-medium text-gray-700">
           Nº <span class="text-red-500">*</span>
-          <!-- 🔥 CAMBIO: aviso de número repetible en rechazados -->
-          <span v-if="permiteNumeroRepetido" class="text-xs font-normal text-gray-500 ml-1">
-            (puede repetirse en este tipo)
-          </span>
         </label>
         <input
           v-model.number="form.numero"
@@ -58,9 +54,8 @@
         <p v-else-if="esNumeroBloqueado" class="mt-1 text-xs text-amber-600">
           ⚠️ El número no se puede modificar.
         </p>
-        <!-- 🔥 CAMBIO: pista para rechazados -->
-        <p v-else-if="permiteNumeroRepetido" class="mt-1 text-xs text-gray-500">
-          En rechazados el número puede repetirse (se permite más de un documento con el mismo Nº).
+        <p v-else class="mt-1 text-xs text-gray-500">
+          El número puede repetirse entre documentos del mismo tipo.
         </p>
       </div>
 
@@ -694,10 +689,6 @@ const { getTiposDestinatario } = useTiposDestinatario()
 const config = computed(() => getConfigTipo(props.tipo)!)
 const esEdicion = computed(() => !!props.documento?._id)
 const esOrigenTransicion = computed(() => esTipoOrigenTransicion(props.tipo))
-
-// 🔥 CAMBIO: tipos donde el número puede repetirse
-const TIPOS_NUMERO_NO_UNICO: TipoDocumento[] = ['proyecto-ley-rechazados']
-const permiteNumeroRepetido = computed(() => TIPOS_NUMERO_NO_UNICO.includes(props.tipo))
 
 const tiposDestinatario = ref<string[]>([])
 const cargandoTiposDestinatario = ref(false)
