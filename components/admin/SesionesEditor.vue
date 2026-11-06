@@ -54,7 +54,7 @@
               v-model="videos[3].url" 
               type="text" 
               class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#E03636] focus:border-[#E03636]"
-              placeholder="https://www.youtube.com/watch?v=..."
+              placeholder="https://www.youtube.com/live/..."
             />
           </div>
         </div>
@@ -227,10 +227,11 @@ const videos = ref<SesionVideo[]>([
   { position: 4, title: '', url: '', youtubeId: '', isActive: false, isLive: true }  // 🔥 VIDEO EN VIVO
 ])
 
-// Extraer YouTube ID
+// Extraer YouTube ID (ACTUALIZADO para aceptar /live/)
 const extractYoutubeId = (url: string): string => {
   if (!url) return ''
-  const regex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?#]+)/
+  // Se agregó |youtube\.com\/live\/ para aceptar transmisiones en vivo
+  const regex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/live\/)([^&?#]+)/
   const match = url.match(regex)
   return match ? match[1] : ''
 }
@@ -270,7 +271,7 @@ const guardarTodos = async () => {
   for (const video of videos.value) {
     if (video.url && !extractYoutubeId(video.url)) {
       const nombre = video.isLive ? 'EN VIVO' : `${video.position === 1 ? 'primer' : video.position === 2 ? 'segundo' : 'tercer'} video`
-      alert(`La URL del ${nombre} no es válida`)
+      alert(`La URL del ${nombre} no es válida. Asegúrate de usar un enlace válido de YouTube (watch, live, youtu.be o embed).`)
       guardando.value = false
       return
     }
