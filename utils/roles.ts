@@ -11,6 +11,7 @@ export type SectionId =
   | 'legislativos'
   | 'marco-normativo'           // 🔥 NUEVO - Marco Normativo (destacados + acordeón)
   | 'comisiones-comites'        // 🔥 NUEVO - Comisiones y comités
+  | 'pleno-camaral'             // 🔥 NUEVO - Senadores (titulares y suplentes)
   | 'directiva'                 // 🔥 NUEVO - Pestaña de primer nivel
   | 'catalogos-legislativos'
   | 'usuarios'
@@ -103,6 +104,7 @@ export const SECTIONS: SectionInfo[] = [
   { id: 'legislativos', label: 'Legislativos', icon: '📚', path: '/admin/legislativos', title: '📚 Documentos Legislativos', description: 'Peticiones, proyectos, resoluciones, declaraciones y minutas' },
   { id: 'marco-normativo', label: 'Marco Normativo', icon: '📜', path: '/admin/marco-normativo', title: '📜 Marco Normativo', description: 'Tarjetas destacadas y normativa administrativa del portal público' },
   { id: 'comisiones-comites', label: 'Comisiones y Comités', icon: '🏛️', path: '/admin/comisiones-comites', title: '🏛️ Comisiones y Comités', description: 'Presidentes de comisión y secretarios de comité' },
+  { id: 'pleno-camaral', label: 'Pleno Camaral', icon: '🪑', path: '/admin/pleno-camaral', title: '🪑 Pleno Camaral', description: 'Senadores titulares y suplentes: datos y fotos' },
 
   // 🔥 NUEVO - Pestaña de primer nivel en el header
   { id: 'directiva', label: 'Directiva', icon: '👥', path: '/admin/directiva', title: '👥 Directiva Camaral', description: 'Cargos de la directiva de la Cámara de Senadores' },
@@ -160,6 +162,14 @@ export const PERMISSIONS: Record<SectionId, SectionPermissions> = {
     create: [...LEGISLATIVOS_ROLES],
     edit: [...LEGISLATIVOS_ROLES],
     delete: [...ADMIN_ROLES, 'EDITOR'],
+  },
+
+  // 🔥 NUEVO - Pleno Camaral (senadores y sus fotos)
+  'pleno-camaral': {
+    view: [...LEGISLATIVOS_ROLES],
+    create: [...ADMIN_ROLES],
+    edit: [...LEGISLATIVOS_ROLES],
+    delete: [...ADMIN_ROLES],
   },
 
   // 🔥 NUEVO - Permisos de la pestaña Directiva
