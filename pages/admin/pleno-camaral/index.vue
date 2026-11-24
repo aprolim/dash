@@ -101,7 +101,7 @@
 
           <!-- Badge suplente -->
           <span
-            v-if="s.tipo === 'suplente'"
+            v-if="esSuplente(s)"
             class="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-600 text-white"
           >SUPLENTE</span>
 
@@ -114,6 +114,12 @@
         <!-- Datos -->
         <div class="p-3 flex-1 flex flex-col">
           <p class="text-sm font-semibold text-gray-900 leading-tight">{{ s.name }}</p>
+
+          <!-- Contexto: a quién reemplaza este suplente -->
+          <p v-if="esSuplente(s)" class="text-[11px] text-blue-700 mt-0.5 leading-tight">
+            Suplente de <span class="font-medium">{{ s.titularDe }}</span>
+          </p>
+
           <p class="text-xs text-gray-500 mt-1">
             <span
               class="inline-block px-1.5 py-0.5 rounded font-medium"
@@ -231,25 +237,117 @@ const fotoUrl = (foto?: string) => {
 }
 
 // ============================================
+// SUPLENTES (derivados)
+//
+// ⚠️ En la base NO existen registros con tipo 'suplente': cada titular
+// guarda los datos de su suplente en los campos `suplente`, `fotoSuplente`,
+// etc. Por eso la lista de suplentes se construye a partir de los titulares.
+//
+// El `id` se mantiene como el del TITULAR, porque el endpoint de foto
+// actualiza `fotoSuplente` sobre ese registro (destino='suplente').
+// ============================================
+interface SuplenteDerivado {
+  id: number
+  name: string
+  foto: string
+  party: string
+  partyShort: string
+  partyColor: string
+  department: string
+  seatNumber: number
+  titularDe: string
+  destino: 'suplente'
+}
+
+const suplentesDerivados = computed<SuplenteDerivado[]>(() =>
+  senadores.value
+    .filter((s) => s.tipo === 'titular' && (s.suplente || '').trim())
+    .map((s) => ({
+      id: s.id,
+      name: (s.suplente || '').trim(),
+      foto: s.fotoSuplente || '',
+      party: s.party || '',
+      partyShort: s.partyShort || '',
+      partyColor: s.partyColor || '#999',
+      department: s.department || '',
+      seatNumber: s.seatNumber,
+      titularDe: s.name,
+      destino: 'suplente' as const
+    }))
+)
+
+// ============================================
+// FILA UNIFICADA PARA EL TEMPLATE
+// Titulares y suplentes comparten la misma forma para que el v-for
+// no tenga que distinguir tipos.
+// ============================================
+interface FilaPleno {
+  id: number
+  name: string
+  foto: string
+  party: string
+  partyShort: string
+  partyColor: string
+  department: string
+  seatNumber: number
+  esSuplente: boolean
+  titularDe: string
+  destino: 'titular' | 'suplente'
+}
+
+const filasTitulares = computed<FilaPleno[]>(() =>
+  senadores.value
+    .filter((s) => s.tipo === 'titular')
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      foto: s.foto || '',
+      party: s.party || '',
+      partyShort: s.partyShort || '',
+      partyColor: s.partyColor || '#999',
+      department: s.department || '',
+      seatNumber: s.seatNumber,
+      esSuplente: false,
+      titularDe: '',
+      destino: 'titular' as const
+    }))
+)
+
+const filasSuplentes = computed<FilaPleno[]>(() =>
+  suplentesDerivados.value.map((s) => ({
+    ...s,
+    esSuplente: true
+  }))
+)
+
+// ============================================
 // FILTRO EN CLIENTE
 // ============================================
-const senadoresFiltrados = computed(() => {
+const senadoresFiltrados = computed<FilaPleno[]>(() => {
   const q = filtroQ.value.trim().toLowerCase()
 
-  return senadores.value.filter((s) => {
-    if (tipoActivo.value === 'titular' && s.tipo !== 'titular') return false
-    if (tipoActivo.value === 'suplente' && s.tipo !== 'suplente') return false
-    if (soloSinFoto.value && s.foto) return false
+  const base =
+    tipoActivo.value === 'suplente'
+      ? filasSuplentes.value
+      : tipoActivo.value === 'titular'
+        ? filasTitulares.value
+        : [...filasTitulares.value, ...filasSuplentes.value]
 
+  return base.filter((s) => {
+    if (soloSinFoto.value && s.foto) return false
     if (!q) return true
     return (
       (s.name || '').toLowerCase().includes(q) ||
+      (s.titularDe || '').toLowerCase().includes(q) ||
       (s.party || '').toLowerCase().includes(q) ||
       (s.partyShort || '').toLowerCase().includes(q) ||
       (s.department || '').toLowerCase().includes(q)
     )
   })
 })
+
+// Helper del template
+const esSuplente = (s: FilaPleno) => Boolean(s.esSuplente)
 
 // ============================================
 // CARGA
@@ -272,7 +370,9 @@ const cargar = async () => {
 // ============================================
 // FOTO
 // ============================================
-const onSelectFoto = async (event: Event, s: SenadorPleno) => {
+type FilaFoto = FilaPleno
+
+const onSelectFoto = async (event: Event, s: FilaFoto) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (!file) return
@@ -287,13 +387,23 @@ const onSelectFoto = async (event: Event, s: SenadorPleno) => {
     return
   }
 
+  // destino 'suplente' actualiza el campo fotoSuplente del titular
+  const destino = s.destino === 'suplente' ? 'suplente' : 'titular'
   subiendo.value = s.id
 
   try {
-    const result = await uploadFoto(s.id, file, 'titular')
+    const result = await uploadFoto(s.id, file, destino)
     s.foto = result.url
     mostrarToast(`Foto actualizada: ${s.name}`)
-    // Refrescar el resumen (contadores de "sin foto")
+
+    // Sincronizar el registro del titular para que el cambio se refleje
+    // al cambiar de pestaña sin recargar.
+    const titular = senadores.value.find((x) => x.id === s.id)
+    if (titular) {
+      if (destino === 'suplente') titular.fotoSuplente = result.url
+      else titular.foto = result.url
+    }
+
     getResumen().then((r) => (resumen.value = r)).catch(() => {})
   } catch (err: any) {
     mostrarToast(err.message || 'No se pudo subir la foto', 'error')
@@ -303,15 +413,21 @@ const onSelectFoto = async (event: Event, s: SenadorPleno) => {
   }
 }
 
-const quitarFoto = async (s: SenadorPleno) => {
+const quitarFoto = async (s: FilaFoto) => {
+  const destino = s.destino === 'suplente' ? 'suplente' : 'titular'
   const ok = window.confirm(
     `¿Quitar la foto de ${s.name}?\n\nEl archivo NO se borra del servidor, solo se deja de mostrar.`
   )
   if (!ok) return
 
   try {
-    await eliminarFoto(s.id, 'titular')
+    await eliminarFoto(s.id, destino)
     s.foto = ''
+    const titular = senadores.value.find((x) => x.id === s.id)
+    if (titular) {
+      if (destino === 'suplente') titular.fotoSuplente = ''
+      else titular.foto = ''
+    }
     mostrarToast('Foto quitada')
     getResumen().then((r) => (resumen.value = r)).catch(() => {})
   } catch (err: any) {
