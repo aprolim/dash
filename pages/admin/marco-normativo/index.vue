@@ -3,80 +3,95 @@
   <div>
     <!-- Header -->
     <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
-      <div>
-        <p class="text-sm text-gray-600">
-          Documentos que se muestran en
-          <a
-            href="https://senado.gob.bo/marco-normativo"
-            target="_blank"
-            class="text-primary-600 hover:underline"
-          >senado.gob.bo/marco-normativo</a>
-        </p>
-      </div>
-      <div class="flex gap-2">
-        <NuxtLink
-          to="/admin/marco-normativo/create"
-          class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
-        >
-          <span class="mr-2">+</span>
-          Nuevo documento
-        </NuxtLink>
-      </div>
+      <p class="text-sm text-gray-600">
+        Documentos que se muestran en
+        <a
+          href="https://senado.gob.bo/marco-normativo"
+          target="_blank"
+          class="text-primary-600 hover:underline"
+        >senado.gob.bo/marco-normativo</a>
+      </p>
+      <NuxtLink
+        :to="`/admin/marco-normativo/create?tipo=${tabActiva}`"
+        class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
+      >
+        <span class="mr-2">+</span>
+        {{ tabActiva === 'destacado' ? 'Nueva tarjeta' : 'Nuevo documento' }}
+      </NuxtLink>
     </div>
 
-    <!-- Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      <div class="bg-white rounded-lg shadow p-4 text-center">
-        <div class="text-2xl font-bold text-gray-900">{{ total }}</div>
-        <div class="text-xs text-gray-500 mt-1">Total</div>
-      </div>
-      <div class="bg-white rounded-lg shadow p-4 text-center">
-        <div class="text-2xl font-bold text-amber-600">{{ totalDestacados }}</div>
-        <div class="text-xs text-gray-500 mt-1">Destacados (tarjetas)</div>
-      </div>
-      <div class="bg-white rounded-lg shadow p-4 text-center">
-        <div class="text-2xl font-bold text-blue-600">{{ totalAcordeon }}</div>
-        <div class="text-xs text-gray-500 mt-1">En el acordeón</div>
-      </div>
-      <div class="bg-white rounded-lg shadow p-4 text-center">
-        <div class="text-2xl font-bold text-red-600">{{ totalEliminados }}</div>
-        <div class="text-xs text-gray-500 mt-1">Eliminados</div>
-      </div>
+    <!-- ============================================ -->
+    <!-- PESTAÑAS                                     -->
+    <!-- ============================================ -->
+    <div class="border-b border-gray-200 mb-6">
+      <nav class="-mb-px flex gap-6">
+        <button
+          v-for="tab in TABS"
+          :key="tab.id"
+          @click="cambiarTab(tab.id)"
+          class="pb-3 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2"
+          :class="tabActiva === tab.id
+            ? tab.activaClass
+            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+        >
+          <span>{{ tab.icon }}</span>
+          {{ tab.label }}
+          <span
+            class="px-2 py-0.5 rounded-full text-xs font-bold"
+            :class="tabActiva === tab.id ? 'bg-white/60' : 'bg-gray-100'"
+          >
+            {{ contarPorTipo(tab.id) }}
+          </span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Aviso de la pestaña activa -->
+    <div
+      v-if="tabActiva === 'destacado'"
+      class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6 text-sm text-amber-900"
+    >
+      <strong>★ Tarjetas destacadas:</strong> se muestran arriba en el sitio público.
+      El sitio muestra <strong>solo las 6 primeras</strong> por orden; si tenés más, las demás no se verán.
+    </div>
+    <div
+      v-else
+      class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6 text-sm text-blue-900"
+    >
+      <strong>📋 Acordeón:</strong> agrupadas por categoría en la lista desplegable.
+      El orden define la posición dentro de su categoría.
     </div>
 
     <!-- Filtros -->
     <div class="bg-gray-50 p-4 rounded-lg mb-6 flex flex-wrap gap-3 items-center">
       <div class="flex-1 min-w-[250px]">
         <input
-          v-model="filters.q"
-          @input="onSearchInput"
+          v-model="filtroQ"
           type="text"
-          placeholder="Buscar por nombre, código o descripción..."
+          placeholder="Buscar por nombre o código..."
           class="w-full px-3 py-2 border rounded-lg text-sm"
         />
       </div>
 
-      <select
-        v-model="filters.categoria"
-        @change="onFilterChange"
-        class="px-3 py-2 border rounded-lg text-sm"
-      >
-        <option value="">Todas las categorías</option>
-        <option v-for="c in categoriasDisponibles" :key="c" :value="c">{{ c }}</option>
-        <option :value="SIN_CATEGORIA">— Sin categoría —</option>
-      </select>
+      <input
+        v-if="tabActiva === 'acordeon'"
+        v-model="filtroCategoria"
+        type="text"
+        list="cat-filtro"
+        placeholder="Todas las categorías"
+        class="px-3 py-2 border rounded-lg text-sm w-56"
+      />
+      <datalist id="cat-filtro">
+        <option v-for="c in categoriasDisponibles" :key="c" :value="c" />
+      </datalist>
 
       <label class="flex items-center gap-2 text-sm cursor-pointer">
-        <input type="checkbox" v-model="filters.incluirInactivos" @change="onFilterChange" />
+        <input type="checkbox" v-model="incluirInactivos" @change="cargar" />
         Incluir inactivos
-      </label>
-      <label class="flex items-center gap-2 text-sm cursor-pointer">
-        <input type="checkbox" v-model="filters.incluirEliminados" @change="onFilterChange" />
-        Incluir eliminados
       </label>
 
       <button
-        @click="resetFilters"
+        @click="resetFiltros"
         class="px-3 py-2 text-gray-600 hover:text-gray-800 text-sm"
       >
         Limpiar
@@ -91,86 +106,78 @@
     <!-- Cargando -->
     <div v-if="loading" class="text-center py-12 text-gray-500">Cargando...</div>
 
-    <!-- Tabla -->
-    <div v-else class="bg-white rounded-lg shadow overflow-hidden">
+    <!-- ============================================ -->
+    <!-- TABLA: DESTACADOS (con vista de tarjetas)     -->
+    <!-- ============================================ -->
+    <div v-else-if="tabActiva === 'destacado'" class="bg-white rounded-lg shadow overflow-hidden">
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Orden</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documento</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-36">Categoría</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">Orden</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Portada</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Gestión</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Archivos</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Estado</th>
-            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-40">Acciones</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">PDF</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">Estado</th>
+            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-36">Acciones</th>
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
           <tr
-            v-for="doc in documentos"
+            v-for="(doc, idx) in listaActual"
             :key="doc._id"
             class="hover:bg-gray-50"
             :class="{ 'opacity-50': doc.eliminado }"
           >
             <!-- Orden -->
-            <td class="px-4 py-3 text-sm text-gray-600">
-              <div class="flex items-center gap-1">
-                <span class="font-mono">{{ doc.orden }}</span>
-                <button
-                  @click="moverOrden(doc, -1)"
-                  class="text-gray-400 hover:text-gray-700"
-                  title="Subir"
-                >▲</button>
-                <button
-                  @click="moverOrden(doc, 1)"
-                  class="text-gray-400 hover:text-gray-700"
-                  title="Bajar"
-                >▼</button>
-              </div>
-            </td>
-
-            <!-- Documento -->
             <td class="px-4 py-3 text-sm">
-              <div class="flex items-start gap-3">
-                <img
-                  v-if="doc.imagen"
-                  :src="doc.imagen"
-                  :alt="doc.nombre"
-                  class="w-10 h-14 object-cover rounded border border-gray-200 shrink-0"
-                  @error="(e) => ((e.target as HTMLImageElement).style.display = 'none')"
-                />
-                <div class="min-w-0">
-                  <div class="font-medium text-gray-900">{{ doc.nombre }}</div>
-                  <div v-if="doc.codigo" class="text-xs text-gray-500">{{ doc.codigo }}</div>
-                  <span
-                    v-if="doc.destacado"
-                    class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800"
-                  >★ DESTACADO</span>
+              <div class="flex items-center gap-1">
+                <span class="font-mono font-bold text-gray-900">{{ doc.orden }}</span>
+                <div class="flex flex-col ml-1">
+                  <button
+                    @click="mover(doc, -1)"
+                    :disabled="idx === 0"
+                    class="text-gray-400 hover:text-gray-800 disabled:opacity-20 leading-none"
+                    title="Subir"
+                  >▲</button>
+                  <button
+                    @click="mover(doc, 1)"
+                    :disabled="idx === listaActual.length - 1"
+                    class="text-gray-400 hover:text-gray-800 disabled:opacity-20 leading-none"
+                    title="Bajar"
+                  >▼</button>
                 </div>
               </div>
             </td>
 
-            <!-- Categoría -->
-            <td class="px-4 py-3 text-sm text-gray-600">
-              <span v-if="doc.categoria">{{ doc.categoria }}</span>
-              <span v-else class="text-gray-400 italic">—</span>
+            <!-- Portada -->
+            <td class="px-4 py-3">
+              <img
+                v-if="doc.imagen"
+                :src="doc.imagen"
+                :alt="doc.nombre"
+                class="w-12 h-16 object-cover rounded border border-gray-200"
+              />
+              <span v-else class="text-xs text-red-600 font-medium">Falta</span>
             </td>
 
-            <!-- Gestión -->
+            <!-- Nombre -->
+            <td class="px-4 py-3 text-sm">
+              <div class="font-medium text-gray-900">{{ doc.nombre }}</div>
+              <div v-if="doc.codigo" class="text-xs text-gray-500 mt-0.5">{{ doc.codigo }}</div>
+            </td>
+
             <td class="px-4 py-3 text-sm text-gray-600">{{ doc.gestion || '—' }}</td>
 
-            <!-- Archivos -->
+            <!-- PDF -->
             <td class="px-4 py-3 text-sm">
-              <div class="flex gap-2">
-                <span
-                  :class="doc.archivo?.url ? 'text-green-600' : 'text-red-500'"
-                  :title="doc.archivo?.url ? 'PDF cargado' : 'Sin PDF'"
-                >📄</span>
-                <span
-                  :class="doc.imagen ? 'text-green-600' : 'text-gray-300'"
-                  :title="doc.imagen ? 'Portada cargada' : 'Sin portada'"
-                >🖼️</span>
-              </div>
+              <a
+                v-if="doc.archivo?.url"
+                :href="doc.archivo.url"
+                target="_blank"
+                class="text-primary-600 hover:underline"
+              >Ver PDF</a>
+              <span v-else class="text-red-600 font-medium">Falta</span>
             </td>
 
             <!-- Estado -->
@@ -194,62 +201,152 @@
               <NuxtLink
                 :to="`/admin/marco-normativo/edit/${doc._id}`"
                 class="text-primary-600 hover:text-primary-800 font-medium mr-3"
-              >
-                Editar
-              </NuxtLink>
-
-              <a
-                v-if="doc.archivo?.url"
-                :href="doc.archivo.url"
-                target="_blank"
-                class="text-gray-600 hover:text-gray-900 font-medium mr-3"
-              >
-                Ver PDF
-              </a>
-
+              >Editar</NuxtLink>
               <button
                 v-if="!doc.eliminado"
                 @click="eliminar(doc)"
                 class="text-red-600 hover:text-red-800 font-medium"
-              >
-                Eliminar
-              </button>
+              >Eliminar</button>
               <button
                 v-else
                 @click="restaurar(doc)"
                 class="text-green-600 hover:text-green-800 font-medium"
-              >
-                Restaurar
-              </button>
+              >Restaurar</button>
             </td>
           </tr>
 
-          <tr v-if="documentos.length === 0">
+          <tr v-if="listaActual.length === 0">
             <td colspan="7" class="px-4 py-12 text-center text-gray-500">
-              No hay documentos. Crea el primero con el botón «Nuevo documento».
+              <template v-if="tabActiva === 'destacado'">
+                No hay tarjetas destacadas.
+                <NuxtLink to="/admin/marco-normativo/create?tipo=destacado" class="text-primary-600 hover:underline">
+                  Crear la primera
+                </NuxtLink>
+              </template>
+              <template v-else>
+                No hay documentos en el acordeón.
+              </template>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- Paginación -->
-    <div v-if="pages > 1" class="flex justify-center items-center gap-2 mt-6">
-      <button
-        @click="irPagina(page - 1)"
-        :disabled="page <= 1"
-        class="px-3 py-1.5 border rounded-md text-sm disabled:opacity-40"
+    <!-- ============================================ -->
+    <!-- TABLA: ACORDEÓN (agrupada por categoría)      -->
+    <!-- ============================================ -->
+    <div v-else class="space-y-6">
+      <div
+        v-for="grupo in gruposAcordeon"
+        :key="grupo.nombre"
+        class="bg-white rounded-lg shadow overflow-hidden"
       >
-        Anterior
-      </button>
-      <span class="text-sm text-gray-600">Página {{ page }} de {{ pages }}</span>
-      <button
-        @click="irPagina(page + 1)"
-        :disabled="page >= pages"
-        class="px-3 py-1.5 border rounded-md text-sm disabled:opacity-40"
-      >
-        Siguiente
-      </button>
+        <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+          <h3 class="text-sm font-bold text-gray-800">
+            📁 {{ grupo.nombre }}
+            <span class="ml-2 text-xs font-normal text-gray-500">
+              {{ grupo.documentos.length }} documento{{ grupo.documentos.length === 1 ? '' : 's' }}
+            </span>
+          </h3>
+        </div>
+
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-white">
+            <tr>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">Orden</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Gestión</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">PDF</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">Estado</th>
+              <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-36">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <tr
+              v-for="(doc, idx) in grupo.documentos"
+              :key="doc._id"
+              class="hover:bg-gray-50"
+              :class="{ 'opacity-50': doc.eliminado }"
+            >
+              <td class="px-4 py-3 text-sm">
+                <div class="flex items-center gap-1">
+                  <span class="font-mono font-bold text-gray-900">{{ doc.orden }}</span>
+                  <div class="flex flex-col ml-1">
+                    <button
+                      @click="mover(doc, -1)"
+                      :disabled="idx === 0"
+                      class="text-gray-400 hover:text-gray-800 disabled:opacity-20 leading-none"
+                      title="Subir"
+                    >▲</button>
+                    <button
+                      @click="mover(doc, 1)"
+                      :disabled="idx === grupo.documentos.length - 1"
+                      class="text-gray-400 hover:text-gray-800 disabled:opacity-20 leading-none"
+                      title="Bajar"
+                    >▼</button>
+                  </div>
+                </div>
+              </td>
+
+              <td class="px-4 py-3 text-sm">
+                <div class="font-medium text-gray-900">{{ doc.nombre }}</div>
+                <div v-if="doc.codigo" class="text-xs text-gray-500 mt-0.5">{{ doc.codigo }}</div>
+              </td>
+
+              <td class="px-4 py-3 text-sm text-gray-600">{{ doc.gestion || '—' }}</td>
+
+              <td class="px-4 py-3 text-sm">
+                <a
+                  v-if="doc.archivo?.url"
+                  :href="doc.archivo.url"
+                  target="_blank"
+                  class="text-primary-600 hover:underline"
+                >Ver PDF</a>
+                <span v-else class="text-red-600 font-medium">Falta</span>
+              </td>
+
+              <td class="px-4 py-3 text-sm">
+                <span
+                  v-if="doc.eliminado"
+                  class="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-800"
+                >Eliminado</span>
+                <span
+                  v-else-if="doc.activo === false"
+                  class="px-2 py-0.5 rounded-full text-xs bg-gray-200 text-gray-700"
+                >Inactivo</span>
+                <span
+                  v-else
+                  class="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800"
+                >Activo</span>
+              </td>
+
+              <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
+                <NuxtLink
+                  :to="`/admin/marco-normativo/edit/${doc._id}`"
+                  class="text-primary-600 hover:text-primary-800 font-medium mr-3"
+                >Editar</NuxtLink>
+                <button
+                  v-if="!doc.eliminado"
+                  @click="eliminar(doc)"
+                  class="text-red-600 hover:text-red-800 font-medium"
+                >Eliminar</button>
+                <button
+                  v-else
+                  @click="restaurar(doc)"
+                  class="text-green-600 hover:text-green-800 font-medium"
+                >Restaurar</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div v-if="gruposAcordeon.length === 0" class="bg-white rounded-lg shadow p-12 text-center text-gray-500">
+        No hay documentos en el acordeón.
+        <NuxtLink to="/admin/marco-normativo/create?tipo=acordeon" class="text-primary-600 hover:underline">
+          Crear el primero
+        </NuxtLink>
+      </div>
     </div>
 
     <!-- Toast -->
@@ -270,37 +367,27 @@ import type { MarcoNormativoItem } from '~/composables/useMarcoNormativo'
 
 definePageMeta({ layout: 'default' })
 
-const SIN_CATEGORIA = '__sin_categoria__'
+type TipoUbicacion = 'destacado' | 'acordeon'
 
-const {
-  getDocumentos,
-  getCategorias,
-  updateDocumento,
-  deleteDocumento,
-  restoreDocumento
-} = useMarcoNormativo()
+const TABS: { id: TipoUbicacion; label: string; icon: string; activaClass: string }[] = [
+  { id: 'destacado', label: 'Destacados', icon: '★', activaClass: 'border-amber-500 text-amber-700' },
+  { id: 'acordeon', label: 'Acordeón', icon: '📋', activaClass: 'border-blue-500 text-blue-700' }
+]
 
-const documentos = ref<MarcoNormativoItem[]>([])
-const categoriasDisponibles = ref<string[]>([])
+const { getDocumentos, updateDocumento, deleteDocumento, restoreDocumento } = useMarcoNormativo()
+
+// La colección es pequeña (decenas), así que cargamos todo y filtramos en cliente.
+const todos = ref<MarcoNormativoItem[]>([])
 
 const loading = ref(false)
 const error = ref('')
+const tabActiva = ref<TipoUbicacion>('destacado')
 
-const page = ref(1)
-const limit = ref(50)
-const pages = ref(1)
-const total = ref(0)
-
-const filters = reactive({
-  q: '',
-  categoria: '',
-  incluirInactivos: false,
-  incluirEliminados: false
-})
+const filtroQ = ref('')
+const filtroCategoria = ref('')
+const incluirInactivos = ref(false)
 
 const toast = reactive({ show: false, message: '', type: 'success' as 'success' | 'error' })
-
-let searchTimeout: any = null
 
 const mostrarToast = (message: string, type: 'success' | 'error' = 'success') => {
   toast.message = message
@@ -309,10 +396,80 @@ const mostrarToast = (message: string, type: 'success' | 'error' = 'success') =>
   setTimeout(() => { toast.show = false }, 3500)
 }
 
-// Contadores locales (sobre lo cargado)
-const totalDestacados = computed(() => documentos.value.filter(d => d.destacado && !d.eliminado).length)
-const totalAcordeon = computed(() => documentos.value.filter(d => d.categoria && !d.eliminado).length)
-const totalEliminados = computed(() => documentos.value.filter(d => d.eliminado).length)
+// ============================================
+// CLASIFICACIÓN (estado único)
+// ============================================
+const esDestacado = (d: MarcoNormativoItem) => d.destacado === true
+const esAcordeon = (d: MarcoNormativoItem) => !d.destacado && !!d.categoria
+
+/** Documentos de la pestaña activa, ya filtrados. */
+const listaActual = computed(() => {
+  const base = todos.value.filter((d) => {
+    if (!incluirInactivos.value && d.activo === false) return false
+    if (tabActiva.value === 'destacado') return esDestacado(d)
+    return esAcordeon(d)
+  })
+
+  const q = filtroQ.value.trim().toLowerCase()
+  return base
+    .filter((d) => {
+      if (!q) return true
+      return (
+        (d.nombre || '').toLowerCase().includes(q) ||
+        (d.codigo || '').toLowerCase().includes(q)
+      )
+    })
+    .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
+})
+
+/** Agrupación del acordeón por categoría. */
+const gruposAcordeon = computed(() => {
+  const q = filtroQ.value.trim().toLowerCase()
+  const cat = filtroCategoria.value.trim().toLowerCase()
+
+  const base = todos.value.filter((d) => {
+    if (!incluirInactivos.value && d.activo === false) return false
+    if (!esAcordeon(d)) return false
+    if (cat && (d.categoria || '').toLowerCase() !== cat) return false
+    if (q) {
+      return (
+        (d.nombre || '').toLowerCase().includes(q) ||
+        (d.codigo || '').toLowerCase().includes(q)
+      )
+    }
+    return true
+  })
+
+  const mapa = new Map<string, MarcoNormativoItem[]>()
+  for (const d of base) {
+    const nombre = (d.categoria || '').trim()
+    if (!nombre) continue
+    if (!mapa.has(nombre)) mapa.set(nombre, [])
+    mapa.get(nombre)!.push(d)
+  }
+
+  return [...mapa.entries()]
+    .map(([nombre, documentos]) => ({
+      nombre,
+      documentos: documentos.sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
+    }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre))
+})
+
+const categoriasDisponibles = computed(() => {
+  const set = new Set<string>()
+  todos.value.forEach((d) => {
+    if (d.categoria && d.categoria.trim()) set.add(d.categoria.trim())
+  })
+  return [...set].sort()
+})
+
+const contarPorTipo = (tipo: TipoUbicacion) => {
+  return todos.value.filter((d) => {
+    if (!incluirInactivos.value && d.activo === false) return false
+    return tipo === 'destacado' ? esDestacado(d) : esAcordeon(d)
+  }).length
+}
 
 // ============================================
 // CARGA
@@ -322,32 +479,15 @@ const cargar = async () => {
   error.value = ''
 
   try {
-    const params: any = {
-      page: page.value,
-      limit: limit.value,
-      incluirInactivos: filters.incluirInactivos,
-      incluirEliminados: filters.incluirEliminados
-    }
-    if (filters.q.trim()) params.q = filters.q.trim()
-    if (filters.categoria === SIN_CATEGORIA) {
-      // El backend filtra por categoría exacta; para "sin categoría" cargamos todo
-      // y filtramos en cliente (son pocos registros).
-      params.limit = 200
-    } else if (filters.categoria) {
-      params.categoria = filters.categoria
-    }
-
-    const result = await getDocumentos(params)
-
-    let docs = result.documentos
-    if (filters.categoria === SIN_CATEGORIA) {
-      docs = docs.filter(d => !d.categoria)
-    }
-
-    documentos.value = docs
-    total.value = filters.categoria === SIN_CATEGORIA ? docs.length : result.total
-    pages.value = filters.categoria === SIN_CATEGORIA ? 1 : result.pages
-    page.value = result.page
+    // Se traen activos y eliminados para poder restaurarlos; el filtro
+    // de "incluir inactivos" se aplica en cliente.
+    const result = await getDocumentos({
+      page: 1,
+      limit: 200,
+      incluirInactivos: true,
+      incluirEliminados: true
+    })
+    todos.value = result.documentos
   } catch (err: any) {
     console.error(err)
     error.value = err.message || 'Error al cargar los documentos'
@@ -356,63 +496,61 @@ const cargar = async () => {
   }
 }
 
-const cargarCategorias = async () => {
-  try {
-    categoriasDisponibles.value = await getCategorias()
-  } catch {
-    categoriasDisponibles.value = []
+// ============================================
+// UI
+// ============================================
+const cambiarTab = (id: TipoUbicacion) => {
+  tabActiva.value = id
+}
+
+// El filtrado de texto y categoría es reactivo (computed), no requiere handlers.
+
+const resetFiltros = () => {
+  filtroQ.value = ''
+  filtroCategoria.value = ''
+  incluirInactivos.value = false
+}
+
+// ============================================
+// ORDEN (solo dentro del mismo grupo)
+// ============================================
+/**
+ * Sube o baja un documento ±1 posición DENTRO de su propia lista ordenada.
+ * Intercambia el `orden` con el vecino, de modo que nunca choca con los
+ * documentos de la otra pestaña.
+ */
+const mover = async (doc: MarcoNormativoItem, delta: number) => {
+  let lista: MarcoNormativoItem[]
+
+  if (doc.destacado) {
+    lista = listaActual.value
+  } else {
+    const grupo = gruposAcordeon.value.find((g) => g.nombre === doc.categoria)
+    lista = grupo ? grupo.documentos : []
   }
-}
 
-// ============================================
-// FILTROS
-// ============================================
-const onSearchInput = () => {
-  clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => {
-    page.value = 1
-    cargar()
-  }, 400)
-}
+  const idx = lista.findIndex((d) => d._id === doc._id)
+  const otroIdx = idx + delta
+  if (idx === -1 || otroIdx < 0 || otroIdx >= lista.length) return
 
-const onFilterChange = () => {
-  page.value = 1
-  cargar()
-}
+  const vecino = lista[otroIdx]
+  const ordenDoc = doc.orden ?? 0
+  const ordenVecino = vecino.orden ?? 0
 
-const resetFilters = () => {
-  filters.q = ''
-  filters.categoria = ''
-  filters.incluirInactivos = false
-  filters.incluirEliminados = false
-  page.value = 1
-  cargar()
-}
-
-const irPagina = (p: number) => {
-  if (p < 1 || p > pages.value) return
-  page.value = p
-  cargar()
-}
-
-// ============================================
-// ORDEN RÁPIDO (▲ ▼)
-// ============================================
-const moverOrden = async (doc: MarcoNormativoItem, delta: number) => {
-  const nuevo = (doc.orden || 0) + delta
-  if (nuevo < 0) return
-
-  const anterior = doc.orden
-  doc.orden = nuevo // optimista
+  // Si comparten orden, desplazar ±1 en la dirección correcta
+  const nuevoDoc = ordenVecino === ordenDoc ? ordenDoc + delta : ordenVecino
+  const nuevoVecino = ordenVecino === ordenDoc ? ordenVecino - delta : ordenDoc
 
   try {
-    await updateDocumento(doc._id, { orden: nuevo })
+    await Promise.all([
+      updateDocumento(doc._id, { orden: nuevoDoc }),
+      updateDocumento(vecino._id, { orden: nuevoVecino })
+    ])
+    await cargar()
     mostrarToast('Orden actualizado')
-    // Reordenar en cliente para ver el efecto inmediato
-    documentos.value = [...documentos.value].sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
   } catch (err: any) {
-    doc.orden = anterior // revertir
     mostrarToast(err.message || 'No se pudo actualizar el orden', 'error')
+    await cargar()
   }
 }
 
@@ -423,7 +561,7 @@ const eliminar = async (doc: MarcoNormativoItem) => {
   const motivo = window.prompt(
     `Motivo por el que se elimina «${doc.nombre}»:\n(dejar vacío para omitir)`
   )
-  if (motivo === null) return // canceló
+  if (motivo === null) return
 
   try {
     await deleteDocumento(doc._id, motivo.trim())
@@ -444,7 +582,5 @@ const restaurar = async (doc: MarcoNormativoItem) => {
   }
 }
 
-onMounted(async () => {
-  await Promise.all([cargarCategorias(), cargar()])
-})
+onMounted(cargar)
 </script>

@@ -8,7 +8,67 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- DATOS DEL DOCUMENTO                          -->
+    <!-- 1. UBICACIÓN EN EL SITIO (estado único)      -->
+    <!-- ============================================ -->
+    <section class="bg-white rounded-lg shadow-sm p-5">
+      <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wide mb-1">
+        ¿Dónde se muestra este documento?
+      </h3>
+      <p class="text-xs text-gray-500 mb-4">
+        Cada documento se muestra en un solo lugar. No puede estar en ambos.
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <!-- Opción: Destacado -->
+        <label
+          class="relative flex gap-3 p-4 border-2 rounded-lg cursor-pointer transition-colors"
+          :class="form.tipo === 'destacado'
+            ? 'border-amber-500 bg-amber-50'
+            : 'border-gray-200 hover:border-gray-300'"
+        >
+          <input
+            v-model="form.tipo"
+            type="radio"
+            value="destacado"
+            class="mt-1 w-4 h-4"
+            @change="onTipoChange"
+          />
+          <div>
+            <div class="text-sm font-semibold text-gray-900">★ Tarjeta destacada</div>
+            <p class="text-xs text-gray-600 mt-1">
+              Aparece en las tarjetas de la parte superior del sitio.
+              Requiere imagen de portada. Máximo 6 visibles.
+            </p>
+          </div>
+        </label>
+
+        <!-- Opción: Acordeón -->
+        <label
+          class="relative flex gap-3 p-4 border-2 rounded-lg cursor-pointer transition-colors"
+          :class="form.tipo === 'acordeon'
+            ? 'border-blue-500 bg-blue-50'
+            : 'border-gray-200 hover:border-gray-300'"
+        >
+          <input
+            v-model="form.tipo"
+            type="radio"
+            value="acordeon"
+            class="mt-1 w-4 h-4"
+            @change="onTipoChange"
+          />
+          <div>
+            <div class="text-sm font-semibold text-gray-900">📋 Fila del acordeón</div>
+            <p class="text-xs text-gray-600 mt-1">
+              Aparece en la lista desplegable «Normativa Administrativa».
+              Requiere una categoría.
+            </p>
+          </div>
+        </label>
+      </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- 2. DATOS DEL DOCUMENTO                       -->
     <!-- ============================================ -->
     <section class="bg-white rounded-lg shadow-sm p-5">
       <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wide mb-4">
@@ -42,9 +102,6 @@
             placeholder="Ej: MANUAL DE ORGANIZACIÓN Y FUNCIONES"
             class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
           />
-          <p class="text-xs text-gray-500 mt-1">
-            Se usa para evitar duplicados en la importación.
-          </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -61,25 +118,40 @@
             />
           </div>
 
-          <!-- Categoría -->
+          <!-- Orden -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              Categoría del acordeón
+              Orden <span class="text-gray-400 font-normal">(menor = primero)</span>
             </label>
             <input
-              v-model="form.categoria"
-              type="text"
-              list="categorias-existentes"
-              placeholder="Ej: Normativa Administrativa"
+              v-model.number="form.orden"
+              type="number"
+              min="0"
               class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
             />
-            <datalist id="categorias-existentes">
-              <option v-for="c in categoriasExistentes" :key="c" :value="c" />
-            </datalist>
-            <p class="text-xs text-gray-500 mt-1">
-              Dejalo vacío si el documento es solo una tarjeta destacada.
-            </p>
           </div>
+        </div>
+
+        <!-- Categoría: SOLO si es acordeón -->
+        <div v-if="form.tipo === 'acordeon'">
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Categoría <span class="text-red-500">*</span>
+          </label>
+          <input
+            v-model="form.categoria"
+            type="text"
+            list="categorias-existentes"
+            placeholder="Ej: Normativa Administrativa"
+            class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+            :class="{ 'border-red-400': errores.categoria }"
+          />
+          <datalist id="categorias-existentes">
+            <option v-for="c in categoriasExistentes" :key="c" :value="c" />
+          </datalist>
+          <p v-if="errores.categoria" class="text-xs text-red-600 mt-1">{{ errores.categoria }}</p>
+          <p v-else class="text-xs text-gray-500 mt-1">
+            Agrupa las filas del acordeón. Podés escribir una nueva o elegir una existente.
+          </p>
         </div>
 
         <!-- Descripción -->
@@ -93,48 +165,6 @@
             class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
           ></textarea>
         </div>
-      </div>
-    </section>
-
-    <!-- ============================================ -->
-    <!-- VISIBILIDAD Y ORDEN                          -->
-    <!-- ============================================ -->
-    <section class="bg-white rounded-lg shadow-sm p-5">
-      <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wide mb-4">
-        Visibilidad y orden
-      </h3>
-
-      <div class="space-y-4">
-        <!-- Destacado -->
-        <div class="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-          <input
-            id="destacado"
-            v-model="form.destacado"
-            type="checkbox"
-            class="mt-1 w-4 h-4"
-          />
-          <label for="destacado" class="cursor-pointer">
-            <span class="text-sm font-medium text-gray-800">Mostrar como tarjeta destacada</span>
-            <p class="text-xs text-gray-600 mt-0.5">
-              Aparece en las tarjetas superiores del Marco Normativo.
-              <strong>Requiere imagen de portada.</strong>
-              Máximo 6 visibles (el resto se oculta).
-            </p>
-          </label>
-        </div>
-
-        <!-- Orden -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Orden <span class="text-gray-400 font-normal">(menor = primero)</span>
-          </label>
-          <input
-            v-model.number="form.orden"
-            type="number"
-            min="0"
-            class="w-32 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-          />
-        </div>
 
         <!-- Activo -->
         <label class="flex items-center gap-2 text-sm cursor-pointer">
@@ -145,11 +175,11 @@
     </section>
 
     <!-- ============================================ -->
-    <!-- ARCHIVO PDF                                  -->
+    <!-- 3. ARCHIVO PDF                               -->
     <!-- ============================================ -->
     <section class="bg-white rounded-lg shadow-sm p-5">
       <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wide mb-4">
-        Archivo PDF
+        Archivo PDF <span class="text-red-500">*</span>
       </h3>
 
       <!-- PDF actual -->
@@ -187,17 +217,17 @@
         />
         <p v-if="uploadingPDF" class="text-xs text-blue-600 mt-1">Subiendo PDF...</p>
         <p v-if="errorPDF" class="text-xs text-red-600 mt-1">{{ errorPDF }}</p>
+        <p v-if="errores.archivo" class="text-xs text-red-600 mt-1">{{ errores.archivo }}</p>
         <p class="text-xs text-gray-500 mt-1">Solo PDF. Tamaño máximo: 350 MB.</p>
       </div>
     </section>
 
     <!-- ============================================ -->
-    <!-- IMAGEN DE PORTADA                            -->
+    <!-- 4. PORTADA: SOLO si es destacado             -->
     <!-- ============================================ -->
-    <section class="bg-white rounded-lg shadow-sm p-5">
+    <section v-if="form.tipo === 'destacado'" class="bg-white rounded-lg shadow-sm p-5">
       <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wide mb-4">
-        Imagen de portada
-        <span v-if="form.destacado" class="text-red-500">(obligatoria si es destacado)</span>
+        Imagen de portada <span class="text-red-500">*</span>
       </h3>
 
       <div class="flex gap-5">
@@ -264,9 +294,13 @@ import { ref, reactive, computed } from 'vue'
 import { useMarcoNormativo } from '~/composables/useMarcoNormativo'
 import type { MarcoNormativoItem } from '~/composables/useMarcoNormativo'
 
+type TipoUbicacion = 'destacado' | 'acordeon'
+
 const props = defineProps<{
   documento?: MarcoNormativoItem | null
   categoriasExistentes?: string[]
+  categoriaSugerida?: string
+  tipoInicial?: TipoUbicacion
 }>()
 
 const emit = defineEmits<{
@@ -277,16 +311,24 @@ const { uploadPDF, uploadImagen } = useMarcoNormativo()
 
 const esEdicion = computed(() => Boolean(props.documento?._id))
 
+/** Tipo inicial: el que indique la página, o se deduce del documento. */
+const resolverTipoInicial = (): TipoUbicacion => {
+  if (props.tipoInicial) return props.tipoInicial
+  if (props.documento?.destacado) return 'destacado'
+  return 'acordeon'
+}
+
 const form = reactive({
+  // Estado único: destacado | acordeon
+  tipo: resolverTipoInicial() as TipoUbicacion,
   nombre: props.documento?.nombre || '',
   codigo: props.documento?.codigo || '',
   descripcion: props.documento?.descripcion || '',
   gestion: props.documento?.gestion ?? null,
-  categoria: props.documento?.categoria || '',
-  destacado: props.documento?.destacado ?? false,
+  categoria: props.documento?.categoria || (resolverTipoInicial() === 'acordeon' ? (props.categoriaSugerida || '') : ''),
   orden: props.documento?.orden ?? 0,
   activo: props.documento?.activo ?? true,
-  imagen: props.documento?.imagen || null as string | null,
+  imagen: (props.documento?.imagen || null) as string | null,
   archivo: {
     url: props.documento?.archivo?.url || null,
     filename: props.documento?.archivo?.filename || '',
@@ -294,6 +336,20 @@ const form = reactive({
     size: props.documento?.archivo?.size || 0
   }
 })
+
+// Al cambiar de tipo, limpiar el campo del otro estado
+const onTipoChange = () => {
+  if (form.tipo === 'destacado') {
+    form.categoria = ''
+  } else {
+    form.imagen = null
+    // Sugerir la categoría si el padre la provee (p. ej. "Normativa Administrativa")
+    if (!form.categoria && props.categoriaSugerida) {
+      form.categoria = props.categoriaSugerida
+    }
+  }
+  Object.keys(errores).forEach((k) => delete errores[k])
+}
 
 const saving = ref(false)
 const serverError = ref('')
@@ -378,40 +434,58 @@ const quitarImagen = () => {
 // ============================================
 const validar = (): boolean => {
   Object.keys(errores).forEach((k) => delete errores[k])
+  serverError.value = ''
 
   if (!form.nombre.trim()) {
     errores.nombre = 'El nombre es obligatorio'
   }
 
-  if (form.destacado && !form.imagen) {
-    serverError.value = 'Para mostrar como destacado necesitás subir una imagen de portada'
+  if (!form.archivo.url) {
+    errores.archivo = 'Tenés que subir el PDF del documento'
+  }
+
+  if (form.tipo === 'acordeon' && !form.categoria.trim()) {
+    errores.categoria = 'La categoría es obligatoria para el acordeón'
+  }
+
+  if (form.tipo === 'destacado' && !form.imagen) {
+    errores.imagen = 'La imagen de portada es obligatoria para una tarjeta destacada'
+  }
+
+  if (Object.keys(errores).length > 0) {
+    if (errores.imagen) {
+      serverError.value = errores.imagen
+    }
     return false
   }
 
-  return Object.keys(errores).length === 0
+  return true
 }
 
 const enviar = () => {
-  serverError.value = ''
   if (!validar()) return
 
   saving.value = true
+
+  // Garantiza la coherencia: nunca ambos campos llenos, nunca ambos vacíos.
+  const esDestacado = form.tipo === 'destacado'
 
   emit('submit', {
     nombre: form.nombre.trim(),
     codigo: form.codigo.trim(),
     descripcion: form.descripcion.trim(),
     gestion: form.gestion,
-    categoria: form.categoria.trim() || null,
-    destacado: form.destacado,
+    destacado: esDestacado,
+    categoria: esDestacado ? null : form.categoria.trim(),
     orden: form.orden,
     activo: form.activo,
-    imagen: form.imagen,
+    imagen: esDestacado ? form.imagen : null,
     archivo: form.archivo
   })
-
-  // El padre llama a setSaving(false) cuando termine
 }
 
-defineExpose({ setSaving: (v: boolean) => (saving.value = v), setError: (m: string) => (serverError.value = m) })
+defineExpose({
+  setSaving: (v: boolean) => (saving.value = v),
+  setError: (m: string) => (serverError.value = m)
+})
 </script>
