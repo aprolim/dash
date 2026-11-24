@@ -9,6 +9,7 @@ export type SectionId =
   | 'sesiones'
   | 'auditoria'
   | 'legislativos'
+  | 'marco-normativo'           // 🔥 NUEVO - Marco Normativo (destacados + acordeón)
   | 'directiva'                 // 🔥 NUEVO - Pestaña de primer nivel
   | 'catalogos-legislativos'
   | 'usuarios'
@@ -99,6 +100,7 @@ export const SECTIONS: SectionInfo[] = [
   { id: 'comunicados', label: 'Comunicados', icon: '📢', path: '/admin/comunicados', title: '📢 Gestión de Comunicados', description: 'Comunicados que aparecen como modal en la página principal' },
   { id: 'auditoria', label: 'Auditoría', icon: '🔍', path: '/admin/auditoria', title: '📋 Auditorías Ejecutadas', description: 'Documentos de auditoría organizados por categorías' },
   { id: 'legislativos', label: 'Legislativos', icon: '📚', path: '/admin/legislativos', title: '📚 Documentos Legislativos', description: 'Peticiones, proyectos, resoluciones, declaraciones y minutas' },
+  { id: 'marco-normativo', label: 'Marco Normativo', icon: '📜', path: '/admin/marco-normativo', title: '📜 Marco Normativo', description: 'Tarjetas destacadas y normativa administrativa del portal público' },
 
   // 🔥 NUEVO - Pestaña de primer nivel en el header
   { id: 'directiva', label: 'Directiva', icon: '👥', path: '/admin/directiva', title: '👥 Directiva Camaral', description: 'Cargos de la directiva de la Cámara de Senadores' },
@@ -136,6 +138,14 @@ export const PERMISSIONS: Record<SectionId, SectionPermissions> = {
     delete: [...AUDITORIA_ROLES],
   },
   legislativos: {
+    view: [...LEGISLATIVOS_ROLES],
+    create: [...LEGISLATIVOS_ROLES],
+    edit: [...LEGISLATIVOS_ROLES],
+    delete: [...LEGISLATIVOS_ROLES],
+  },
+
+  // 🔥 NUEVO - Marco Normativo (lo administra quien edita legislativos)
+  'marco-normativo': {
     view: [...LEGISLATIVOS_ROLES],
     create: [...LEGISLATIVOS_ROLES],
     edit: [...LEGISLATIVOS_ROLES],
