@@ -10,11 +10,18 @@
       </h2>
     </div>
 
+    <div v-if="cargandoContexto" class="text-center py-12 text-gray-500">
+      Preparando el formulario...
+    </div>
+
     <MarcoNormativoForm
+      v-else
       ref="formRef"
       :tipo-inicial="tipoInicial"
       :categorias-existentes="categorias"
       :categoria-sugerida="CATEGORIA_SUGERIDA"
+      :total-destacados="totalDestacados"
+      :siguiente-orden="siguienteOrden"
       @submit="guardar"
     />
   </div>
@@ -32,10 +39,15 @@ const CATEGORIA_SUGERIDA = 'Normativa Administrativa'
 
 const route = useRoute()
 const router = useRouter()
-const { createDocumento, getCategorias } = useMarcoNormativo()
+const { createDocumento, getCategorias, getDocumentos } = useMarcoNormativo()
 
 const formRef = ref<any>(null)
 const categorias = ref<string[]>([])
+const cargandoContexto = ref(true)
+
+// Orden que se asignará al documento nuevo (max + 1 del grupo correspondiente).
+const siguienteOrden = ref(0)
+const totalDestacados = ref(0)
 
 // Permite entrar con ?tipo=destacado para precargar el formulario.
 const tipoInicial: 'destacado' | 'acordeon' =
@@ -53,9 +65,34 @@ const guardar = async (payload: Partial<MarcoNormativoItem>) => {
 
 onMounted(async () => {
   try {
-    categorias.value = await getCategorias()
-  } catch {
-    categorias.value = []
+    // Load both categorías and documentos para calcular el orden inicial
+    const [cats, result] = await Promise.all([
+      getCategorias().catch(() => []),
+      getDocumentos({ page: 1, limit: 200, incluirInactivos: true, incluirEliminados: false }).catch(() => ({
+        documentos: [], total: 0, page: 1, limit: 20, pages: 1
+      }))
+    ])
+
+    categorias.value = cats as string[]
+
+    const docs = result.documentos || []
+
+    // Cuántas destacadas hay (para el aviso del límite de 6)
+    const destacadas = docs.filter((d) => d.destacado === true)
+    totalDestacados.value = destacadas.length
+
+    // Calcular max + 1 dentro del grupo en el que se va a crear
+    const mismoGrupo = tipoInicial === 'destacado'
+      ? destacadas
+      : docs.filter((d) => !d.destacado && (d.categoria || '').trim() === CATEGORIA_SUGERIDA)
+
+    const maxOrden = mismoGrupo.reduce((max, d) => Math.max(max, d.orden ?? 0), 0)
+    siguienteOrden.value = maxOrden + 1
+  } catch (err) {
+    console.error('No se pudo preparar el contexto del formulario:', err)
+    siguienteOrden.value = 0
+  } finally {
+    cargandoContexto.value = false
   }
 })
 </script>

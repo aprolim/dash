@@ -41,7 +41,6 @@
             </p>
           </div>
         </label>
-
         <!-- Opción: Acordeón -->
         <label
           class="relative flex gap-3 p-4 border-2 rounded-lg cursor-pointer transition-colors"
@@ -64,6 +63,17 @@
             </p>
           </div>
         </label>
+      </div>
+
+      <!-- Aviso: límite de 6 destacadas -->
+      <div
+        v-if="form.tipo === 'destacado' && destacadasExistentes >= 6"
+        class="mt-4 bg-amber-50 border border-amber-300 rounded-lg p-3 text-sm text-amber-900"
+      >
+        <strong>⚠️ Ya hay {{ destacadasExistentes }} tarjetas destacadas.</strong>
+        El sitio público muestra solo las <strong>6 primeras por orden</strong>.
+        Esta tarjeta entrará al final y quedará oculta hasta que reordenes
+        con ▲▼ o elimines alguna.
       </div>
     </section>
 
@@ -118,17 +128,15 @@
             />
           </div>
 
-          <!-- Orden -->
+          <!-- Orden (solo lectura: se gestiona con ▲▼ en el listado) -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Orden <span class="text-gray-400 font-normal">(menor = primero)</span>
-            </label>
-            <input
-              v-model.number="form.orden"
-              type="number"
-              min="0"
-              class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-            />
+            <label class="block text-sm font-medium text-gray-700 mb-1">Orden</label>
+            <div class="w-full px-3 py-2 border border-gray-200 bg-gray-100 rounded-lg text-sm text-gray-600">
+              {{ esEdicion ? (form.orden ?? 0) : 'Se asigna automáticamente' }}
+            </div>
+            <p class="text-xs text-gray-500 mt-1">
+              El orden se cambia desde el listado con las flechas ▲▼.
+            </p>
           </div>
         </div>
 
@@ -301,6 +309,10 @@ const props = defineProps<{
   categoriasExistentes?: string[]
   categoriaSugerida?: string
   tipoInicial?: TipoUbicacion
+  /** Cuántas tarjetas destacadas hay ya (para avisar del límite de 6). */
+  totalDestacados?: number
+  /** Orden asignado automáticamente al crear (el padre calcula max+1). */
+  siguienteOrden?: number
 }>()
 
 const emit = defineEmits<{
@@ -310,6 +322,9 @@ const emit = defineEmits<{
 const { uploadPDF, uploadImagen } = useMarcoNormativo()
 
 const esEdicion = computed(() => Boolean(props.documento?._id))
+
+// Conteo de destacadas ya existentes (para el aviso del límite de 6)
+const destacadasExistentes = computed(() => props.totalDestacados ?? 0)
 
 /** Tipo inicial: el que indique la página, o se deduce del documento. */
 const resolverTipoInicial = (): TipoUbicacion => {
@@ -470,6 +485,13 @@ const enviar = () => {
   // Garantiza la coherencia: nunca ambos campos llenos, nunca ambos vacíos.
   const esDestacado = form.tipo === 'destacado'
 
+  // El orden NO se edita en este formulario:
+  //  - Al editar, se conserva el que ya tenía (se mueve con ▲▼ en el listado).
+  //  - Al crear, la página pasa `siguienteOrden` desde su contexto.
+  const ordenFinal = esEdicion.value
+    ? (props.documento?.orden ?? form.orden ?? 0)
+    : (props.siguienteOrden ?? 0)
+
   emit('submit', {
     nombre: form.nombre.trim(),
     codigo: form.codigo.trim(),
@@ -477,7 +499,7 @@ const enviar = () => {
     gestion: form.gestion,
     destacado: esDestacado,
     categoria: esDestacado ? null : form.categoria.trim(),
-    orden: form.orden,
+    orden: ordenFinal,
     activo: form.activo,
     imagen: esDestacado ? form.imagen : null,
     archivo: form.archivo
