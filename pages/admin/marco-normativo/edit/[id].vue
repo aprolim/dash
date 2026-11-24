@@ -30,7 +30,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { useMarcoNormativo } from '~/composables/useMarcoNormativo'
 import type { MarcoNormativoItem } from '~/composables/useMarcoNormativo'
 
-definePageMeta({ layout: 'default' })
+definePageMeta({
+  layout: 'default',
+  middleware: 'auth'
+})
 
 const route = useRoute()
 const router = useRouter()

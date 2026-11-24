@@ -365,7 +365,10 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useMarcoNormativo } from '~/composables/useMarcoNormativo'
 import type { MarcoNormativoItem } from '~/composables/useMarcoNormativo'
 
-definePageMeta({ layout: 'default' })
+definePageMeta({
+  layout: 'default',
+  middleware: 'auth'
+})
 
 type TipoUbicacion = 'destacado' | 'acordeon'
 
