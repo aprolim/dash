@@ -132,26 +132,36 @@
           </p>
 
           <!-- Acciones -->
-          <div class="mt-3 flex gap-2">
-            <label
-              v-if="canEdit"
-              class="flex-1 text-center px-2 py-1.5 text-xs font-medium rounded-md border border-primary-200 text-primary-700 hover:bg-primary-50 cursor-pointer"
-              :class="{ 'opacity-50 pointer-events-none': subiendo === s.id }"
-            >
-              {{ subiendo === s.id ? 'Subiendo...' : 'Cambiar foto' }}
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                class="hidden"
-                @change="(e) => onSelectFoto(e, s)"
-              />
-            </label>
+          <div class="mt-3 flex flex-col gap-2">
             <button
-              v-if="canEdit && s.foto"
-              @click="quitarFoto(s)"
-              class="px-2 py-1.5 text-xs font-medium rounded-md border border-red-200 text-red-600 hover:bg-red-50"
-              title="Quitar foto"
-            >✕</button>
+              v-if="canEdit"
+              @click="abrirEdicion(s)"
+              class="w-full px-2 py-1.5 text-xs font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              ✏️ Editar datos
+            </button>
+
+            <div class="flex gap-2">
+              <label
+                v-if="canEdit"
+                class="flex-1 text-center px-2 py-1.5 text-xs font-medium rounded-md border border-primary-200 text-primary-700 hover:bg-primary-50 cursor-pointer"
+                :class="{ 'opacity-50 pointer-events-none': subiendo === s.id }"
+              >
+                {{ subiendo === s.id ? 'Subiendo...' : 'Cambiar foto' }}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  class="hidden"
+                  @change="(e) => onSelectFoto(e, s)"
+                />
+              </label>
+              <button
+                v-if="canEdit && s.foto"
+                @click="quitarFoto(s)"
+                class="px-2 py-1.5 text-xs font-medium rounded-md border border-red-200 text-red-600 hover:bg-red-50"
+                title="Quitar foto"
+              >✕</button>
+            </div>
           </div>
         </div>
       </div>
@@ -163,6 +173,39 @@
         No hay senadores que coincidan con el filtro.
       </div>
     </div>
+
+    <!-- ============================================ -->
+    <!-- MODAL DE EDICIÓN DE DATOS                    -->
+    <!-- ============================================ -->
+    <Teleport to="body">
+      <div
+        v-if="edicionAbierta"
+        class="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 overflow-y-auto"
+        @click.self="cerrarEdicion"
+      >
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl my-8">
+          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white rounded-t-xl z-10">
+            <h2 class="text-lg font-bold text-gray-900">
+              {{ esSuplenteEditando ? 'Editar datos del suplente' : 'Editar datos del senador' }}
+            </h2>
+            <button @click="cerrarEdicion" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">×</button>
+          </div>
+
+          <div class="p-6">
+            <SenadorEditForm
+              v-if="senadorEditando"
+              ref="editFormRef"
+              :key="edicionKey"
+              :senador="senadorEditando"
+              :es-suplente="esSuplenteEditando"
+              :titular-nombre="titularDeEditando"
+              @submit="guardarEdicion"
+              @cancelar="cerrarEdicion"
+            />
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
     <!-- Toast -->
     <div
@@ -180,6 +223,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { usePlenoCamaral } from '~/composables/usePlenoCamaral'
 import type { SenadorPleno, ResumenPleno } from '~/composables/usePlenoCamaral'
 import { usePermissions } from '~/composables/usePermissions'
+import SenadorEditForm from '~/components/admin/SenadorEditForm.vue'
 
 definePageMeta({
   layout: 'default',
@@ -194,7 +238,7 @@ const TIPOS: { id: TipoFiltro; label: string }[] = [
   { id: 'suplente', label: 'Suplentes' }
 ]
 
-const { getSenadores, getResumen, uploadFoto, eliminarFoto } = usePlenoCamaral()
+const { getSenadores, getResumen, uploadFoto, eliminarFoto, updateSenador } = usePlenoCamaral()
 const { can, roleLabel } = usePermissions()
 
 const canEdit = computed(() => can('pleno-camaral', 'edit'))
@@ -213,6 +257,14 @@ const filtroQ = ref('')
 const soloSinFoto = ref(false)
 
 const subiendo = ref<number | null>(null)
+
+// --- Modal de edición de datos ---
+const edicionAbierta = ref(false)
+const senadorEditando = ref<SenadorPleno | null>(null)
+const esSuplenteEditando = ref(false)
+const titularDeEditando = ref('')
+const edicionKey = ref(0)
+const editFormRef = ref<any>(null)
 
 const toast = reactive({ show: false, message: '', type: 'success' as 'success' | 'error' })
 
@@ -437,6 +489,64 @@ const quitarFoto = async (s: FilaFoto) => {
 
 const cambiarTipo = (t: TipoFiltro) => {
   tipoActivo.value = t
+}
+
+// ============================================
+// MODAL DE EDICIÓN DE DATOS
+// ============================================
+/**
+ * Abre el formulario.
+ * - En la pestaña de suplentes se editan los campos *Suplente del titular.
+ * - En cualquier otra, los campos del titular.
+ */
+const abrirEdicion = (s: FilaPleno) => {
+  const titular = senadores.value.find((x) => x.id === s.id)
+  if (!titular) {
+    mostrarToast('No se encontró el registro del senador', 'error')
+    return
+  }
+
+  senadorEditando.value = titular
+  esSuplenteEditando.value = Boolean(s.esSuplente)
+  titularDeEditando.value = s.esSuplente ? (s.titularDe || titular.name) : ''
+  edicionKey.value += 1
+  edicionAbierta.value = true
+}
+
+const cerrarEdicion = () => {
+  edicionAbierta.value = false
+  senadorEditando.value = null
+  esSuplenteEditando.value = false
+  titularDeEditando.value = ''
+}
+
+const guardarEdicion = async (payload: Record<string, any>) => {
+  const s = senadorEditando.value
+  if (!s) return
+
+  try {
+    await updateSenador(s.id, payload)
+
+    // Refrescar la tarjeta sin recargar toda la lista
+    if (esSuplenteEditando.value) {
+      // Solo se tocaron campos del suplente
+      s.suplente = payload.suplente
+    } else {
+      // Campos del titular (incluidos sus proyectos de ley)
+      Object.assign(s, payload)
+      s.name = payload.name
+    }
+
+    mostrarToast(
+      esSuplenteEditando.value
+        ? 'Datos del suplente actualizados'
+        : 'Datos del senador actualizados'
+    )
+    cerrarEdicion()
+  } catch (err: any) {
+    editFormRef.value?.setSaving(false)
+    editFormRef.value?.setError(err.message || 'No se pudo guardar')
+  }
 }
 
 onMounted(cargar)

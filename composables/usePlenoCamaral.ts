@@ -34,6 +34,16 @@ export interface SenadorPleno {
   youtube?: string
   tiktok?: string
 
+  // 📜 Proyectos de ley destacados
+  proyectosLey?: {
+    cantidad: number
+    lista: string[]
+  }
+  proyectosLeySuplente?: {
+    cantidad: number
+    lista: string[]
+  }
+
   // Datos del suplente (en registros de tipo titular)
   suplente?: string
   slugSuplente?: string
