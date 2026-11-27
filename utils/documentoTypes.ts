@@ -356,8 +356,7 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
     ],
     camposObligatorios: [
       'numero', 'codigo', 'fechaIngreso', 'asunto', 'peticionario',
-      'estadoLey', 'fechaAprobacion', 'fechaRemisionDiputados',
-      'numeroLey', 'archivoAnexo'
+      'estadoLey', 'fechaAprobacion', 'fechaRemisionDiputados',
     ],
     camposBloqueadosEnEdicion: ['numero', 'codigo']
   },
@@ -390,8 +389,7 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
     ],
     camposObligatorios: [
       'numero', 'codigo', 'fechaIngreso', 'asunto', 'peticionario',
-      'estadoLey', 'fechaSancion', 'fechaRemisionEjecutivo',
-      'numeroLey', 'archivoAnexo'
+      'estadoLey', 'fechaSancion', 'fechaRemisionEjecutivo',
     ],
     camposBloqueadosEnEdicion: ['numero', 'codigo']
   },
@@ -424,8 +422,7 @@ export const TIPOS_DOCUMENTO: Record<TipoDocumento, TipoDocumentoConfig> = {
     ],
     camposObligatorios: [
       'numero', 'codigo', 'fechaIngreso', 'asunto', 'peticionario',
-      'estadoLey', 'fechaAprobacion', 'fechaRemisionDiputados',
-      'numeroLey', 'archivoAnexo'
+      'estadoLey', 'fechaAprobacion', 'fechaRemisionDiputados',
     ],
     camposBloqueadosEnEdicion: ['numero', 'codigo']
   },
